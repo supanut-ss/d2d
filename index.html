@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f4f7fc" />
+    <meta
+      name="description"
+      content="รู้จัก drivetodev และสำรวจตัวอย่างแอปกับเครื่องมือที่สร้างขึ้นเพื่อแก้ปัญหาในชีวิตจริง"
+    />
+    <title>drivetodev — จากไอเดียสู่ซอฟต์แวร์</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #14243a;
+        --blue: #126bfa;
+        --blue-deep: #0d56d8;
+        --paper: #f4f7fc;
+        --white: #ffffff;
+        --muted: #56667c;
+        --line: #d7e0ed;
+        --soft-blue: #e7efff;
+        --max-width: 1240px;
+        font-family: "IBM Plex Sans Thai", "Noto Sans Thai", sans-serif;
+        color: var(--ink);
+        background: var(--paper);
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        min-width: 320px;
+        margin: 0;
+        font-size: 16px;
+        line-height: 1.65;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      button,
+      input {
+        font: inherit;
+      }
+
+      button,
+      a,
+      input {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      button:focus-visible,
+      a:focus-visible,
+      input:focus-visible,
+      summary:focus-visible {
+        outline: 3px solid var(--blue);
+        outline-offset: 4px;
+      }
+
+      .wrap {
+        width: min(calc(100% - 48px), var(--max-width));
+        margin-inline: auto;
+      }
+
+      .skip-link {
+        position: absolute;
+        z-index: 10;
+        inset-block-start: 12px;
+        inset-inline-start: 12px;
+        padding: 10px 16px;
+        transform: translateY(-160%);
+        border-radius: 6px;
+        color: var(--white);
+        background: var(--ink);
+      }
+
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
+      .site-header {
+        border-bottom: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .header-inner {
+        display: flex;
+        min-height: 84px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 28px;
+      }
+
+      .brand {
+        display: inline-flex;
+        min-height: 48px;
+        align-items: center;
+        gap: 11px;
+        flex: 0 0 auto;
+      }
+
+      .brand-mark {
+        width: 42px;
+        height: 42px;
+      }
+
+      .brand-name {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 21px;
+        font-weight: 700;
+        line-height: 1;
+      }
+
+      .brand-name span {
+        color: var(--blue);
+      }
+
+      .main-nav {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: clamp(18px, 3vw, 42px);
+      }
+
+      .main-nav a {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .main-nav a:hover,
+      .text-link:hover {
+        color: var(--blue-deep);
+      }
+
+      .main-nav .nav-cta {
+        padding-inline: 18px;
+        border: 1px solid var(--ink);
+        border-radius: 5px;
+        color: var(--ink);
+      }
+
+      .main-nav .nav-cta:hover {
+        color: var(--white);
+        background: var(--ink);
+      }
+
+      .hero {
+        display: grid;
+        grid-template-columns: minmax(0, 1.04fr) minmax(380px, 0.96fr);
+        align-items: center;
+        gap: clamp(40px, 7vw, 102px);
+        padding-block: clamp(70px, 9vw, 124px) clamp(82px, 9vw, 128px);
+      }
+
+      .hero-copy {
+        max-width: 650px;
+      }
+
+      .eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        margin: 0 0 21px;
+        color: var(--blue-deep);
+        font-size: 15px;
+        font-weight: 600;
+      }
+
+      .eyebrow::before {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--blue);
+        content: "";
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-block-start: 0;
+      }
+
+      h1,
+      h2,
+      h3 {
+        text-wrap: balance;
+      }
+
+      p {
+        text-wrap: pretty;
+      }
+
+      h1 {
+        max-width: 680px;
+        margin-block-end: 22px;
+        font-size: clamp(42px, 5.4vw, 74px);
+        font-weight: 600;
+        line-height: 1.18;
+      }
+
+      .hero-description {
+        max-width: 550px;
+        margin-block-end: 32px;
+        color: var(--muted);
+        font-size: clamp(17px, 1.5vw, 19px);
+        line-height: 1.8;
+      }
+
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .button {
+        display: inline-flex;
+        min-height: 50px;
+        align-items: center;
+        justify-content: center;
+        padding: 11px 20px;
+        border: 1px solid transparent;
+        border-radius: 5px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .button-primary {
+        color: var(--white);
+        background: var(--blue);
+      }
+
+      .button-primary:hover {
+        background: var(--blue-deep);
+      }
+
+      .button-secondary {
+        border-color: var(--line);
+        background: transparent;
+      }
+
+      .button-secondary:hover {
+        border-color: var(--ink);
+      }
+
+      .brand-stage {
+        position: relative;
+        display: flex;
+        min-height: 470px;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 44px;
+        background: var(--blue);
+      }
+
+      .brand-stage::before,
+      .brand-stage::after {
+        position: absolute;
+        z-index: 0;
+        width: 110px;
+        height: 110px;
+        border: 1px solid rgb(255 255 255 / 28%);
+        border-radius: 50%;
+        content: "";
+      }
+
+      .brand-stage::before {
+        inset-block-start: -38px;
+        inset-inline-end: -30px;
+      }
+
+      .brand-stage::after {
+        inset-block-end: -58px;
+        inset-inline-start: -35px;
+      }
+
+      .stage-note {
+        position: absolute;
+        z-index: 1;
+        inset-block-start: 22px;
+        inset-inline-start: 24px;
+        margin: 0;
+        color: var(--white);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 13px;
+        font-weight: 500;
+      }
+
+      .stage-note span {
+        padding-inline: 9px;
+        color: #c9dcff;
+      }
+
+      .stage-paper {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        width: min(100%, 325px);
+        aspect-ratio: 1;
+        place-items: center;
+        background: var(--white);
+        box-shadow: 0 18px 36px rgb(9 37 86 / 18%);
+      }
+
+      .stage-logo {
+        width: 76%;
+        height: 76%;
+      }
+
+      .stage-caption {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        width: min(100%, 325px);
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding-block-start: 18px;
+        color: var(--white);
+        font-size: 14px;
+        font-weight: 500;
+      }
+
+      .stage-caption p {
+        margin: 0;
+      }
+
+      .stage-caption span {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .principles {
+        border-block: 1px solid var(--line);
+        background: var(--white);
+      }
+
+      .principle-row {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+      }
+
+      .principle {
+        display: flex;
+        min-height: 112px;
+        align-items: center;
+        gap: 15px;
+        padding: 22px clamp(15px, 2.8vw, 38px);
+      }
+
+      .principle + .principle {
+        border-inline-start: 1px solid var(--line);
+      }
+
+      .principle-symbol {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        flex: 0 0 auto;
+        place-items: center;
+        border: 1px solid var(--line);
+        border-radius: 50%;
+        color: var(--blue-deep);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .principle p {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .section {
+        padding-block: clamp(76px, 9vw, 122px);
+      }
+
+      .apps-section {
+        background: var(--paper);
+      }
+
+      .section-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 36px;
+        margin-block-end: 34px;
+      }
+
+      .section-heading > div {
+        max-width: 620px;
+      }
+
+      .section-label {
+        margin-block-end: 8px;
+        color: var(--blue-deep);
+        font-size: 14px;
+        font-weight: 600;
+      }
+
+      h2 {
+        margin-block-end: 10px;
+        font-size: clamp(32px, 4vw, 48px);
+        font-weight: 600;
+        line-height: 1.25;
+      }
+
+      .section-intro {
+        max-width: 590px;
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .sample-note {
+        flex: 0 0 auto;
+        margin: 0 0 4px;
+        padding: 7px 11px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--muted);
+        background: var(--white);
+        font-size: 13px;
+      }
+
+      .app-toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px 22px;
+        margin-block-end: 24px;
+      }
+
+      .filter-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .filter-button {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        padding: 8px 15px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--muted);
+        background: var(--white);
+        cursor: pointer;
+      }
+
+      .filter-button[aria-pressed="true"] {
+        border-color: var(--ink);
+        color: var(--white);
+        background: var(--ink);
+      }
+
+      .search-wrap {
+        position: relative;
+        width: min(100%, 290px);
+      }
+
+      .search-icon {
+        position: absolute;
+        inset-block-start: 13px;
+        inset-inline-start: 13px;
+        width: 18px;
+        height: 18px;
+        color: var(--muted);
+        pointer-events: none;
+      }
+
+      .search-input {
+        width: 100%;
+        min-height: 46px;
+        padding: 9px 12px 9px 41px;
+        border: 1px solid var(--line);
+        border-radius: 4px;
+        color: var(--ink);
+        background: var(--white);
+      }
+
+      .search-input::placeholder {
+        color: #65758a;
+        opacity: 1;
+      }
+
+      .app-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 20px;
+      }
+
+      .app-card {
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid var(--line);
+        background: var(--white);
+      }
+
+      .app-card[hidden] {
+        display: none;
+      }
+
+      .app-art {
+        display: flex;
+        min-height: 204px;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        padding: 25px;
+        background: var(--soft-blue);
+      }
+
+      .app-art-inventory {
+        background: #eaf0f8;
+      }
+
+      .app-art-notes {
+        background: #eef1f6;
+      }
+
+      .mini-window {
+        width: min(100%, 290px);
+        min-height: 151px;
+        padding: 15px 17px;
+        border: 1px solid #d4deec;
+        background: var(--white);
+        box-shadow: 0 7px 16px rgb(20 36 58 / 8%);
+      }
+
+      .mini-window-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-block-end: 16px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .mini-window-head span:last-child {
+        color: var(--muted);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 11px;
+        font-weight: 400;
+      }
+
+      .task-line {
+        display: grid;
+        grid-template-columns: 12px minmax(0, 1fr) 43px;
+        align-items: center;
+        gap: 9px;
+        margin-block-start: 11px;
+      }
+
+      .task-check {
+        width: 11px;
+        height: 11px;
+        border: 1px solid #9eacc0;
+        border-radius: 3px;
+      }
+
+      .task-check-done {
+        border-color: var(--blue);
+        background: var(--blue);
+        box-shadow: inset 0 0 0 2px var(--white);
+      }
+
+      .task-line span:nth-child(2) {
+        height: 7px;
+        border-radius: 4px;
+        background: #e5eaf2;
+      }
+
+      .task-line span:nth-child(3) {
+        height: 7px;
+        border-radius: 4px;
+        background: #d9e6ff;
+      }
+
+      .stock-list {
+        display: grid;
+        grid-template-columns: 1fr auto auto;
+        align-items: center;
+        gap: 10px;
+        padding-block: 7px;
+        border-top: 1px solid #e7ecf3;
+        font-size: 11px;
+      }
+
+      .stock-list span:first-child {
+        font-weight: 500;
+      }
+
+      .stock-list span:nth-child(2) {
+        color: var(--muted);
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      .stock-status {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: var(--blue);
+      }
+
+      .code-window {
+        width: min(100%, 290px);
+        min-height: 151px;
+        padding: 18px 20px;
+        border: 1px solid #d4deec;
+        color: #edf3ff;
+        background: var(--ink);
+        font-family: "Space Grotesk", monospace;
+        font-size: 12px;
+        line-height: 1.9;
+      }
+
+      .code-window p {
+        margin: 0;
+      }
+
+      .code-comment {
+        color: #b7c8e4;
+      }
+
+      .code-function {
+        color: #75a9ff;
+      }
+
+      .app-card-body {
+        padding: 21px 22px 23px;
+      }
+
+      .app-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+        margin-block-end: 11px;
+      }
+
+      .app-meta span {
+        padding: 4px 8px;
+        border-radius: 3px;
+        color: #28405f;
+        background: #edf3ff;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .app-card h3 {
+        margin-block-end: 7px;
+        font-size: 22px;
+        font-weight: 600;
+        line-height: 1.35;
+      }
+
+      .app-card-body > p {
+        min-height: 52px;
+        margin-block-end: 17px;
+        color: var(--muted);
+        font-size: 15px;
+        line-height: 1.7;
+      }
+
+      .text-link {
+        display: inline-flex;
+        min-height: 44px;
+        align-items: center;
+        padding: 0;
+        border: 0;
+        color: var(--blue-deep);
+        background: transparent;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      .result-count {
+        min-height: 24px;
+        margin: 14px 0 0;
+        color: var(--muted);
+        font-size: 14px;
+      }
+
+      .empty-state {
+        padding: 35px;
+        border: 1px dashed #9dafc8;
+        text-align: center;
+        background: var(--white);
+      }
+
+      .empty-state[hidden] {
+        display: none;
+      }
+
+      .empty-state p {
+        margin-block-end: 12px;
+        color: var(--muted);
+      }
+
+      .about-section {
+        border-block-start: 1px solid var(--line);
+        background: var(--white);
+      }
+
+      .about-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(300px, 0.82fr);
+        gap: clamp(42px, 8vw, 112px);
+      }
+
+      .about-copy {
+        max-width: 650px;
+      }
+
+      .about-copy > p:last-child {
+        margin-block-end: 0;
+        color: var(--muted);
+        font-size: 18px;
+        line-height: 1.85;
+      }
+
+      .about-card {
+        align-self: center;
+        padding: 28px 30px;
+        border-inline-start: 3px solid var(--blue);
+        background: var(--paper);
+      }
+
+      .about-card h3 {
+        margin-block-end: 16px;
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      .about-card ul {
+        display: grid;
+        gap: 12px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .about-card li {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+      }
+
+      .about-card li::before {
+        width: 7px;
+        height: 7px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--blue);
+        content: "";
+      }
+
+      .contact-band {
+        padding-block: 65px;
+        color: var(--white);
+        background: var(--ink);
+      }
+
+      .contact-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 32px;
+      }
+
+      .contact-inner h2 {
+        max-width: 670px;
+        margin-block-end: 9px;
+        font-size: clamp(30px, 4vw, 42px);
+      }
+
+      .contact-inner p {
+        margin: 0;
+        color: #d0daea;
+      }
+
+      .contact-inner .button {
+        flex: 0 0 auto;
+        color: var(--ink);
+        background: var(--white);
+      }
+
+      .contact-inner .button:hover {
+        background: #e7efff;
+      }
+
+      .site-footer {
+        padding-block: 22px;
+        color: #d0daea;
+        background: var(--ink);
+      }
+
+      .footer-inner {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        border-block-start: 1px solid #34445c;
+        padding-block-start: 18px;
+        font-size: 14px;
+      }
+
+      .footer-inner p {
+        margin: 0;
+      }
+
+      .footer-brand {
+        color: var(--white);
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 600;
+      }
+
+      dialog {
+        width: min(calc(100% - 32px), 520px);
+        max-height: min(80vh, 650px);
+        overflow: auto;
+        padding: 0;
+        border: 1px solid var(--line);
+        color: var(--ink);
+        background: var(--white);
+      }
+
+      dialog::backdrop {
+        background: rgb(10 22 40 / 58%);
+      }
+
+      .dialog-content {
+        padding: 30px;
+      }
+
+      .dialog-content h2 {
+        margin-block-end: 10px;
+        font-size: 30px;
+      }
+
+      .dialog-content p {
+        color: var(--muted);
+      }
+
+      .dialog-content ul {
+        margin-block: 0 23px;
+        padding-inline-start: 22px;
+      }
+
+      .dialog-content li + li {
+        margin-block-start: 7px;
+      }
+
+      .dialog-close {
+        min-height: 44px;
+        padding: 8px 14px;
+        border: 1px solid var(--ink);
+        border-radius: 4px;
+        color: var(--white);
+        background: var(--ink);
+        cursor: pointer;
+      }
+
+      .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        clip-path: inset(50%);
+      }
+
+      @media (max-width: 900px) {
+        .hero {
+          grid-template-columns: minmax(0, 1fr) minmax(300px, 0.9fr);
+          gap: 34px;
+        }
+
+        .brand-stage {
+          min-height: 400px;
+          padding: 34px 26px;
+        }
+
+        .stage-paper {
+          width: min(100%, 280px);
+        }
+
+        .app-grid {
+          grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .about-grid {
+          gap: 42px;
+        }
+      }
+
+      @media (max-width: 680px) {
+        .wrap {
+          width: min(calc(100% - 36px), var(--max-width));
+        }
+
+        .header-inner {
+          min-height: auto;
+          flex-wrap: wrap;
+          gap: 4px 18px;
+          padding-block: 14px;
+        }
+
+        .brand {
+          min-height: 44px;
+        }
+
+        .brand-mark {
+          width: 37px;
+          height: 37px;
+        }
+
+        .main-nav {
+          width: 100%;
+          justify-content: space-between;
+          gap: 8px;
+        }
+
+        .main-nav a {
+          font-size: 14px;
+        }
+
+        .main-nav .nav-cta {
+          padding-inline: 11px;
+        }
+
+        .hero {
+          grid-template-columns: 1fr;
+          gap: 38px;
+          padding-block: 64px 72px;
+        }
+
+        h1 {
+          font-size: clamp(39px, 11vw, 58px);
+        }
+
+        .brand-stage {
+          min-height: 370px;
+        }
+
+        .principle-row {
+          grid-template-columns: 1fr;
+          padding-block: 8px;
+        }
+
+        .principle {
+          min-height: 68px;
+          padding: 12px 4px;
+        }
+
+        .principle + .principle {
+          border-block-start: 1px solid var(--line);
+          border-inline-start: 0;
+        }
+
+        .section {
+          padding-block: 70px;
+        }
+
+        .section-heading {
+          display: block;
+          margin-block-end: 24px;
+        }
+
+        .sample-note {
+          display: inline-block;
+          margin-block-start: 15px;
+        }
+
+        .app-toolbar {
+          align-items: stretch;
+        }
+
+        .filter-list {
+          gap: 7px;
+        }
+
+        .filter-button {
+          padding-inline: 12px;
+          font-size: 14px;
+        }
+
+        .search-wrap {
+          width: 100%;
+        }
+
+        .app-grid {
+          grid-template-columns: 1fr;
+          gap: 15px;
+        }
+
+        .app-art {
+          min-height: 190px;
+        }
+
+        .app-card-body > p {
+          min-height: 0;
+        }
+
+        .about-grid {
+          grid-template-columns: 1fr;
+          gap: 30px;
+        }
+
+        .about-copy > p:last-child {
+          font-size: 17px;
+        }
+
+        .about-card {
+          padding: 23px 21px;
+        }
+
+        .contact-band {
+          padding-block: 48px;
+        }
+
+        .contact-inner {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .footer-inner {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 8px;
+        }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        html {
+          scroll-behavior: auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a class="skip-link" href="#main-content">ข้ามไปยังเนื้อหาหลัก</a>
+
+    <header class="site-header">
+      <div class="wrap header-inner">
+        <a class="brand" href="#top" aria-label="drivetodev กลับไปด้านบน">
+          <svg class="brand-mark" viewBox="0 0 186 186" aria-hidden="true">
+            <path
+              fill="#14243a"
+              fill-rule="evenodd"
+              d="M24 18h73c46 0 73 29 73 74s-27 76-73 76H24v-40l44-36-44-37V18Zm45 36v77h28c25 0 40-15 40-39s-15-38-40-38H69Z"
+            />
+            <path fill="#126bfa" d="M24 18h34l55 56c12 12 12 25 0 37l-55 57H24v-40l44-36-44-37V18Z" />
+          </svg>
+          <span class="brand-name">drive<span>to</span>dev</span>
+        </a>
+        <nav class="main-nav" aria-label="เมนูหลัก">
+          <a href="#apps">แอปทั้งหมด</a>
+          <a href="#about">เกี่ยวกับฉัน</a>
+          <a class="nav-cta" href="#contact">ติดต่อ</a>
+        </nav>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <section class="wrap hero" id="top" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">พื้นที่ของซอฟต์แวร์จาก drivetodev</p>
+          <h1 id="hero-title">สร้างไอเดีย<br />ให้เป็นซอฟต์แวร์ที่ใช้ได้จริง</h1>
+          <p class="hero-description">
+            ยินดีต้อนรับสู่ drivetodev พื้นที่รวมแอปและเครื่องมือที่สร้างขึ้นเพื่อทำให้เรื่องซับซ้อนเข้าใจง่าย และหยิบไปใช้ได้ทุกวัน
+          </p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#apps">สำรวจแอป</a>
+            <a class="button button-secondary" href="#about">รู้จักผู้สร้าง</a>
+          </div>
+        </div>
+
+        <div class="brand-stage" aria-label="ตราสัญลักษณ์ drivetodev ในงานออกแบบสีน้ำเงิน">
+          <p class="stage-note">IDEA<span>→</span>SOFTWARE</p>
+          <div class="stage-paper">
+            <svg class="stage-logo" viewBox="0 0 186 186" aria-hidden="true">
+              <path
+                fill="#14243a"
+                fill-rule="evenodd"
+                d="M24 18h73c46 0 73 29 73 74s-27 76-73 76H24v-40l44-36-44-37V18Zm45 36v77h28c25 0 40-15 40-39s-15-38-40-38H69Z"
+              />
+              <path fill="#126bfa" d="M24 18h34l55 56c12 12 12 25 0 37l-55 57H24v-40l44-36-44-37V18Z" />
+            </svg>
+          </div>
+          <div class="stage-caption">
+            <p>จากโจทย์เล็ก ๆ สู่เครื่องมือที่มีความหมาย</p>
+            <span>drivetodev</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="principles" aria-label="แนวทางการพัฒนา">
+        <div class="wrap principle-row">
+          <div class="principle">
+            <span class="principle-symbol" aria-hidden="true">D</span>
+            <p>เริ่มจากปัญหาที่พบจริง</p>
+          </div>
+          <div class="principle">
+            <span class="principle-symbol" aria-hidden="true">↗</span>
+            <p>ออกแบบให้ง่ายต่อการใช้</p>
+          </div>
+          <div class="principle">
+            <span class="principle-symbol" aria-hidden="true">+</span>
+            <p>พัฒนาต่อยอดได้เสมอ</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="apps-section section" id="apps" aria-labelledby="apps-title">
+        <div class="wrap">
+          <div class="section-heading">
+            <div>
+              <p class="section-label">ทำอะไรได้บ้าง</p>
+              <h2 id="apps-title">แอปและเครื่องมือ</h2>
+              <p class="section-intro">รวมโปรเจกต์ที่ช่วยให้การทำงานเป็นระบบและใช้เวลาได้คุ้มขึ้น</p>
+            </div>
+            <p class="sample-note">ตัวอย่างเนื้อหาสำหรับ mockup</p>
+          </div>
+
+          <div class="app-toolbar">
+            <div class="filter-list" role="group" aria-label="กรองแอปตามประเภท">
+              <button class="filter-button" type="button" data-filter="all" aria-pressed="true">ทั้งหมด</button>
+              <button class="filter-button" type="button" data-filter="web" aria-pressed="false">เว็บแอป</button>
+              <button class="filter-button" type="button" data-filter="tool" aria-pressed="false">เครื่องมือ</button>
+            </div>
+            <label class="search-wrap">
+              <span class="sr-only">ค้นหาชื่อแอปหรือคำอธิบาย</span>
+              <svg class="search-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <circle cx="10.8" cy="10.8" r="6.8" stroke="currentColor" stroke-width="1.8" />
+                <path d="m16 16 4 4" stroke="currentColor" stroke-linecap="round" stroke-width="1.8" />
+              </svg>
+              <input class="search-input" id="app-search" type="search" placeholder="ค้นหาแอป" autocomplete="off" />
+            </label>
+          </div>
+
+          <div class="app-grid" id="app-grid">
+            <article class="app-card" data-category="web" data-search="taskbook จัดงาน โปรเจกต์ งาน เว็บแอป">
+              <div class="app-art" aria-hidden="true">
+                <div class="mini-window">
+                  <div class="mini-window-head"><span>งานของฉัน</span><span>วันนี้</span></div>
+                  <div class="task-line"><span class="task-check task-check-done"></span><span></span><span></span></div>
+                  <div class="task-line"><span class="task-check"></span><span></span><span></span></div>
+                  <div class="task-line"><span class="task-check"></span><span></span><span></span></div>
+                </div>
+              </div>
+              <div class="app-card-body">
+                <div class="app-meta"><span>เว็บแอป</span><span>จัดการงาน</span></div>
+                <h3>Taskbook</h3>
+                <p>รวมงานที่ต้องทำและช่วยให้เห็นสิ่งสำคัญที่ควรไปต่อ</p>
+                <button class="text-link" type="button" data-dialog="taskbook-dialog">ดูแนวคิดของแอป</button>
+              </div>
+            </article>
+
+            <article class="app-card" data-category="web" data-search="stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ">
+              <div class="app-art app-art-inventory" aria-hidden="true">
+                <div class="mini-window">
+                  <div class="mini-window-head"><span>ภาพรวมคลัง</span><span>ล่าสุด</span></div>
+                  <div class="stock-list"><span>กล่องพัสดุ</span><span>128</span><span class="stock-status"></span></div>
+                  <div class="stock-list"><span>เทปกาว</span><span>46</span><span class="stock-status"></span></div>
+                  <div class="stock-list"><span>ซองเอกสาร</span><span>32</span><span class="stock-status"></span></div>
+                </div>
+              </div>
+              <div class="app-card-body">
+                <div class="app-meta"><span>เว็บแอป</span><span>จัดการสต็อก</span></div>
+                <h3>Stockroom</h3>
+                <p>ดูของเข้า ของออก และจำนวนคงเหลือได้ในหน้าเดียว</p>
+                <button class="text-link" type="button" data-dialog="stockroom-dialog">ดูแนวคิดของแอป</button>
+              </div>
+            </article>
+
+            <article class="app-card" data-category="tool" data-search="dev notes devnotes โน้ต โค้ด นักพัฒนา เครื่องมือ">
+              <div class="app-art app-art-notes" aria-hidden="true">
+                <div class="code-window">
+                  <p class="code-comment">// บันทึกไว้ใช้ครั้งต่อไป</p>
+                  <p><span class="code-function">function</span> keepUsefulNotes() {</p>
+                  <p>&nbsp;&nbsp;return notes.find(<span class="code-function">useful</span>);</p>
+                  <p>}</p>
+                </div>
+              </div>
+              <div class="app-card-body">
+                <div class="app-meta"><span>เครื่องมือ</span><span>สำหรับนักพัฒนา</span></div>
+                <h3>Dev Notes</h3>
+                <p>เก็บโค้ดตัวอย่างและโน้ตสั้น ๆ ให้กลับมาค้นเจอง่าย</p>
+                <button class="text-link" type="button" data-dialog="devnotes-dialog">ดูแนวคิดของแอป</button>
+              </div>
+            </article>
+          </div>
+          <p class="result-count" id="result-count" aria-live="polite">แสดง 3 แอป</p>
+          <div class="empty-state" id="empty-state" hidden>
+            <p>ยังไม่พบแอปที่ตรงกับคำค้นนี้</p>
+            <button class="button button-secondary" id="clear-search" type="button">ล้างตัวกรองและค้นหาใหม่</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="about-section section" id="about" aria-labelledby="about-title">
+        <div class="wrap about-grid">
+          <div class="about-copy">
+            <p class="section-label">คนที่อยู่เบื้องหลัง</p>
+            <h2 id="about-title">เกี่ยวกับ drivetodev</h2>
+            <p>
+              สนุกกับการตั้งคำถามว่าเรื่องไหนทำให้ง่ายขึ้นได้อีก แล้วเปลี่ยนคำตอบให้กลายเป็นซอฟต์แวร์ที่คนใช้ได้จริง drivetodev จึงเป็นทั้งพื้นที่ทดลองไอเดียและบ้านของแอปที่ค่อย ๆ พัฒนาไปพร้อมกับผู้ใช้
+            </p>
+          </div>
+          <aside class="about-card" aria-label="แนวคิดการทำงาน">
+            <h3>สิ่งที่ใส่ใจในทุกโปรเจกต์</h3>
+            <ul>
+              <li>เข้าใจโจทย์ก่อนเลือกเทคโนโลยี</li>
+              <li>ลดขั้นตอนที่ไม่จำเป็น</li>
+              <li>สร้างจากการใช้งานจริงและรับฟังคำแนะนำ</li>
+            </ul>
+          </aside>
+        </div>
+      </section>
+
+      <section class="contact-band" id="contact" aria-labelledby="contact-title">
+        <div class="wrap contact-inner">
+          <div>
+            <h2 id="contact-title">มีไอเดียที่อยากทำให้เกิดขึ้นจริงไหม</h2>
+            <p>เริ่มต้นจากการเล่าโจทย์ แล้วค่อยหาทางออกไปด้วยกัน</p>
+          </div>
+          <a class="button" href="mailto:hello@drivetodev.com?subject=คุยเรื่องโปรเจกต์">ชวนคุยเรื่องโปรเจกต์</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap footer-inner">
+        <p class="footer-brand">drivetodev</p>
+        <p>จากไอเดียสู่ซอฟต์แวร์ที่ใช้ได้จริง</p>
+      </div>
+    </footer>
+
+    <dialog id="taskbook-dialog" aria-labelledby="taskbook-title">
+      <div class="dialog-content">
+        <p class="section-label">ตัวอย่างข้อมูลสำหรับ mockup · เว็บแอป</p>
+        <h2 id="taskbook-title">Taskbook</h2>
+        <p>แนวคิดแอปจัดการงานส่วนตัว ช่วยรวบรวมสิ่งที่ต้องทำและมองเห็นลำดับถัดไปอย่างชัดเจน</p>
+        <ul><li>จัดงานตามโปรเจกต์หรือวันครบกำหนด</li><li>แยกสิ่งที่กำลังทำออกจากงานที่เสร็จแล้ว</li></ul>
+        <button class="dialog-close" type="button">ปิดรายละเอียด</button>
+      </div>
+    </dialog>
+    <dialog id="stockroom-dialog" aria-labelledby="stockroom-title">
+      <div class="dialog-content">
+        <p class="section-label">ตัวอย่างข้อมูลสำหรับ mockup · เว็บแอป</p>
+        <h2 id="stockroom-title">Stockroom</h2>
+        <p>แนวคิดเครื่องมือติดตามสต็อกขนาดเล็ก เพื่อให้รู้ว่ามีอะไรอยู่และรายการไหนใกล้หมด</p>
+        <ul><li>บันทึกรายการเข้าและออก</li><li>ดูจำนวนคงเหลือและรายการที่ควรเติม</li></ul>
+        <button class="dialog-close" type="button">ปิดรายละเอียด</button>
+      </div>
+    </dialog>
+    <dialog id="devnotes-dialog" aria-labelledby="devnotes-title">
+      <div class="dialog-content">
+        <p class="section-label">ตัวอย่างข้อมูลสำหรับ mockup · เครื่องมือ</p>
+        <h2 id="devnotes-title">Dev Notes</h2>
+        <p>แนวคิดพื้นที่เก็บ snippet และโน้ตด้านเทคนิค เพื่อค้นกลับมาใช้ได้ในเวลาที่ต้องการ</p>
+        <ul><li>จัดกลุ่มโน้ตตามหัวข้อหรือภาษา</li><li>ค้นหาจากเนื้อหาและแท็ก</li></ul>
+        <button class="dialog-close" type="button">ปิดรายละเอียด</button>
+      </div>
+    </dialog>
+
+    <script>
+      const filterButtons = [...document.querySelectorAll("[data-filter]")];
+      const appCards = [...document.querySelectorAll(".app-card")];
+      const searchInput = document.querySelector("#app-search");
+      const resultCount = document.querySelector("#result-count");
+      const emptyState = document.querySelector("#empty-state");
+      let activeFilter = "all";
+
+      function updateApps() {
+        const query = searchInput.value.trim().toLocaleLowerCase("th");
+        let visibleCount = 0;
+
+        for (const card of appCards) {
+          const matchesCategory = activeFilter === "all" || card.dataset.category === activeFilter;
+          const matchesSearch = card.dataset.search.toLocaleLowerCase("th").includes(query);
+          const isVisible = matchesCategory && matchesSearch;
+          card.hidden = !isVisible;
+          if (isVisible) visibleCount += 1;
+        }
+
+        resultCount.textContent = `แสดง ${visibleCount} แอป`;
+        emptyState.hidden = visibleCount !== 0;
+      }
+
+      for (const button of filterButtons) {
+        button.addEventListener("click", () => {
+          activeFilter = button.dataset.filter;
+          for (const item of filterButtons) {
+            item.setAttribute("aria-pressed", String(item === button));
+          }
+          updateApps();
+        });
+      }
+
+      searchInput.addEventListener("input", updateApps);
+
+      document.querySelector("#clear-search").addEventListener("click", () => {
+        activeFilter = "all";
+        searchInput.value = "";
+        for (const button of filterButtons) {
+          button.setAttribute("aria-pressed", String(button.dataset.filter === "all"));
+        }
+        updateApps();
+        searchInput.focus();
+      });
+
+      for (const button of document.querySelectorAll("[data-dialog]")) {
+        button.addEventListener("click", () => {
+          document.getElementById(button.dataset.dialog).showModal();
+        });
+      }
+
+      for (const dialog of document.querySelectorAll("dialog")) {
+        dialog.querySelector(".dialog-close").addEventListener("click", () => dialog.close());
+      }
+    </script>
+  </body>
+</html>
