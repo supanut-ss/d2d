@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const apps = [{"category":"web","search":"pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป"},{"category":"web","search":"meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ"},{"category":"tool","search":"dev notes devnotes โน้ต โค้ด นักพัฒนา เครื่องมือ"}];
+const apps = [{"category":"web","search":"pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป"},{"category":"web","search":"meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ"},{"category":"web","search":"เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน"}];
 
 export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -213,10 +213,6 @@ export default function HomePage() {
           </p>
           {"\n            "}
         </div>
-        {"\n            "}
-        <p className="sample-note">
-          {"พิมพ์สะดวก เปิดใช้งานจริง"}
-        </p>
         {"\n          "}
       </div>
       {"\n\n          "}
@@ -309,11 +305,9 @@ export default function HomePage() {
           <div className="app-card-body">
             {"\n                "}
             <div className="app-meta">
+              <span className="badge-online">{"Online now"}</span>
               <span>
                 {"เว็บแอป"}
-              </span>
-              <span>
-                {"พร้อมใช้งาน"}
               </span>
             </div>
             {"\n                "}
@@ -344,55 +338,21 @@ export default function HomePage() {
         <article className="app-card" data-category="web" data-search="meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ" hidden={!isAppVisible("web", "meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ")}>
           {"\n              "}
           <div className="app-art app-art-inventory" aria-hidden="true">
-            {"\n                "}
-            <div className="mini-window">
-              {"\n                  "}
-              <div className="mini-window-head">
-                <span>
-                  {"ภาพรวมคลัง"}
-                </span>
-                <span>
-                  {"ล่าสุด"}
-                </span>
+            <div className="preview-card">
+              <div className="preview-top"><strong>{"MeeStock"}</strong><span>{"ภาพรวมคลัง"}</span></div>
+              <div className="stock-rows">
+                <div><span>{"กล่องพัสดุ"}</span><span>{"128"}</span></div>
+                <div><span>{"เทปกาว"}</span><span>{"46"}</span></div>
+                <div className="low"><span>{"ซองเอกสาร"}</span><span>{"8 · ใกล้หมด"}</span></div>
               </div>
-              {"\n                  "}
-              <div className="stock-list">
-                <span>
-                  {"กล่องพัสดุ"}
-                </span>
-                <span>
-                  {"128"}
-                </span>
-                <span className="stock-status"></span>
-              </div>
-              {"\n                  "}
-              <div className="stock-list">
-                <span>
-                  {"เทปกาว"}
-                </span>
-                <span>
-                  {"46"}
-                </span>
-                <span className="stock-status"></span>
-              </div>
-              {"\n                  "}
-              <div className="stock-list">
-                <span>
-                  {"ซองเอกสาร"}
-                </span>
-                <span>
-                  {"32"}
-                </span>
-                <span className="stock-status"></span>
-              </div>
-              {"\n                "}
+              <div className="preview-bottom"><span>{"ตัวอย่างข้อมูล"}</span><span>{"แจ้งเตือนอัตโนมัติ"}</span></div>
             </div>
-            {"\n              "}
           </div>
           {"\n              "}
           <div className="app-card-body">
             {"\n                "}
             <div className="app-meta">
+              <span className="badge-online">{"Online now"}</span>
               <span>
                 {"เว็บแอป"}
               </span>
@@ -422,61 +382,55 @@ export default function HomePage() {
           {"\n            "}
         </article>
         {"\n\n            "}
-        <article className="app-card" data-category="tool" data-search="dev notes devnotes โน้ต โค้ด นักพัฒนา เครื่องมือ" hidden={!isAppVisible("tool", "dev notes devnotes โน้ต โค้ด นักพัฒนา เครื่องมือ")}>
+        <article className="app-card" data-category="web" data-search="เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน" hidden={!isAppVisible("web", "เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน")}>
           {"\n              "}
-          <div className="app-art app-art-notes" aria-hidden="true">
-            {"\n                "}
-            <div className="code-window">
-              {"\n                  "}
-              <p className="code-comment">
-                {"// บันทึกไว้ใช้ครั้งต่อไป"}
-              </p>
-              {"\n                  "}
-              <p>
-                <span className="code-function">
-                  {"function"}
-                </span>
-                {" keepUsefulNotes() {"}
-              </p>
-              {"\n                  "}
-              <p>
-                {"  return notes.find("}
-                <span className="code-function">
-                  {"useful"}
-                </span>
-                {");"}
-              </p>
-              {"\n                  "}
-              <p>
-                {"}"}
-              </p>
-              {"\n                "}
+          <div className="app-art app-art-games" aria-hidden="true">
+            <div className="party-board">
+              <div className="party-board-header">
+                <div><span className="party-board-kicker">{"เล่นกันมั้ย"}</span><strong>{"เลือกเกมแล้วชวนเพื่อน"}</strong></div>
+                <span className="party-game-count">{"6 เกม"}</span>
+              </div>
+              <div className="party-game-list">
+                <div className="party-game-tile"><span>{"01"}</span><strong>{"เลขลับ"}</strong></div>
+                <div className="party-game-tile"><span>{"02"}</span><strong>{"ลุ้นบึ้ม"}</strong></div>
+                <div className="party-game-tile"><span>{"03"}</span><strong>{"Truth or Dare"}</strong></div>
+                <div className="party-game-tile"><span>{"04"}</span><strong>{"อย่าปล่อยช้า"}</strong></div>
+              </div>
+              <div className="party-board-footer">
+                <div className="party-player-row"><span>{"ก"}</span><span>{"น"}</span><span>{"ม"}</span><span>{"+"}</span></div>
+                <span>{"เล่นผลัดกันเครื่องเดียว"}</span>
+              </div>
             </div>
-            {"\n              "}
           </div>
           {"\n              "}
           <div className="app-card-body">
             {"\n                "}
             <div className="app-meta">
+              <span className="badge-online">{"Online now"}</span>
               <span>
-                {"เครื่องมือ"}
+                {"เกมปาร์ตี้"}
               </span>
               <span>
-                {"สำหรับนักพัฒนา"}
+                {"เล่นได้หลายคน"}
               </span>
             </div>
             {"\n                "}
             <h3>
-              {"Dev Notes"}
+              {"เล่นกันมั้ย"}
             </h3>
             {"\n                "}
             <p>
-              {"เก็บโค้ดตัวอย่างและโน้ตสั้น ๆ ให้กลับมาค้นเจอง่าย"}
+              {"รวม 6 เกมปาร์ตี้ เล่นผลัดกันบนมือถือ แท็บเล็ต หรือคอมพิวเตอร์เครื่องเดียว"}
             </p>
             {"\n                "}
-            <button className="text-link" type="button" data-dialog="devnotes-dialog" onClick={() => setActiveDialog("devnotes-dialog")}>
-              {"ดูแนวคิดของแอป"}
-            </button>
+            <div className="app-actions">
+              <a className="text-link" href="partygame.html">
+                {"ดูแนวคิดของแอป"}
+              </a>
+              <a className="text-link" href="https://partygame.drivetodev.online" target="_blank" rel="noopener noreferrer">
+                {"เปิดแอปจริง ↗"}
+              </a>
+            </div>
             {"\n              "}
           </div>
           {"\n            "}
@@ -595,38 +549,7 @@ export default function HomePage() {
 </footer>
 {"\n\n    "}
 {"\n    "}
-<dialog id="devnotes-dialog" aria-labelledby="devnotes-title" ref={(node) => { dialogRefs.current["devnotes-dialog"] = node; }} onClose={() => setActiveDialog("")}>
-  {"\n      "}
-  <div className="dialog-content">
-    {"\n        "}
-    <p className="section-label">
-      {"ตัวอย่างข้อมูลสำหรับ mockup · เครื่องมือ"}
-    </p>
-    {"\n        "}
-    <h2 id="devnotes-title">
-      {"Dev Notes"}
-    </h2>
-    {"\n        "}
-    <p>
-      {"แนวคิดพื้นที่เก็บ snippet และโน้ตด้านเทคนิค เพื่อค้นกลับมาใช้ได้ในเวลาที่ต้องการ"}
-    </p>
-    {"\n        "}
-    <ul>
-      <li>
-        {"จัดกลุ่มโน้ตตามหัวข้อหรือภาษา"}
-      </li>
-      <li>
-        {"ค้นหาจากเนื้อหาและแท็ก"}
-      </li>
-    </ul>
-    {"\n        "}
-    <button className="dialog-close" type="button" onClick={() => setActiveDialog("")}>
-      {"ปิดรายละเอียด"}
-    </button>
-    {"\n      "}
-  </div>
-  {"\n    "}
-</dialog>
+
 {"\n\n    "}
 {"\n  \n\n"}
     </>

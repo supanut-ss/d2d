@@ -13,6 +13,7 @@ export default defineConfig({
         main: resolve(projectRoot, "index.html"),
         concept: resolve(projectRoot, "pimsaduak.html"),
         meestock: resolve(projectRoot, "meestock.html"),
+        partygame: resolve(projectRoot, "partygame.html"),
       },
     },
   },

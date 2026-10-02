@@ -42,6 +42,11 @@ if (-not (Test-Path -LiteralPath $conceptFile -PathType Leaf)) {
     throw "PimSaduak concept page is missing: $conceptFile"
 }
 
+$partyGameFile = Join-Path $PSScriptRoot "partygame.html"
+if (-not (Test-Path -LiteralPath $partyGameFile -PathType Leaf)) {
+    throw "PartyGame concept page is missing: $partyGameFile"
+}
+
 $gitRoot = Split-Path -Parent $PSScriptRoot
 $uploaderPath = Join-Path $gitRoot "P2S\upload-ftp.ps1"
 if (-not (Test-Path -LiteralPath $uploaderPath -PathType Leaf)) {
@@ -62,6 +67,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $distPath "index.html") -PathType Le
 if (-not (Test-Path -LiteralPath (Join-Path $distPath "pimsaduak.html") -PathType Leaf)) {
     throw "React build output is missing pimsaduak.html: $distPath"
 }
+if (-not (Test-Path -LiteralPath (Join-Path $distPath "partygame.html") -PathType Leaf)) {
+    throw "React build output is missing partygame.html: $distPath"
+}
 
 $stagingParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $stagingPath = [System.IO.Path]::GetFullPath(
@@ -74,6 +82,7 @@ if (-not $stagingPath.StartsWith($stagingParent, [System.StringComparison]::Ordi
 $dryRun = $env:D2D_DEPLOY_DRY_RUN -eq "1"
 $healthFile = Join-Path $stagingPath "health-check.html"
 $conceptHealthFile = Join-Path $stagingPath "concept-health-check.html"
+$partyGameHealthFile = Join-Path $stagingPath "partygame-health-check.html"
 
 try {
     New-Item -ItemType Directory -Path $stagingPath -ErrorAction Stop | Out-Null
@@ -99,7 +108,7 @@ try {
 
     Write-Host "Target: https://$targetHost/"
     Write-Host "FTP directory: $targetHost"
-    Write-Host "Files: $($distFiles.Count) built site files including both HTML pages and assets."
+    Write-Host "Files: $($distFiles.Count) built site files including four HTML pages and assets."
     if ($dryRun) {
         Write-Host "Dry run enabled through D2D_DEPLOY_DRY_RUN=1."
     }
@@ -151,7 +160,21 @@ try {
         throw "Upload finished, but https://$targetHost/pimsaduak.html did not return the built concept page."
     }
 
-    Write-Host "Deployment verified: https://$targetHost/ and /pimsaduak.html returned HTTP 200."
+    $partyGameHealthUrl = "https://$targetHost/partygame.html?deploy-check=$([guid]::NewGuid().ToString('N'))"
+    $partyGameHttpStatus = & $curl.Source -sS --max-time 30 -o $partyGameHealthFile -w "%{http_code}" $partyGameHealthUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "Upload finished, but the public concept-page health check could not reach https://$targetHost/partygame.html."
+    }
+    if ([string]$partyGameHttpStatus -ne "200") {
+        throw "Upload finished, but the PartyGame concept-page health check returned HTTP $partyGameHttpStatus."
+    }
+
+    $partyGameResponseHtml = [System.IO.File]::ReadAllText($partyGameHealthFile)
+    if ($partyGameResponseHtml -notmatch 'src="/assets/partygame-[^"]+\.js"') {
+        throw "Upload finished, but https://$targetHost/partygame.html did not return the built PartyGame concept page."
+    }
+
+    Write-Host "Deployment verified: https://$targetHost/, /pimsaduak.html, and /partygame.html returned HTTP 200."
 }
 finally {
     if (Test-Path -LiteralPath $stagingPath -PathType Container) {

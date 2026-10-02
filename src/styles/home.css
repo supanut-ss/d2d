@@ -520,7 +520,7 @@
         background: #eaf0f8;
       }
 
-      .app-art-notes {
+      .app-art-games {
         background: #eef1f6;
       }
 
@@ -576,28 +576,70 @@
         background: var(--blue);
       }
 
-      .code-window {
+      .party-preview {
         width: min(100%, 290px);
         min-height: 151px;
-        padding: 18px 20px;
+        padding: 15px 17px;
         border: 1px solid #d4deec;
-        color: #edf3ff;
-        background: var(--ink);
-        font-family: "Space Grotesk", monospace;
+        background: var(--white);
+        box-shadow: 0 7px 16px rgb(20 36 58 / 8%);
+      }
+
+      .party-preview-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
         font-size: 12px;
-        line-height: 1.9;
+        font-weight: 600;
       }
 
-      .code-window p {
+      .party-preview-head span {
+        color: var(--muted);
+        font-weight: 500;
+      }
+
+      .party-preview-head strong {
+        color: var(--blue);
+        font-family: "Space Grotesk", sans-serif;
+      }
+
+      .party-preview-players {
+        display: flex;
+        gap: 10px;
+        margin-block: 17px 13px;
+      }
+
+      .party-preview-players span {
+        display: grid;
+        width: 36px;
+        height: 36px;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--blue);
+        background: #e8f0ff;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .party-preview-turn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         margin: 0;
+        padding: 9px 10px;
+        color: var(--muted);
+        background: #f4f7fb;
+        font-size: 11px;
       }
 
-      .code-comment {
-        color: #b7c8e4;
-      }
-
-      .code-function {
-        color: #75a9ff;
+      .party-preview-turn span {
+        width: 7px;
+        height: 7px;
+        flex: 0 0 auto;
+        border-radius: 50%;
+        background: var(--blue);
       }
 
       .app-art-label {
@@ -687,6 +729,36 @@
         background: #edf3ff;
         font-size: 12px;
         font-weight: 500;
+      }
+
+      .app-meta .badge-online {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 10px;
+        border-radius: 999px;
+        color: #087443;
+        background: #e6f7ee;
+        font-weight: 600;
+      }
+
+      .badge-online::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: #12b76a;
+        box-shadow: 0 0 0 0 rgb(18 183 106 / 55%);
+        animation: online-pulse 1.8s infinite;
+      }
+
+      @keyframes online-pulse {
+        70% { box-shadow: 0 0 0 7px rgb(18 183 106 / 0%); }
+        100% { box-shadow: 0 0 0 0 rgb(18 183 106 / 0%); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .badge-online::before { animation: none; }
       }
 
       .app-card h3 {
@@ -1087,3 +1159,162 @@
         }
       }
     
+
+      /* Concept-page previews reused as card art */
+      .preview-card {
+        width: 290px;
+        padding: 22px 24px 18px;
+        border: 1px solid #d4deec;
+        background: var(--white);
+        box-shadow: 0 7px 16px rgb(20 36 58 / 8%);
+        
+      }
+
+      .preview-top,
+      .preview-bottom {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+      }
+
+      .preview-top {
+        padding-block-end: 13px;
+        border-block-end: 1px solid var(--line);
+      }
+
+      .preview-top strong {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 20px;
+      }
+
+      .preview-top span,
+      .preview-bottom {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .stock-rows {
+        display: grid;
+        gap: 8px;
+        padding-block: 14px;
+      }
+
+      .stock-rows div {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: #eef3fb;
+        font-size: 14px;
+      }
+
+      .stock-rows .low {
+        color: #b42318;
+        font-weight: 600;
+      }
+
+      .party-board {
+        width: 340px;
+        padding: 18px;
+        border: 1px solid #d4deec;
+        background: var(--white);
+        box-shadow: 0 7px 16px rgb(20 36 58 / 8%);
+        
+      }
+
+      .party-board-header,
+      .party-board-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+      }
+
+      .party-board-header > div { display: grid; gap: 4px; }
+      .party-board-kicker,
+      .party-feature-meta { margin: 0; color: var(--blue-deep); font-size: 12px; font-weight: 600; }
+      .party-board-header strong { font-size: 18px; }
+
+      .party-game-count {
+        padding: 6px 9px;
+        border-radius: 3px;
+        color: var(--blue-deep);
+        background: var(--soft-blue);
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .party-game-list {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 9px;
+        margin-block: 19px;
+      }
+
+      .party-game-tile {
+        display: flex;
+        min-width: 0;
+        min-height: 55px;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        border: 1px solid var(--line);
+        background: #f8faff;
+      }
+
+      .party-game-tile span {
+        color: var(--blue-deep);
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .party-game-tile strong { overflow: hidden; font-size: 13px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+
+      .party-board-footer {
+        padding-block-start: 13px;
+        border-block-start: 1px solid var(--line);
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .party-player-row { display: flex; gap: 5px; }
+      .party-player-row span {
+        display: grid;
+        width: 27px;
+        height: 27px;
+        place-items: center;
+        border-radius: 50%;
+        color: var(--ink);
+        background: #eaf1fd;
+        font-size: 11px;
+        font-weight: 600;
+      }
+      .party-player-row span:first-child { color: var(--white); background: var(--blue); }
+
+      .app-art .preview-card {
+        width: 380px;
+        height: 270px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        zoom: 0.763;
+      }
+
+      .app-art .party-board {
+        width: 402px;
+        height: 286px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        zoom: 0.72;
+      }
+
+      .app-art .label-window {
+        width: 290px;
+        height: 206px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
