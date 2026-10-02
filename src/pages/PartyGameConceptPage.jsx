@@ -15,7 +15,7 @@ export default function PartyGameConceptPage() {
       <a className="skip-link" href="#main-content">ข้ามไปยังเนื้อหาหลัก</a>
       <header className="site-header">
         <div className="wrap header-inner">
-          <a className="brand" href="index.html" aria-label="drivetodev กลับหน้ารวมแอป">
+          <a className="brand" href="/" aria-label="drivetodev กลับหน้ารวมแอป">
             <svg className="brand-mark" viewBox="0 0 186 186" aria-hidden="true">
               <path fill="#14243a" fillRule="evenodd" d="M24 18h73c46 0 73 29 73 74s-27 76-73 76H24v-40l44-36-44-37V18Zm45 36v77h28c25 0 40-15 40-39s-15-38-40-38H69Z" />
               <path fill="#126bfa" d="M24 18h34l55 56c12 12 12 25 0 37l-55 57H24v-40l44-36-44-37V18Z" />
@@ -23,7 +23,7 @@ export default function PartyGameConceptPage() {
             <span className="brand-name">drive<span>to</span>dev</span>
           </a>
           <nav className="main-nav" aria-label="เมนูหลัก">
-            <a href="index.html#apps">แอปทั้งหมด</a>
+            <a href="/#apps">แอปทั้งหมด</a>
             <a className="nav-cta" href={appUrl} target="_blank" rel="noopener noreferrer">เปิดแอปเล่นกันมั้ย ↗</a>
           </nav>
         </div>
@@ -33,14 +33,14 @@ export default function PartyGameConceptPage() {
         <section className="wrap hero" aria-labelledby="hero-title">
           <div className="hero-copy">
             <p className="eyebrow">เว็บรวมเกมปาร์ตี้</p>
-            <h1 id="hero-title">ชวนเพื่อน แล้วเริ่มเล่นได้ในเครื่องเดียว</h1>
+            <h1 id="hero-title">เล่นกันมั้ย: 6 เกมปาร์ตี้ เล่นกับเพื่อนบนเครื่องเดียว</h1>
             <p className="hero-description">
               เล่นกันมั้ย รวมเกมสั้น ๆ 6 แบบให้ทุกคนผลัดกันเล่นบนโทรศัพท์ แท็บเล็ต หรือคอมพิวเตอร์เครื่องเดียว
               เลือกเกม ใส่รายชื่อ แล้วทำตามตาที่แสดงบนหน้าจอ
             </p>
             <div className="hero-actions">
               <a className="button button-primary" href={appUrl} target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
-              <a className="button button-secondary" href="index.html#apps">กลับไปแอปทั้งหมด</a>
+              <a className="button button-secondary" href="/#apps">กลับไปแอปทั้งหมด</a>
             </div>
           </div>
           <div className="hero-art party-hero-art" role="img" aria-label="ตัวอย่างเกมปาร์ตี้ 6 เกมและการเล่นผลัดกันบนอุปกรณ์เดียว">

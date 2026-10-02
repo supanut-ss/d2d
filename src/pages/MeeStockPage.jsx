@@ -10,7 +10,7 @@ export default function MeeStockPage() {
   {"\n      "}
   <div className="wrap header-inner">
     {"\n        "}
-    <a className="brand" href="index.html" aria-label="drivetodev กลับหน้ารวมแอป">
+    <a className="brand" href="/" aria-label="drivetodev กลับหน้ารวมแอป">
       {"\n          "}
       <svg className="brand-mark" viewBox="0 0 186 186" aria-hidden="true">
         {"\n            "}
@@ -32,7 +32,7 @@ export default function MeeStockPage() {
     {"\n        "}
     <nav className="main-nav" aria-label="เมนูหลัก">
       {"\n          "}
-      <a href="index.html#apps">
+      <a href="/#apps">
         {"แอปทั้งหมด"}
       </a>
       {"\n          "}
@@ -54,7 +54,7 @@ export default function MeeStockPage() {
           <p className="hero-description">{"MeeStock ช่วยบันทึกสินค้า รับสินค้าเข้า จ่ายสินค้า ติดตามการจัดส่ง และดูรายงาน พร้อมแจ้งเตือนเมื่อสินค้าใกล้หมดหรือใกล้หมดอายุ"}</p>
           <div className="hero-actions">
             <a className="button button-primary" href="https://meestock.drivetodev.online" target="_blank" rel="noopener noreferrer">{"เปิดแอปจริง ↗"}</a>
-            <a className="button button-secondary" href="index.html#apps">{"กลับไปแอปทั้งหมด"}</a>
+            <a className="button button-secondary" href="/#apps">{"กลับไปแอปทั้งหมด"}</a>
           </div>
         </div>
         <div className="hero-art" role="img" aria-label="ตัวอย่างรายการสต็อกสินค้าพร้อมการแจ้งเตือนสินค้าใกล้หมด">

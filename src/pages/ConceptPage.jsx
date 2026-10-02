@@ -10,7 +10,7 @@ export default function ConceptPage() {
   {"\n      "}
   <div className="wrap header-inner">
     {"\n        "}
-    <a className="brand" href="index.html" aria-label="drivetodev กลับหน้ารวมแอป">
+    <a className="brand" href="/" aria-label="drivetodev กลับหน้ารวมแอป">
       {"\n          "}
       <svg className="brand-mark" viewBox="0 0 186 186" aria-hidden="true">
         {"\n            "}
@@ -32,7 +32,7 @@ export default function ConceptPage() {
     {"\n        "}
     <nav className="main-nav" aria-label="เมนูหลัก">
       {"\n          "}
-      <a href="index.html#apps">
+      <a href="/#apps">
         {"แอปทั้งหมด"}
       </a>
       {"\n          "}
@@ -70,7 +70,7 @@ export default function ConceptPage() {
           {"เปิดแอปจริง ↗"}
         </a>
         {"\n            "}
-        <a className="button button-secondary" href="index.html#apps">
+        <a className="button button-secondary" href="/#apps">
           {"กลับไปแอปทั้งหมด"}
         </a>
         {"\n          "}
