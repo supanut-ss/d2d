@@ -1,2 +1,4 @@
 deploy-single-host.ps1
 .deploy-cache/
+node_modules/
+dist/
