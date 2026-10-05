@@ -524,6 +524,157 @@
         background: #eef1f6;
       }
 
+      .app-art-ordering {
+        background: #e8efff;
+      }
+
+      .ordering-card-preview,
+      .branch-card-preview {
+        width: min(100%, 310px);
+        padding: 14px;
+        border: 1px solid #d4deec;
+        background: var(--white);
+        box-shadow: 0 7px 16px rgb(20 36 58 / 8%);
+      }
+
+      .ordering-card-head,
+      .branch-card-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-block-end: 11px;
+        font-size: 11px;
+      }
+
+      .ordering-card-head span,
+      .branch-card-head span {
+        color: var(--muted);
+      }
+
+      .ordering-card-content {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr);
+        align-items: start;
+        gap: 12px;
+      }
+
+      .ordering-card-code {
+        display: grid;
+        width: 64px;
+        aspect-ratio: 1;
+        place-items: center;
+        border: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .ordering-card-code svg {
+        width: 48px;
+        height: 48px;
+        color: var(--ink);
+      }
+
+      .ordering-card-menu {
+        min-width: 0;
+      }
+
+      .ordering-card-menu > p {
+        margin: 0 0 5px;
+        font-size: 11px;
+        font-weight: 600;
+      }
+
+      .ordering-card-menu > div:not(.ordering-card-basket) {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+        padding-block: 5px;
+        border-top: 1px solid #e7ecf3;
+        font-size: 10px;
+      }
+
+      .ordering-card-menu > div:not(.ordering-card-basket) span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .ordering-card-menu > div:not(.ordering-card-basket) strong {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 10px;
+        white-space: nowrap;
+      }
+
+      .ordering-card-menu .ordering-card-basket {
+        margin: 5px 0 0;
+        padding: 5px 7px;
+        color: var(--blue-deep);
+        background: #edf3ff;
+        font-size: 10px;
+        font-weight: 600;
+        text-align: center;
+      }
+
+      .app-art-branch {
+        background: #eaf0f8;
+      }
+
+      .branch-card-head {
+        margin-block-end: 9px;
+        font-weight: 600;
+      }
+
+      .branch-card-head span {
+        font-weight: 400;
+      }
+
+      .branch-card-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+        margin-block-end: 9px;
+      }
+
+      .branch-card-stats div {
+        display: grid;
+        gap: 2px;
+        padding: 7px 8px;
+        background: var(--paper);
+      }
+
+      .branch-card-stats span {
+        color: var(--muted);
+        font-size: 9px;
+      }
+
+      .branch-card-stats strong {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 16px;
+        line-height: 1.2;
+      }
+
+      .branch-card-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px 10px;
+        padding-block: 6px;
+        border-top: 1px solid #e7ecf3;
+        font-size: 10px;
+      }
+
+      .branch-card-row span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .branch-card-row span:last-child {
+        color: var(--blue-deep);
+        font-size: 9px;
+        white-space: nowrap;
+      }
+
       .mini-window {
         width: min(100%, 290px);
         min-height: 151px;

@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const apps = [{"category":"web","search":"pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป"},{"category":"web","search":"meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ"},{"category":"web","search":"เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน"}];
+const qrOrderingSearch = "qr ordering qrordering ร้านอาหาร สั่งอาหาร ระบบร้านอาหาร pos ครัว";
+const sabaizySearch = "sabaizy branch manager สาขา จัดการธุรกิจ คิว นัดหมาย บริการ แคชเชียร์ พนักงาน สมาชิก คอร์ส";
+const apps = [
+  { category: "web", search: qrOrderingSearch },
+  { category: "web", search: sabaizySearch },
+  { category: "web", search: "pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป" },
+  { category: "web", search: "meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ" },
+  { category: "web", search: "เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน" },
+];
 
 export default function HomePage() {
   const [activeFilter, setActiveFilter] = useState("all");
@@ -255,6 +263,61 @@ export default function HomePage() {
       </div>
       {"\n\n          "}
       <div className="app-grid" id="app-grid">
+        <article className="app-card" data-category="web" data-search={qrOrderingSearch} hidden={!isAppVisible("web", qrOrderingSearch)}>
+          <div className="app-art app-art-ordering" aria-hidden="true">
+            <div className="ordering-card-preview">
+              <div className="ordering-card-head"><strong>QR Ordering</strong><span>โต๊ะ 08</span></div>
+              <div className="ordering-card-content">
+                <div className="ordering-card-code">
+                  <svg viewBox="0 0 64 64" fill="currentColor" aria-hidden="true">
+                    <path d="M5 5h20v20H5zM10 10v10h10V10zM39 5h20v20H39zM44 10v10h10V10zM5 39h20v20H5zM10 44v10h10V44z" />
+                    <path d="M31 5h5v5h-5zM31 14h7v5h-7zM28 23h8v5h-8zM33 32h5v6h-5zM41 31h5v5h-5zM50 31h8v5h-8zM29 39h5v8h-5zM38 41h8v5h-8zM49 41h5v8h-5zM31 51h8v8h-8zM43 52h5v7h-5zM53 51h6v8h-6z" />
+                  </svg>
+                </div>
+                <div className="ordering-card-menu">
+                  <p>เมนูวันนี้</p>
+                  <div><span>ข้าวกะเพรา</span><strong>฿89</strong></div>
+                  <div><span>ชาไทย</span><strong>฿45</strong></div>
+                  <p className="ordering-card-basket">ตะกร้า · 2 รายการ</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="app-card-body">
+            <div className="app-meta"><span className="badge-online">Online now</span><span>เว็บแอป</span><span>ร้านอาหาร</span><span>แนวคิด</span></div>
+            <h3>QR Ordering</h3>
+            <p>ให้ลูกค้าสแกน QR สั่งอาหาร เชื่อมต่อ POS และครัวในระบบเดียว</p>
+            <div className="app-actions">
+              <a className="text-link" href="qr-ordering.html">ดูแนวคิดของแอป</a>
+              <a className="text-link" href="https://qrodrder.drivetodev.online/" target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
+            </div>
+          </div>
+        </article>
+
+        <article className="app-card" data-category="web" data-search={sabaizySearch} hidden={!isAppVisible("web", sabaizySearch)}>
+          <div className="app-art app-art-branch" aria-hidden="true">
+            <div className="branch-card-preview">
+              <div className="branch-card-head"><strong>สาขาหลัก</strong><span>วันนี้</span></div>
+              <div className="branch-card-stats">
+                <div><span>นัด</span><strong>04</strong></div>
+                <div><span>กำลังบริการ</span><strong>02</strong></div>
+                <div><span>คิวหมุน</span><strong>03</strong></div>
+              </div>
+              <div className="branch-card-row"><span>นวดไทย · 60 นาที</span><span>กำลังบริการ</span></div>
+              <div className="branch-card-row"><span>ทรีตเมนต์ · 30 นาที</span><span>คิวถัดไป</span></div>
+            </div>
+          </div>
+          <div className="app-card-body">
+            <div className="app-meta"><span className="badge-online">Online now</span><span>เว็บแอป</span><span>บริหารสาขา</span></div>
+            <h3>Sabaizy</h3>
+            <p>จัดคิวบริการ พนักงาน สมาชิก และรอบกะแคชเชียร์ แยกข้อมูลตามสาขา</p>
+            <div className="app-actions">
+              <a className="text-link" href="sabaizy.html">ดูรายละเอียดแอป</a>
+              <a className="text-link" href="https://sm.drivetodev.online/" target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
+            </div>
+          </div>
+        </article>
+
         {"\n            "}
         <article className="app-card" data-category="web" data-search="pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป" hidden={!isAppVisible("web", "pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป")}>
           {"\n              "}

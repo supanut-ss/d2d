@@ -223,6 +223,147 @@
         background: var(--soft-blue);
       }
 
+      .concept-ordering-art {
+        overflow: hidden;
+        background: #e8efff;
+      }
+
+      .concept-branch-art {
+        overflow: hidden;
+        background: #eaf0f8;
+      }
+
+      .concept-ordering-preview,
+      .concept-branch-preview {
+        width: min(100%, 355px);
+        padding: 18px;
+        border: 1px solid #d4deec;
+        background: var(--white);
+        box-shadow: 0 18px 45px rgb(20 36 58 / 12%);
+      }
+
+      .concept-ordering-head,
+      .concept-branch-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        margin-block-end: 13px;
+        font-size: 13px;
+      }
+
+      .concept-ordering-head span,
+      .concept-branch-head span {
+        color: var(--muted);
+        font-size: 12px;
+      }
+
+      .concept-ordering-body {
+        display: grid;
+        grid-template-columns: 82px minmax(0, 1fr);
+        align-items: start;
+        gap: 15px;
+      }
+
+      .concept-ordering-code {
+        display: grid;
+        width: 82px;
+        aspect-ratio: 1;
+        place-items: center;
+        border: 1px solid var(--line);
+        background: var(--paper);
+      }
+
+      .concept-ordering-code svg {
+        width: 62px;
+        height: 62px;
+        color: var(--ink);
+      }
+
+      .concept-ordering-menu {
+        min-width: 0;
+      }
+
+      .concept-ordering-menu > p {
+        margin: 0 0 6px;
+        font-size: 12px;
+        font-weight: 600;
+      }
+
+      .concept-ordering-menu > div:not(.concept-ordering-basket) {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        padding-block: 7px;
+        border-top: 1px solid #e7ecf3;
+        font-size: 12px;
+      }
+
+      .concept-ordering-menu > div:not(.concept-ordering-basket) strong {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 12px;
+        white-space: nowrap;
+      }
+
+      .concept-ordering-basket {
+        margin-block-start: 6px !important;
+        padding: 7px 8px;
+        color: var(--blue-deep);
+        background: #edf3ff;
+        text-align: center;
+      }
+
+      .concept-branch-head {
+        margin-block-end: 12px;
+      }
+
+      .concept-branch-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-block-end: 12px;
+      }
+
+      .concept-branch-stats div {
+        display: grid;
+        gap: 3px;
+        padding: 10px;
+        background: var(--paper);
+      }
+
+      .concept-branch-stats span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .concept-branch-stats strong {
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 20px;
+        line-height: 1.2;
+      }
+
+      .concept-branch-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 8px 12px;
+        padding-block: 9px;
+        border-top: 1px solid #e7ecf3;
+        font-size: 12px;
+      }
+
+      .concept-branch-row span:first-child {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .concept-branch-row span:last-child {
+        color: var(--blue-deep);
+        font-size: 11px;
+        white-space: nowrap;
+      }
+
       .preview-card {
         width: min(100%, 355px);
         padding: 22px 24px 18px;
