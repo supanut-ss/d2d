@@ -76,7 +76,10 @@
   .person { display: flex; align-items: center; gap: 4px; width: 100%; border-radius: 16px; transition: background .15s; }
   .person:hover { background: var(--line); }
   .person-main { display: flex; align-items: center; gap: 14px; flex: 1; min-width: 0; text-align: left; padding: 10px 0 10px 10px; border-radius: 16px; }
-  .ask { margin-right: 4px; color: var(--muted); }
+  .person .icon-btn { width: 40px; height: 40px; }
+  .person .icon-btn:last-child { margin-right: 4px; }
+  .ask { color: var(--muted); }
+  .info .dist { color: var(--accent); font-weight: 500; }
   .ask:disabled { cursor: default; opacity: .85; color: var(--accent); }
   .avatar { position: relative; width: 52px; height: 52px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 20px; display: grid; place-items: center; flex: none; }
   .avatar::after { content: ""; position: absolute; right: -1px; bottom: -1px; width: 14px; height: 14px; border-radius: 50%; background: var(--st, var(--ok)); border: 2.5px solid var(--surface-solid); }
@@ -106,6 +109,34 @@
   @media (forced-colors: active) { .glass { border: 1px solid CanvasText; } }
   @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) { :root { --surface: var(--surface-solid); } }
 
+  /* ---- silence warnings ---- */
+  #silentCount { color: var(--warn); font-weight: 600; margin-left: 6px; }
+  .alerts { flex: none; display: grid; gap: 6px; padding: 0 4px 6px; }
+  .alerts:empty { display: none; }
+  .alert { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 14px; background: color-mix(in srgb, var(--warn) 16%, transparent); font-size: 13px; line-height: 1.35; }
+  .alert svg { flex: none; width: 18px; height: 18px; stroke: var(--warn); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .alert span { flex: 1; min-width: 0; }
+  .alert button { flex: none; padding: 6px 12px; border-radius: 999px; background: var(--surface-solid); border: 1px solid var(--line); font-size: 13px; font-weight: 500; }
+  .alert button:disabled { opacity: .6; }
+
+  /* ---- history ---- */
+  .history { flex: 1; min-height: 0; overflow-y: auto; padding: 0 6px 10px; display: grid; gap: 10px; align-content: start; }
+  .history[hidden] { display: none; }
+  .panel.hist .people, .panel.hist .alerts, .panel.hist .panel-head { display: none; }
+  .hist-bar { display: flex; align-items: center; gap: 6px; }
+  .hist-bar strong { font-size: 17px; }
+  .hist-date { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+  .hist-date input { flex: 1; min-width: 0; font: inherit; font-size: 16px; text-align: center; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-solid); color: var(--fg); }
+  .hist-stats { display: flex; flex-wrap: wrap; gap: 8px; }
+  .hist-stats .chip { padding: 6px 12px; border-radius: 999px; background: var(--line); font-size: 13px; }
+  .hist-stats .chip b { font-weight: 600; }
+  .hist-now { text-align: center; color: var(--muted); font-size: 14px; min-height: 1.4em; }
+  .hist-now b { color: var(--fg); font-size: 17px; font-weight: 600; margin-right: 6px; }
+  #histSlider { width: 100%; height: 36px; accent-color: var(--accent); touch-action: pan-x; }
+  .hist-empty { text-align: center; color: var(--muted); padding: 14px 6px; }
+  .hist-dot { width: 14px; height: 14px; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 1px 5px rgba(0,0,0,.4); }
+  .popup-btn { margin-top: 6px; display: block; width: 100%; padding: 7px 10px; border-radius: 10px; background: var(--accent); color: #fff; font-size: 13px; font-weight: 500; }
+
   /* ---- map markers ---- */
   .pin { position: relative; width: 40px; height: 40px; }
   .pin .dot { position: absolute; inset: 0; border-radius: 50%; border: 3px solid #fff; box-shadow: 0 3px 10px rgba(0,0,0,.35); color: #fff; font-weight: 700; font-size: 16px; display: grid; place-items: center; }
@@ -115,8 +146,20 @@
   .leaflet-popup-content-wrapper { border-radius: 14px; background: var(--surface-solid); color: var(--fg); }
   .leaflet-popup-tip { background: var(--surface-solid); }
   .leaflet-popup-content { margin: 12px 14px; font-family: inherit; font-size: 14px; line-height: 1.45; -webkit-user-select: text; user-select: text; }
-  .leaflet-tile-pane { filter: saturate(.85) contrast(.96); }
-  @media (prefers-color-scheme: dark) { .leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.7); } }
+  .tiles-road { filter: saturate(.85) contrast(.96); }
+  @media (prefers-color-scheme: dark) { .tiles-road { filter: invert(1) hue-rotate(180deg) brightness(.9) contrast(.88) saturate(.7); } }
+  .tiles-sat { filter: saturate(.95); }
+  .tiles-topo { filter: saturate(.9); }
+  @media (prefers-color-scheme: dark) { .tiles-topo { filter: brightness(.75) contrast(1.05); } }
+  .fab.on { background: var(--accent); color: #fff; border-color: transparent; }
+  .layer-menu { position: fixed; z-index: 950; right: calc(70px + var(--sar)); display: none; flex-direction: column; gap: 2px; padding: 6px; border-radius: 16px; min-width: 150px; }
+  .layer-menu.open { display: flex; }
+  .layer-menu button { text-align: left; padding: 10px 12px; border-radius: 10px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
+  .layer-menu button:hover { background: var(--line); }
+  .layer-menu button[aria-checked="true"] { font-weight: 600; color: var(--accent); }
+  .layer-menu button[aria-checked="true"]::after { content: "✓"; margin-left: auto; }
+  .me-dot { width: 18px; height: 18px; border-radius: 50%; background: #2563eb; border: 3px solid #fff; box-shadow: 0 0 0 6px rgba(37,99,235,.25), 0 2px 6px rgba(0,0,0,.4); }
+  .popup-link { margin-top: 6px; display: block; text-align: center; padding: 7px 10px; border-radius: 10px; background: var(--line); color: var(--fg) !important; text-decoration: none; font-size: 13px; font-weight: 500; }
   .leaflet-control-zoom { display: none; }
   .leaflet-control-attribution { font-size: 10px; background: var(--surface) !important; color: var(--muted) !important; }
   .leaflet-control-attribution a { color: var(--muted) !important; }
@@ -148,13 +191,31 @@
 <nav class="fabs" aria-label="เครื่องมือแผนที่">
   <button class="fab glass" id="refresh" type="button" aria-label="รีเฟรช" title="รีเฟรช"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg></button>
   <button class="fab glass" id="fit" type="button" aria-label="ดูทุกคนบนแผนที่" title="ดูทุกคน"><svg viewBox="0 0 24 24"><path d="M4 9V5h4M20 9V5h-4M4 15v4h4M20 15v4h-4"/></svg></button>
+  <button class="fab glass" id="locate" type="button" aria-label="แสดงตำแหน่งของฉัน" aria-pressed="false" title="ตำแหน่งของฉัน"><svg viewBox="0 0 24 24"><path d="M3 11l18-8-8 18-2-8-8-2z"/></svg></button>
+  <button class="fab glass" id="layers" type="button" aria-label="เลือกชั้นแผนที่" aria-haspopup="true" aria-expanded="false" title="ชั้นแผนที่"><svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5M3 17.5l9 5 9-5"/></svg></button>
   <button class="fab glass" id="logout" type="button" aria-label="ออกจากระบบ" title="ออก"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
 </nav>
+<div class="layer-menu glass" id="layerMenu" role="menu" aria-label="ชั้นแผนที่"></div>
 
 <section class="panel glass" id="panel" aria-label="รายชื่อสมาชิก">
   <div class="grab" id="grab" role="button" tabindex="0" aria-label="ลากเพื่อขยายหรือย่อรายชื่อ"><span></span></div>
-  <div class="panel-head" id="head"><span><b id="count">0</b> คน</span><span id="updated"></span></div>
+  <div class="panel-head" id="head"><span><b id="count">0</b> คน<span id="silentCount"></span></span><span id="updated"></span></div>
+  <div class="alerts" id="alerts"></div>
   <div class="people" id="people"></div>
+  <div class="history" id="history" hidden>
+    <div class="hist-bar">
+      <button class="icon-btn" id="histBack" type="button" aria-label="กลับไปรายชื่อ"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <strong id="histName"></strong>
+    </div>
+    <div class="hist-date">
+      <button class="icon-btn" id="histPrev" type="button" aria-label="วันก่อนหน้า"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <input type="date" id="histDate" aria-label="เลือกวันที่">
+      <button class="icon-btn" id="histNext" type="button" aria-label="วันถัดไป"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div class="hist-stats" id="histStats"></div>
+    <input type="range" id="histSlider" min="0" max="0" value="0" aria-label="เลื่อนดูตามเวลา" disabled>
+    <div class="hist-now" id="histNow"></div>
+  </div>
 </section>
 
 <div id="login">
@@ -184,7 +245,37 @@
   }
 
   var map = L.map('map', { zoomControl: false, attributionControl: true }).setView([13.75, 100.5], 11);
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  var LAYERS = {
+    road: { label: 'ถนน', cls: 'tiles-road', url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', opt: { maxZoom: 19, attribution: '&copy; OpenStreetMap' } },
+    sat:  { label: 'ดาวเทียม', cls: 'tiles-sat', url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', opt: { maxZoom: 19, attribution: 'Tiles &copy; Esri' } },
+    topo: { label: 'ภูมิประเทศ', cls: 'tiles-topo', url: 'https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', opt: { maxZoom: 17, subdomains: 'abc', attribution: '&copy; OpenStreetMap, SRTM | &copy; OpenTopoMap' } }
+  };
+  var LAYER_KEY = 'familytracker.layer', baseLayer = null, layerName = 'road';
+  function setLayer(name) {
+    if (!LAYERS[name]) name = 'road';
+    var def = LAYERS[name];
+    if (baseLayer) map.removeLayer(baseLayer);
+    baseLayer = L.tileLayer(def.url, Object.assign({ className: def.cls }, def.opt)).addTo(map);
+    baseLayer.bringToBack(); layerName = name;
+    try { localStorage.setItem(LAYER_KEY, name); } catch (e) {}
+    Array.prototype.forEach.call($('layerMenu').children, function (b) { b.setAttribute('aria-checked', String(b.dataset.layer === name)); });
+  }
+  Object.keys(LAYERS).forEach(function (k) {
+    var b = document.createElement('button'); b.type = 'button'; b.dataset.layer = k; b.setAttribute('role', 'menuitemradio'); b.textContent = LAYERS[k].label;
+    b.addEventListener('click', function () { setLayer(k); closeLayerMenu(); });
+    $('layerMenu').appendChild(b);
+  });
+  function closeLayerMenu() { $('layerMenu').classList.remove('open'); $('layers').setAttribute('aria-expanded', 'false'); }
+  $('layers').addEventListener('click', function (e) {
+    e.stopPropagation();
+    var m = $('layerMenu'), open = !m.classList.contains('open');
+    m.classList.toggle('open', open); $('layers').setAttribute('aria-expanded', String(open));
+    if (open) { var r = $('layers').getBoundingClientRect(); m.style.top = Math.round(r.top) + 'px'; }
+  });
+  document.addEventListener('click', function (e) { if (!$('layerMenu').contains(e.target)) closeLayerMenu(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeLayerMenu(); });
+  var savedLayer = 'road'; try { savedLayer = localStorage.getItem(LAYER_KEY) || 'road'; } catch (e) {}
+  setLayer(savedLayer);
 
   var markers = {}, circles = {}, points = {}, firstFit = true, colors = {};
   try { colors = JSON.parse(localStorage.getItem(COLORS_KEY) || '{}') || {}; } catch (e) { colors = {}; }
@@ -288,7 +379,141 @@
     a.href = 'https://www.google.com/maps?q=' + p.lat + ',' + p.lon; a.target = '_blank'; a.rel = 'noopener noreferrer';
     a.style.cssText = 'color:#2563eb;display:inline-block;margin-top:4px';
     box.appendChild(a);
+    if (me) box.appendChild(el('div', null, 'ห่างจากคุณ ' + fmtDist(km(me, p)) + ' (เส้นตรง)'));
+    var nav = el('a', 'popup-link', 'นำทางไปหา ' + p.name);
+    nav.href = 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lon + '&travelmode=driving';
+    nav.target = '_blank'; nav.rel = 'noopener noreferrer';
+    box.appendChild(nav);
+    var hb = el('button', 'popup-btn', 'ดูประวัติการเดินทาง'); hb.type = 'button';
+    hb.addEventListener('click', function () { map.closePopup(); openHistory(p.name); });
+    box.appendChild(hb);
     return box;
+  }
+
+  // ---------- silence warnings: someone has not reported for a while ----------
+  var SILENT_MS = 3 * 3600000, lastRows = [], histState = null;
+  function renderAlerts(rows) {
+    var box = $('alerts'); box.textContent = '';
+    var silent = rows.filter(function (p) { return !p.requested && Date.now() - new Date(p.recordedAt).getTime() > SILENT_MS; });
+    $('silentCount').textContent = silent.length ? '· ⚠ เงียบ ' + silent.length : '';
+    silent.forEach(function (p) {
+      var a = el('div', 'alert');
+      a.innerHTML = '<svg viewBox="0 0 24 24"><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/></svg>';
+      a.appendChild(el('span', null, p.name + ' ไม่ส่งตำแหน่งมา ' + ago(Date.now() - new Date(p.recordedAt).getTime()).replace('ที่แล้ว', '')));
+      var btn = el('button', null, 'ขอตำแหน่ง'); btn.type = 'button';
+      btn.addEventListener('click', function () { requestLocation(p.name, btn); });
+      a.appendChild(btn); box.appendChild(a);
+    });
+  }
+
+  // ---------- my own position: shows a blue dot and the distance to everyone (straight line) ----------
+  var me = null, watchId = null, meMarker = null, lastMeRender = 0;
+  function fmtDist(d) { return d < 1 ? Math.max(10, Math.round(d * 100) * 10) + ' ม.' : d < 10 ? d.toFixed(1) + ' กม.' : Math.round(d) + ' กม.'; }
+  function stopLocate(msg) {
+    if (watchId != null) navigator.geolocation.clearWatch(watchId);
+    watchId = null; me = null;
+    if (meMarker) { map.removeLayer(meMarker); meMarker = null; }
+    $('locate').classList.remove('on'); $('locate').setAttribute('aria-pressed', 'false');
+    if (msg) $('status').textContent = msg;
+    if (!histState) render(lastRows);
+  }
+  function onFix(pos) {
+    me = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+    var ll = [me.lat, me.lon];
+    if (!meMarker) meMarker = L.marker(ll, { icon: L.divIcon({ html: '<div class="me-dot"></div>', className: '', iconSize: [18, 18], iconAnchor: [9, 9] }), interactive: false, zIndexOffset: -500 }).addTo(map);
+    else meMarker.setLatLng(ll);
+    if (histState) return;
+    var now = Date.now();
+    if (now - lastMeRender > 15000) { lastMeRender = now; render(lastRows); }
+  }
+  function toggleLocate() {
+    if (watchId != null) { stopLocate('ปิดการแสดงตำแหน่งของคุณแล้ว'); return; }
+    if (!navigator.geolocation) { $('status').textContent = 'เบราว์เซอร์นี้ไม่รองรับตำแหน่ง'; return; }
+    $('locate').classList.add('on'); $('locate').setAttribute('aria-pressed', 'true'); $('status').textContent = 'กำลังหาตำแหน่งของคุณ…';
+    watchId = navigator.geolocation.watchPosition(function (pos) {
+      var first = !me; onFix(pos);
+      if (first) { lastMeRender = 0; onFix(pos); $('status').textContent = 'แสดงตำแหน่งของคุณแล้ว'; }
+    }, function (err) {
+      stopLocate(err.code === 1 ? 'ไม่ได้รับอนุญาตให้ใช้ตำแหน่ง (เปิดในการตั้งค่าเบราว์เซอร์)' : 'หาตำแหน่งของคุณไม่ได้');
+    }, { enableHighAccuracy: false, maximumAge: 15000, timeout: 20000 });
+  }
+  $('locate').addEventListener('click', toggleLocate);
+
+  // ---------- history: one person's route for one day ----------
+  var histLayers = [], histPts = [], scrub = null;
+  function bangkokDay(offsetDays) {
+    var d = new Date(Date.now() + (offsetDays || 0) * 86400000);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(d);   // yyyy-MM-dd
+  }
+  function shiftDay(day, delta) { var t = new Date(day + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() + delta); return t.toISOString().slice(0, 10); }
+  function km(a, b) {
+    var R = 6371, rad = Math.PI / 180, dLat = (b.lat - a.lat) * rad, dLon = (b.lon - a.lon) * rad;
+    var h = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(h));
+  }
+  function hhmm(iso) { return new Date(iso).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' }); }
+  function clearHistLayers() { histLayers.forEach(function (l) { map.removeLayer(l); }); histLayers = []; scrub = null; histPts = []; }
+  function liveLayers(on) {
+    Object.keys(markers).forEach(function (k) { on ? markers[k].addTo(map) : map.removeLayer(markers[k]); });
+    Object.keys(circles).forEach(function (k) { on ? circles[k].addTo(map) : map.removeLayer(circles[k]); });
+  }
+
+  function openHistory(name) {
+    histState = { name: name, day: bangkokDay(0) };
+    liveLayers(false);
+    panel.classList.add('hist'); $('history').hidden = false;
+    $('histName').textContent = name; $('histDate').max = bangkokDay(0);
+    if (!isSideCard() && snapName === 'peek') snapTo('half');
+    loadHistory();
+  }
+  function closeHistory() {
+    histState = null; clearHistLayers();
+    panel.classList.remove('hist'); $('history').hidden = true;
+    liveLayers(true); render(lastRows);
+  }
+  function setStats(chips) {
+    var box = $('histStats'); box.textContent = '';
+    chips.forEach(function (c) { var s = el('span', 'chip'); s.appendChild(el('b', null, c[0])); s.appendChild(document.createTextNode(' ' + c[1])); box.appendChild(s); });
+  }
+  function loadHistory() {
+    var h = histState; if (!h) return;
+    $('histDate').value = h.day; $('histNext').disabled = h.day >= bangkokDay(0);
+    clearHistLayers(); setStats([]); $('histNow').textContent = 'กำลังโหลด…';
+    var slider = $('histSlider'); slider.disabled = true; slider.max = 0; slider.value = 0;
+    var token = getToken(); if (!token) { showLogin(); return; }
+    fetch(API + 'history?name=' + encodeURIComponent(h.name) + '&date=' + h.day + '&key=' + encodeURIComponent(token)).then(function (r) {
+      if (r.status === 401) { setToken(''); showLogin('Token ไม่ถูกต้อง'); throw new Error('401'); }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (data) {
+      if (!histState || histState.day !== data.date || histState.name !== data.name) return;   // user moved on
+      drawHistory(data);
+    }).catch(function (e) { if (e.message !== '401') $('histNow').textContent = 'โหลดประวัติไม่สำเร็จ'; });
+  }
+  function drawHistory(data) {
+    var pts = data.points, color = colorFor(data.name);
+    if (!pts.length) { $('histNow').textContent = ''; setStats([]); var m = el('div', 'hist-empty', 'ไม่มีข้อมูลของวันนี้'); $('histStats').appendChild(m); return; }
+    histPts = pts;
+    var dist = 0; for (var i = 1; i < pts.length; i++) dist += km(pts[i - 1], pts[i]);
+    setStats([[dist < 1 ? Math.round(dist * 1000) + ' ม.' : dist.toFixed(1) + ' กม.', 'ระยะทาง'], [hhmm(pts[0].recordedAt) + '–' + hhmm(pts[pts.length - 1].recordedAt), ''], [String(data.total), 'จุด']]);
+    var ll = pts.map(function (p) { return [p.lat, p.lon]; });
+    var line = L.polyline(ll, { color: color, weight: 5, opacity: .85, lineJoin: 'round' }).addTo(map);
+    var dot = function (c) { return L.divIcon({ html: '<div class="hist-dot" style="background:' + c + '"></div>', className: '', iconSize: [14, 14], iconAnchor: [7, 7] }); };
+    var start = L.marker(ll[0], { icon: dot('#16a34a'), interactive: false }).addTo(map);
+    var end = L.marker(ll[ll.length - 1], { icon: dot(color), interactive: false }).addTo(map);
+    scrub = L.circleMarker(ll[ll.length - 1], { radius: 9, color: '#fff', weight: 3, fillColor: color, fillOpacity: 1 }).addTo(map);
+    histLayers = [line, start, end, scrub];
+    var slider = $('histSlider'); slider.max = pts.length - 1; slider.value = pts.length - 1; slider.disabled = pts.length < 2;
+    showScrub(pts.length - 1);
+    var sideCard = isSideCard();
+    map.fitBounds(line.getBounds(), sideCard ? { paddingTopLeft: [400, 60], paddingBottomRight: [80, 60], maxZoom: 17 } : { paddingTopLeft: [40, 100], paddingBottomRight: [80, sheetH + 30], maxZoom: 17 });
+  }
+  function showScrub(i) {
+    var p = histPts[i]; if (!p || !scrub) return;
+    scrub.setLatLng([p.lat, p.lon]);
+    var now = $('histNow'); now.textContent = '';
+    now.appendChild(el('b', null, hhmm(p.recordedAt)));
+    now.appendChild(document.createTextNode((p.battery != null ? 'แบต ' + p.battery + '%' : '') + (p.accuracy != null ? ' · ±' + p.accuracy + ' ม.' : '')));
   }
 
   // centre a person on the part of the map the sheet leaves free
@@ -322,7 +547,8 @@
       var av = el('div', 'avatar', initial(p.name)); av.style.background = color;
       av.style.setProperty('--st', st.live ? 'var(--ok)' : st.stale ? '#98a2b3' : 'var(--warn)');
       var info = el('div', 'info'); info.appendChild(el('strong', null, p.name));
-      info.appendChild(el('span', null, p.requested ? 'รอเครื่องตอบกลับ…' : (st.live ? 'ออนไลน์ · ' : '') + ago(st.age)));
+      info.appendChild(el('span', null, p.requested ? 'รอเครื่องตอบกลับ…' : ago(st.age)));
+      if (me) info.appendChild(el('span', 'dist', 'ห่างจากคุณ ' + fmtDist(km(me, p))));
       main.appendChild(av); main.appendChild(info);
       if (p.battery != null) {
         var b = el('div', 'batt'); var ic = el('i');
@@ -332,7 +558,13 @@
       main.addEventListener('click', function () { focusOn(ll); markers[p.name].openPopup(); });
       row.appendChild(main);
 
-      var ask = el('button', 'icon-btn ask' + (p.requested ? ' spin' : '')); ask.type = 'button';
+      var hist = el('button', 'icon-btn'); hist.type = 'button';
+      hist.title = hist.ariaLabel = 'ประวัติการเดินทางของ ' + p.name;
+      hist.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg>';
+      hist.addEventListener('click', function () { openHistory(p.name); });
+      row.appendChild(hist);
+
+      var ask =el('button', 'icon-btn ask' + (p.requested ? ' spin' : '')); ask.type = 'button';
       ask.title = ask.ariaLabel = 'ขอตำแหน่ง ' + p.name + ' ตอนนี้'; ask.disabled = !!p.requested;
       ask.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>';
       ask.addEventListener('click', function () { requestLocation(p.name, ask); });
@@ -385,7 +617,9 @@
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
     }).then(function (rows) {
-      render(rows); scheduleFast(rows);
+      lastRows = rows; renderAlerts(rows);
+      if (!histState) render(rows);   // while a route is open the live markers stay hidden; they come back on close
+      scheduleFast(rows);
       var t = new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
       $('status').textContent = 'อัปเดตล่าสุด ' + t; $('updated').textContent = 'รีเฟรชทุก 30 วิ';
     }).catch(function (e) {
@@ -399,9 +633,17 @@
     setToken($('token').value.trim()); $('token').value = '';
     $('login').style.display = 'none'; refresh();
   });
+  $('histBack').addEventListener('click', closeHistory);
+  $('histPrev').addEventListener('click', function () { if (histState) { histState.day = shiftDay(histState.day, -1); loadHistory(); } });
+  $('histNext').addEventListener('click', function () { if (histState && histState.day < bangkokDay(0)) { histState.day = shiftDay(histState.day, 1); loadHistory(); } });
+  $('histDate').addEventListener('change', function () {
+    var v = this.value; if (!histState || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return;
+    histState.day = v > bangkokDay(0) ? bangkokDay(0) : v; loadHistory();
+  });
+  $('histSlider').addEventListener('input', function () { showScrub(+this.value); });
   $('refresh').addEventListener('click', refresh);
   $('fit').addEventListener('click', fitAll);
-  $('logout').addEventListener('click', function () { setToken(''); firstFit = true; render([]); $('status').textContent = 'ออกจากระบบแล้ว'; showLogin(); });
+  $('logout').addEventListener('click', function () { setToken(''); firstFit = true; if (histState) closeHistory(); lastRows = []; renderAlerts([]); render([]); $('status').textContent = 'ออกจากระบบแล้ว'; showLogin(); });
   setInterval(function () { if (!document.hidden) refresh(); }, REFRESH_MS);
   document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
 
