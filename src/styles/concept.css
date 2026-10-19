@@ -233,6 +233,240 @@
         background: #eaf0f8;
       }
 
+      .concept-payyet-art {
+        overflow: hidden;
+        background: linear-gradient(135deg, #fff0cf, #fff9ed);
+      }
+
+      .concept-joddaily-art {
+        overflow: hidden;
+        background: #e8f3e9;
+      }
+
+      .concept-joddaily-preview {
+        display: grid;
+        width: min(100%, 355px);
+        gap: 12px;
+        padding: 20px;
+        border: 1px solid #d7e8d8;
+        background: var(--white);
+        box-shadow: 0 18px 45px rgb(21 85 43 / 12%);
+      }
+
+      .concept-joddaily-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .concept-joddaily-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 11px;
+        color: #15552b;
+        background: #d9f1dc;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .concept-joddaily-head > span:nth-child(2) {
+        display: grid;
+        gap: 2px;
+      }
+
+      .concept-joddaily-head strong {
+        font-size: 14px;
+      }
+
+      .concept-joddaily-head small,
+      .concept-joddaily-summary > span,
+      .concept-joddaily-summary small,
+      .concept-joddaily-budget > span {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .concept-joddaily-channel {
+        margin-inline-start: auto;
+        padding: 4px 8px;
+        border-radius: 999px;
+        color: #087443;
+        background: #e6f7ee;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .concept-joddaily-summary {
+        display: grid;
+        gap: 2px;
+        padding: 12px 14px;
+        background: #f1f8f1;
+      }
+
+      .concept-joddaily-summary strong {
+        color: #15552b;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 27px;
+        line-height: 1.2;
+      }
+
+      .concept-joddaily-transactions {
+        display: grid;
+      }
+
+      .concept-joddaily-transactions > div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding-block: 8px;
+        border-bottom: 1px solid var(--line);
+        font-size: 12px;
+      }
+
+      .concept-joddaily-transactions strong {
+        font-family: "Space Grotesk", sans-serif;
+        white-space: nowrap;
+      }
+
+      .concept-joddaily-budget {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 7px;
+      }
+
+      .concept-joddaily-budget > div {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #dce9dd;
+      }
+
+      .concept-joddaily-budget i {
+        display: block;
+        width: 68%;
+        height: 100%;
+        background: #22a447;
+      }
+
+      .concept-payyet-preview {
+        width: min(100%, 355px);
+        padding: 19px;
+        border: 1px solid #f0dfbf;
+        background: var(--white);
+        box-shadow: 0 18px 45px rgb(92 66 20 / 12%);
+      }
+
+      .concept-payyet-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-block-end: 14px;
+      }
+
+      .concept-payyet-mark {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        border-radius: 11px;
+        color: #613a08;
+        background: #ffd886;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 19px;
+        font-weight: 700;
+      }
+
+      .concept-payyet-head > span:nth-child(2),
+      .concept-payyet-footer > span:last-child {
+        display: grid;
+        gap: 3px;
+      }
+
+      .concept-payyet-head strong {
+        font-size: 13px;
+      }
+
+      .concept-payyet-head small,
+      .concept-payyet-bill small,
+      .concept-payyet-bill > span,
+      .concept-payyet-status > span,
+      .concept-payyet-footer small {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .concept-payyet-channel {
+        margin-inline-start: auto;
+        padding: 4px 8px;
+        border-radius: 999px;
+        color: #087c49;
+        background: #e5f7ee;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .concept-payyet-bill {
+        display: grid;
+        gap: 3px;
+        padding: 13px 14px;
+        border: 1px solid #f2e6d1;
+        background: #fffaf1;
+      }
+
+      .concept-payyet-bill > strong {
+        font-size: 14px;
+      }
+
+      .concept-payyet-bill > b {
+        color: #4b300b;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 25px;
+      }
+
+      .concept-payyet-status {
+        display: grid;
+        gap: 8px;
+        margin-block: 14px;
+      }
+
+      .concept-payyet-status > div {
+        height: 7px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #f0eadf;
+      }
+
+      .concept-payyet-status i {
+        display: block;
+        width: 66%;
+        height: 100%;
+        border-radius: inherit;
+        background: #efa92b;
+      }
+
+      .concept-payyet-footer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding-block-start: 12px;
+        border-top: 1px solid #f2eee5;
+      }
+
+      .concept-payyet-footer strong {
+        font-size: 12px;
+      }
+
+      .concept-payyet-qr {
+        width: 42px;
+        height: 42px;
+        border: 6px solid #473718;
+        background: repeating-conic-gradient(#473718 0 25%, transparent 0 50%) 0 0 / 10px 10px;
+      }
+
       .concept-ordering-preview,
       .concept-branch-preview {
         width: min(100%, 355px);

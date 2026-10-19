@@ -16,6 +16,8 @@ export default defineConfig({
         partygame: resolve(projectRoot, "partygame.html"),
         qrOrdering: resolve(projectRoot, "qr-ordering.html"),
         sabaizy: resolve(projectRoot, "sabaizy.html"),
+        payyet: resolve(projectRoot, "payyet.html"),
+        joddaily: resolve(projectRoot, "joddaily.html"),
       },
     },
   },

@@ -2,9 +2,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 const qrOrderingSearch = "qr ordering qrordering ร้านอาหาร สั่งอาหาร ระบบร้านอาหาร pos ครัว";
 const sabaizySearch = "sabaizy branch manager สาขา จัดการธุรกิจ คิว นัดหมาย บริการ แคชเชียร์ พนักงาน สมาชิก คอร์ส";
+const payYetSearch = "payyet pay yet line bot บอทไลน์ เก็บเงิน กลุ่ม เรียกเก็บเงิน qr พร้อมเพย์ สลิป แจ้งเตือน";
+const jodDailySearch = "joddaily จดเดลี่ รายรับ รายจ่าย บัญชีส่วนตัว บันทึกเงิน line bot ตั้งงบ ค่าสมาชิก csv";
 const apps = [
   { category: "web", search: qrOrderingSearch },
   { category: "web", search: sabaizySearch },
+  { category: "tool", search: payYetSearch },
+  { category: "tool", search: jodDailySearch },
   { category: "web", search: "pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป" },
   { category: "web", search: "meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ" },
   { category: "web", search: "เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน" },
@@ -314,6 +318,64 @@ export default function HomePage() {
             <div className="app-actions">
               <a className="text-link" href="sabaizy.html">ดูรายละเอียดแอป</a>
               <a className="text-link" href="https://sm.drivetodev.online/" target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
+            </div>
+          </div>
+        </article>
+
+        <article className="app-card" data-category="tool" data-search={payYetSearch} hidden={!isAppVisible("tool", payYetSearch)}>
+          <div className="app-art app-art-payyet" aria-hidden="true">
+            <div className="payyet-preview">
+              <div className="payyet-preview-head">
+                <span className="payyet-mark">P</span>
+                <span className="payyet-brand"><strong>PayYet</strong><small>เก็บเงินในกลุ่ม LINE</small></span>
+                <span className="payyet-channel">LINE</span>
+              </div>
+              <div className="payyet-request">
+                <span>ค่าอาหารกลุ่ม</span>
+                <strong>฿1,250</strong>
+                <small>ครบกำหนดวันนี้ · 3 คน</small>
+              </div>
+              <div className="payyet-progress"><span><i /></span><small>จ่ายแล้ว 2 จาก 3 คน</small></div>
+              <div className="payyet-payment-row">
+                <span className="payyet-qr" />
+                <span><strong>QR พร้อมเพย์</strong><small>ชำระและแนบสลิป</small></span>
+              </div>
+            </div>
+          </div>
+          <div className="app-card-body">
+            <div className="app-meta"><span className="badge-online">Online now</span><span>เครื่องมือ</span><span>LINE Bot</span></div>
+            <h3>PayYet</h3>
+            <p>บอท LINE ช่วยเก็บเงินในกลุ่มหรือรายคน พร้อม QR พร้อมเพย์ แนบสลิป และเตือนอัตโนมัติ</p>
+            <div className="app-actions">
+              <a className="text-link" href="payyet.html">รายละเอียด PayYet</a>
+              <a className="text-link" href="/payyet/">เปิด PayYet →</a>
+            </div>
+          </div>
+        </article>
+
+        <article className="app-card" data-category="tool" data-search={jodDailySearch} hidden={!isAppVisible("tool", jodDailySearch)}>
+          <div className="app-art app-art-joddaily" aria-hidden="true">
+            <div className="joddaily-preview">
+              <div className="joddaily-preview-head">
+                <span className="joddaily-mark">J</span>
+                <span className="joddaily-brand"><strong>JodDaily</strong><small>บันทึกในแชต LINE</small></span>
+                <span className="joddaily-channel">LINE</span>
+              </div>
+              <div className="joddaily-summary"><span>คงเหลือเดือนนี้</span><strong>฿12,480</strong></div>
+              <div className="joddaily-transactions">
+                <div><span>กาแฟ · วันนี้</span><strong>−฿65</strong></div>
+                <div><span>เงินเดือน</span><strong>+฿30,000</strong></div>
+              </div>
+              <div className="joddaily-budget"><span>งบอาหาร</span><span><i /></span><strong>68%</strong></div>
+            </div>
+          </div>
+          <div className="app-card-body">
+            <div className="app-meta"><span className="badge-online">Online now</span><span>เครื่องมือ</span><span>LINE Bot</span></div>
+            <h3>JodDaily</h3>
+            <p>จดรายรับรายจ่ายผ่านแชต LINE ตั้งงบ เตือนค่าสมาชิก และดูสรุปพร้อมส่งออก CSV</p>
+            <div className="app-actions">
+              <a className="text-link" href="joddaily.html">รายละเอียด JodDaily</a>
+              <a className="text-link" href="/joddaily/">เปิด JodDaily →</a>
             </div>
           </div>
         </article>
