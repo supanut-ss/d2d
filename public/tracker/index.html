@@ -19,7 +19,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
 <style>
   :root {
     --bg: #f6f7f9; --surface: rgba(255,255,255,.92); --surface-solid: #fff; --fg: #101828; --muted: #667085;
@@ -113,7 +113,7 @@
   #silentCount { color: var(--warn); font-weight: 600; margin-left: 6px; }
   .alerts { flex: none; display: grid; gap: 6px; padding: 0 4px 6px; }
   .alerts:empty { display: none; }
-  .alert { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 14px; background: color-mix(in srgb, var(--warn) 16%, transparent); font-size: 13px; line-height: 1.35; }
+  .alert { display: flex; align-items: center; gap: 10px; padding: 8px 8px 8px 12px; border-radius: 14px; background: rgba(247,144,9,.16); background: color-mix(in srgb, var(--warn) 16%, transparent); font-size: 13px; line-height: 1.35; }
   .alert svg { flex: none; width: 18px; height: 18px; stroke: var(--warn); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .alert span { flex: 1; min-width: 0; }
   .alert button { flex: none; padding: 6px 12px; border-radius: 999px; background: var(--surface-solid); border: 1px solid var(--line); font-size: 13px; font-weight: 500; }
@@ -229,7 +229,7 @@
   </form>
 </div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 (function () {
   var API = 'https://api.drivetodev.online/owntracks/';
@@ -498,7 +498,7 @@
     setStats([[dist < 1 ? Math.round(dist * 1000) + ' ม.' : dist.toFixed(1) + ' กม.', 'ระยะทาง'], [hhmm(pts[0].recordedAt) + '–' + hhmm(pts[pts.length - 1].recordedAt), ''], [String(data.total), 'จุด']]);
     var ll = pts.map(function (p) { return [p.lat, p.lon]; });
     var line = L.polyline(ll, { color: color, weight: 5, opacity: .85, lineJoin: 'round' }).addTo(map);
-    var dot = function (c) { return L.divIcon({ html: '<div class="hist-dot" style="background:' + c + '"></div>', className: '', iconSize: [14, 14], iconAnchor: [7, 7] }); };
+    var dot = function (c) { var d = el('div', 'hist-dot'); d.style.background = c; return L.divIcon({ html: d, className: '', iconSize: [14, 14], iconAnchor: [7, 7] }); };
     var start = L.marker(ll[0], { icon: dot('#16a34a'), interactive: false }).addTo(map);
     var end = L.marker(ll[ll.length - 1], { icon: dot(color), interactive: false }).addTo(map);
     scrub = L.circleMarker(ll[ll.length - 1], { radius: 9, color: '#fff', weight: 3, fillColor: color, fillOpacity: 1 }).addTo(map);
@@ -529,6 +529,7 @@
 
   function render(rows) {
     var list = $('people'), seen = {}, bounds = [];
+    var keepTop = list.scrollTop, ae = document.activeElement, focusKey = ae && list.contains(ae) ? (ae.closest('.person').dataset.name + '|' + (ae.classList.contains('person-main') ? 'main' : ae.classList.contains('ask') ? 'ask' : 'hist')) : null;
     list.textContent = '';
     rows.forEach(function (p) {
       seen[p.name] = true;
@@ -542,7 +543,7 @@
         circles[p.name].setLatLng(ll).setRadius(p.accuracy).setStyle({ color: st.stale ? '#94a3b8' : color, fillColor: st.stale ? '#94a3b8' : color });
       }
 
-      var row = el('div', 'person' + (st.stale ? ' stale' : ''));
+      var row = el('div', 'person' + (st.stale ? ' stale' : '')); row.dataset.name = p.name;
       var main = el('button', 'person-main'); main.type = 'button';
       var av = el('div', 'avatar', initial(p.name)); av.style.background = color;
       av.style.setProperty('--st', st.live ? 'var(--ok)' : st.stale ? '#98a2b3' : 'var(--warn)');
@@ -559,13 +560,13 @@
       row.appendChild(main);
 
       var hist = el('button', 'icon-btn'); hist.type = 'button';
-      hist.title = hist.ariaLabel = 'ประวัติการเดินทางของ ' + p.name;
+      hist.title = 'ประวัติการเดินทางของ ' + p.name; hist.setAttribute('aria-label', hist.title);
       hist.innerHTML = '<svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5M12 7v5l3 2"/></svg>';
       hist.addEventListener('click', function () { openHistory(p.name); });
       row.appendChild(hist);
 
       var ask =el('button', 'icon-btn ask' + (p.requested ? ' spin' : '')); ask.type = 'button';
-      ask.title = ask.ariaLabel = 'ขอตำแหน่ง ' + p.name + ' ตอนนี้'; ask.disabled = !!p.requested;
+      ask.title = 'ขอตำแหน่ง ' + p.name + ' ตอนนี้'; ask.setAttribute('aria-label', ask.title); ask.disabled = !!p.requested;
       ask.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg>';
       ask.addEventListener('click', function () { requestLocation(p.name, ask); });
       row.appendChild(ask);
@@ -574,6 +575,12 @@
     Object.keys(markers).forEach(function (k) {
       if (!seen[k]) { map.removeLayer(markers[k]); delete markers[k]; delete points[k]; if (circles[k]) { map.removeLayer(circles[k]); delete circles[k]; } }
     });
+    list.scrollTop = keepTop;
+    if (focusKey) {
+      var parts = focusKey.split('|'), target = Array.prototype.find.call(list.children, function (r) { return r.dataset.name === parts[0]; });
+      var btn = target && target.querySelector(parts[1] === 'main' ? '.person-main' : parts[1] === 'ask' ? '.ask' : '.icon-btn:not(.ask)');
+      if (btn && !btn.disabled) btn.focus({ preventScroll: true });
+    }
     $('count').textContent = rows.length;
     if (!rows.length) list.appendChild(el('div', 'empty', 'ยังไม่มีข้อมูลตำแหน่ง'));
     if (firstFit && bounds.length) { fitAll(); firstFit = false; }
@@ -645,7 +652,11 @@
   $('fit').addEventListener('click', fitAll);
   $('logout').addEventListener('click', function () { setToken(''); firstFit = true; if (histState) closeHistory(); lastRows = []; renderAlerts([]); render([]); $('status').textContent = 'ออกจากระบบแล้ว'; showLogin(); });
   setInterval(function () { if (!document.hidden) refresh(); }, REFRESH_MS);
-  document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (watchId != null) { navigator.geolocation.clearWatch(watchId); watchId = -1; } return; }
+    if (watchId === -1) { watchId = null; $('locate').classList.remove('on'); me = null; toggleLocate(); }   // resume the watch
+    refresh();
+  });
 
   // mobile browsers resize the viewport when the address bar hides or the phone rotates
   var resizeTimer;
