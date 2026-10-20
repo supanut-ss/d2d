@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="robots" content="noindex">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>จัดการร้านนวด</title>
+<style>
+:root{
+  --bg:#f3f4f2;--card:#fff;--ink:#1c2321;--mute:#6b7773;--line:#e4e8e6;
+  --brand:#06a35a;--brand-ink:#fff;--brand-soft:#e3f5ec;
+  --warn:#b45309;--warn-soft:#fef3c7;--bad:#c0392b;--bad-soft:#fdecea;
+  --cash:#8a6d1d;--transfer:#2563a8;--member:#7a3fa0;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121614;--card:#1b211e;--ink:#eef2f0;--mute:#9aa7a2;--line:#2a332f;
+  --brand:#2fcf84;--brand-ink:#05261a;--brand-soft:#16352a;
+  --warn:#f3c26b;--warn-soft:#3a2f12;--bad:#ff8b7d;--bad-soft:#3b1d19;
+  --cash:#e0c26a;--transfer:#7db4f0;--member:#c79bea;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Noto Sans Thai","Sarabun",sans-serif}
+button,input,select{font:inherit;color:inherit}
+#app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:84px}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 16px 8px}
+header h1{font-size:18px;margin:0}
+header small{display:block;color:var(--mute);font-size:12px;font-weight:400}
+main{padding:0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px}
+.row{display:flex;align-items:center;gap:10px}
+.grow{flex:1;min-width:0}
+.mute{color:var(--mute);font-size:13px}
+.num{font-variant-numeric:tabular-nums}
+h2{font-size:13px;color:var(--mute);margin:16px 2px 8px;font-weight:600;letter-spacing:.02em}
+.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600}
+.p-cash{background:#f6ecc9;color:var(--cash)}.p-transfer{background:#dbe9f8;color:var(--transfer)}.p-member{background:#eddcf6;color:var(--member)}
+@media (prefers-color-scheme:dark){.p-cash,.p-transfer,.p-member{background:#2a332f}}
+.q{display:flex;gap:12px;align-items:center;width:100%;text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:8px;cursor:pointer}
+.q.void{opacity:.5}.q.void .price{text-decoration:line-through}
+.seq{width:38px;height:38px;border-radius:10px;background:var(--brand-soft);color:var(--brand);display:grid;place-items:center;font-weight:700}
+.price{font-weight:700}
+.fab{position:fixed;right:max(16px,calc(50% - 224px));bottom:84px;z-index:6;background:var(--brand);color:var(--brand-ink);border:0;border-radius:999px;padding:13px 20px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);cursor:pointer}
+nav{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:env(safe-area-inset-bottom)}
+nav div{display:flex;width:100%;max-width:480px}
+nav button{flex:1;border:0;background:none;padding:9px 0 10px;color:var(--mute);font-size:12px;cursor:pointer}
+nav button b{display:block;font-size:20px;line-height:1.1}
+nav button.on{color:var(--brand);font-weight:700}
+.seg{display:flex;background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:3px;gap:3px}
+.seg button{flex:1;border:0;background:none;padding:9px 4px;border-radius:9px;cursor:pointer;color:var(--mute);font-weight:600}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;cursor:pointer}
+.chip.on{background:var(--brand-soft);border-color:var(--brand);color:var(--brand);font-weight:700}
+.chip small{display:block;font-size:11px;font-weight:400;color:var(--mute)}
+input[type=text],input[type=number],input[type=time],input[type=search]{width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 12px;outline:none}
+input:focus{border-color:var(--brand)}
+label{display:block;font-size:13px;color:var(--mute);margin:14px 2px 6px;font-weight:600}
+.btn{border:0;border-radius:12px;padding:13px 16px;font-weight:700;cursor:pointer;background:var(--brand);color:var(--brand-ink);width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn.sm{width:auto;padding:8px 14px;font-size:13px}
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:20;display:flex;align-items:flex-end;justify-content:center}
+.sheet{background:var(--bg);width:100%;max-width:480px;max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:6px 16px 24px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:6px auto 10px}
+.sheet h3{margin:0 0 4px;font-size:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stat b{display:block;font-size:22px}
+.bar{height:8px;border-radius:4px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:var(--brand)}
+.warn{background:var(--warn-soft);color:var(--warn);border-radius:12px;padding:10px 12px;font-size:13px;margin:8px 0}
+.ok{background:var(--brand-soft);color:var(--brand);border-radius:12px;padding:10px 12px;font-size:13px;margin:8px 0}
+.err{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:10px 12px;font-size:13px;margin:8px 0;white-space:pre-line}
+.toast{position:fixed;left:50%;bottom:96px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;z-index:40;font-size:14px;max-width:90%;white-space:pre-line}
+.tbl{width:100%;border-collapse:collapse}
+.tbl td{padding:7px 0;border-bottom:1px solid var(--line)}.tbl tr:last-child td{border:0}.tbl td:last-child{text-align:right}
+.x{border:0;background:none;color:var(--bad);cursor:pointer;font-size:18px;padding:4px 8px}
+.center{padding:48px 24px;text-align:center;color:var(--mute)}
+.center b{display:block;color:var(--ink);font-size:17px;margin-bottom:8px}
+</style>
+</head>
+<body>
+<div id="app"><div class="center">กำลังโหลด…</div></div>
+<script src="./config.js"></script>
+<script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+<script>
+// ---------- helpers ----------
+const $ = s => document.querySelector(s), $$ = s => document.querySelectorAll(s);
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money = n => Number(n).toLocaleString('en-US');
+const payTh = {cash:'สด', transfer:'โอน', member:'เมม'};
+const D = { idToken:null, groupId:null };          // LINE identity for API calls
+let S = null;                                      // app state after /api/me
+let toastT = null, sheet = null;
+
+const cfg = () => window.APP_CONFIG || {};
+// API origin (and optional path prefix) from config.js; empty = same origin as this page
+const apiBase = () => String(cfg().apiBase || '').replace(/\/+$/, '');
+
+class ApiError extends Error { constructor(status, message){ super(message); this.status = status; } }
+
+async function api(method, path, body){
+  const res = await fetch(apiBase() + '/api' + path, {
+    method,
+    headers: { 'Authorization': 'Bearer ' + D.idToken, ...(D.groupId ? {'X-Group-Id': D.groupId} : {}), ...(body ? {'Content-Type':'application/json'} : {}) },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  let data = null;
+  try { data = await res.json(); } catch {}
+  if (res.status === 401) { try { liff.logout(); liff.login(); } catch {} throw new ApiError(401, 'เซสชันหมดอายุ กำลังเข้าสู่ระบบใหม่'); }
+  if (!res.ok) throw new ApiError(res.status, (data && (data.error || data.Message)) || 'เกิดข้อผิดพลาด (' + res.status + ')');
+  return data;
+}
+const owner = () => S.role === 'owner';
+function toast(t){ clearTimeout(toastT); document.querySelector('.toast')?.remove(); const el = document.createElement('div'); el.className = 'toast'; el.textContent = t; document.body.append(el); toastT = setTimeout(() => el.remove(), 2600); }
+function openSheet(html, after){ closeSheet(); const bg = document.createElement('div'); bg.className = 'sheet-bg'; bg.innerHTML = `<div class="sheet"><div class="grab"></div>${html}</div>`; bg.onclick = e => { if (e.target === bg) closeSheet(); }; document.body.append(bg); sheet = bg; after && after(bg); }
+function closeSheet(){ sheet && sheet.remove(); sheet = null; }
+function fatal(title, msg){ $('#app').innerHTML = `<div class="center"><b>${esc(title)}</b>${esc(msg)}</div>`; }
+// run an API call; on failure show the server's message instead of throwing
+async function attempt(fn, errBox){
+  try { return await fn(); }
+  catch (e) { if (errBox) errBox.innerHTML = `<div class="err">${esc(e.message)}</div>`; else toast(e.message); return null; }
+}
+const stripEmoji = m => String(m).replace(/^[✅❌]\s*/, '');
+
+// ---------- boot ----------
+async function boot(){
+  try {
+    if (!cfg().liffId) return fatal('ยังไม่ได้ตั้งค่า', 'ใส่ liffId (และ apiBase) ในไฟล์ config.js');
+    await liff.init({ liffId: cfg().liffId });
+    if (!liff.isLoggedIn()) { liff.login(); return; }
+    D.idToken = liff.getIDToken();
+    const ctx = liff.getContext() || {};
+    D.groupId = ctx.groupId || ctx.roomId || null;
+    const me = await api('GET', '/me');
+    S = { ...me, tab:'queue', range:'day', queue:[], members:[], report:null, draft:null };
+    await go('queue');
+  } catch (e) { fatal('เปิดไม่สำเร็จ', e.message || String(e)); }
+}
+
+async function go(tab){
+  S.tab = tab;
+  await attempt(async () => {
+    if (tab === 'queue') S.queue = await api('GET', '/queue');
+    if (tab === 'members') S.members = await api('GET', '/members');
+    if (tab === 'report') S.report = await api('GET', '/report?range=' + S.range);
+    if (tab === 'settings') S.draft = JSON.parse(JSON.stringify(S.settings));
+  });
+  render(); scrollTo(0, 0);
+}
+
+function render(){
+  const tabs = [['queue','🧾','คิววันนี้'],['members','👥','สมาชิก'],['report','📊','รายงาน']];
+  if (owner()) tabs.push(['settings','⚙️','ตั้งค่า']);
+  const view = { queue:viewQueue, members:viewMembers, report:viewReport, settings:viewSettings }[S.tab]();
+  $('#app').innerHTML = `
+  <header><h1>${esc(S.shopName)}<small>${owner() ? 'เจ้าของ' : 'พนักงาน'} · ${esc(S.today)}</small></h1></header>
+  <main>${view}</main>
+  ${S.tab === 'queue' ? '<button class="fab" id="add">＋ ลงคิว</button>' : ''}
+  <nav><div>${tabs.map(t => `<button data-t="${t[0]}" class="${S.tab === t[0] ? 'on' : ''}"><b>${t[1]}</b>${t[2]}</button>`).join('')}</div></nav>`;
+  $$('[data-t]').forEach(b => b.onclick = () => go(b.dataset.t));
+  bind();
+}
+
+// ---------- queue ----------
+function viewQueue(){
+  const live = S.queue.filter(q => !q.void), total = live.reduce((a, q) => a + q.price, 0);
+  return `<div class="grid2" style="margin-bottom:12px"><div class="stat"><span class="mute">รวมวันนี้</span><b class="num">${money(total)}</b></div><div class="stat"><span class="mute">จำนวนคิว</span><b>${live.length}</b></div></div>
+  <h2>รายการคิว</h2>` + ([...S.queue].reverse().map(q => `
+  <button class="q ${q.void ? 'void' : ''}" data-q="${q.seq}"><div class="seq">${q.seq}</div>
+    <div class="grow"><b>${esc(q.staff)}</b> ${q.course ? `<span class="mute">· ${esc(q.course)}</span>` : ''}<div class="mute">${esc(q.time)} · ${q.mins} นาที ${q.member ? '· ' + esc(q.member + (q.memberName ? ' ' + q.memberName : '')) : ''}</div></div>
+    <div style="text-align:right"><div class="price num">${money(q.price)}฿</div><span class="pill p-${esc(q.pay)}">${payTh[q.pay]}</span></div></button>`).join('') || '<p class="mute">ยังไม่มีคิววันนี้</p>');
+}
+
+function queueForm(){
+  const st = S.settings;
+  const f = { staff: st.staff[0], course:'', mins:null, pay:'transfer', member:null, msq:'', found:[], time:'' };
+  let timer = null;
+  const pricesOf = () => f.course ? (st.courses[f.course] || {}) : st.rates;
+  const sh = () => {
+    const prices = pricesOf(), mins = Object.keys(prices).map(Number).sort((a, b) => a - b);
+    if (!prices[f.mins]) f.mins = mins[0] ?? null;
+    const price = prices[f.mins];
+    const need = f.pay === 'member';
+    const enough = !need || (f.member && f.member.balance >= price);
+    $('#qf').innerHTML = `
+    <label>พนักงาน</label><div class="chips">${st.staff.map(s => `<button class="chip ${f.staff === s ? 'on' : ''}" data-staff="${esc(s)}">${esc(s)}</button>`).join('')}</div>
+    ${Object.keys(st.courses).length ? `<label>คอร์ส</label><div class="chips"><button class="chip ${f.course === '' ? 'on' : ''}" data-course="">มาตรฐาน</button>${Object.keys(st.courses).map(c => `<button class="chip ${f.course === c ? 'on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
+    <label>ระยะเวลา</label><div class="chips">${mins.map(m => `<button class="chip ${f.mins === m ? 'on' : ''}" data-mins="${m}">${m} นาที<small>${money(prices[m])}฿</small></button>`).join('') || '<span class="mute">ยังไม่มีราคา — ตั้งค่าในแท็บตั้งค่า</span>'}</div>
+    <label>วิธีจ่าย</label><div class="seg">${['cash','transfer','member'].map(p => `<button class="${f.pay === p ? 'on' : ''}" data-pay="${p}">${payTh[p]}</button>`).join('')}</div>
+    ${need ? memberPick(f, price) : ''}
+    <label>เวลาเริ่ม (เว้นว่าง = ตอนนี้)</label><input type="time" id="tm" value="${esc(f.time)}">
+    <div class="ok" style="margin-top:14px"><b>${esc(f.staff)}</b>${f.course ? ' · ' + esc(f.course) : ''} · ${f.mins ?? '-'} นาที · <b>${price != null ? money(price) : '-'}฿</b> (${payTh[f.pay]})</div>
+    <div id="qerr"></div>
+    <button class="btn" id="save" ${price == null || !enough ? 'disabled' : ''}>บันทึกคิว</button>`;
+    const q = $('#qf');
+    q.querySelectorAll('[data-staff]').forEach(b => b.onclick = () => { f.staff = b.dataset.staff; sh(); });
+    q.querySelectorAll('[data-course]').forEach(b => b.onclick = () => { f.course = b.dataset.course; sh(); });
+    q.querySelectorAll('[data-mins]').forEach(b => b.onclick = () => { f.mins = +b.dataset.mins; sh(); });
+    q.querySelectorAll('[data-pay]').forEach(b => b.onclick = () => { f.pay = b.dataset.pay; sh(); });
+    $('#tm').onchange = e => f.time = e.target.value;
+    const ms = $('#msearch');
+    if (ms) ms.oninput = () => {
+      f.msq = ms.value; f.member = null; clearTimeout(timer);
+      timer = setTimeout(async () => {
+        const r = await attempt(() => api('GET', '/members?q=' + encodeURIComponent(f.msq.trim())));
+        f.found = f.msq.trim() ? (r || []) : [];
+        const pos = ms.selectionStart; sh(); const n = $('#msearch'); n.focus(); n.setSelectionRange(pos, pos);
+      }, 250);
+    };
+    q.querySelectorAll('[data-m]').forEach(b => b.onclick = () => { f.member = f.found[+b.dataset.m]; sh(); });
+    $('#save').onclick = async () => {
+      $('#save').disabled = true;
+      const r = await attempt(() => api('POST', '/queue', {
+        staff: f.staff, course: f.course || null, mins: f.mins, pay: f.pay,
+        memberKey: need ? f.member.key : null, memberName: need ? (f.member.name || '-') : null, time: f.time || null,
+      }), $('#qerr'));
+      if (r) { closeSheet(); toast(r.message); go('queue'); } else $('#save').disabled = false;
+    };
+  };
+  openSheet(`<h3>ลงคิวใหม่</h3><div id="qf"></div>`, sh);
+}
+
+function memberPick(f, price){
+  const dup = f.found.length > 1 && f.found.every(m => m.key === f.found[0].key);
+  return `<label>สมาชิก (เลขท้าย 4 ตัว หรือชื่อ)</label><input type="search" id="msearch" placeholder="เช่น 0812" value="${esc(f.msq)}" inputmode="search" autocomplete="off">
+  ${dup ? `<div class="warn">⚠️ เลข ${esc(f.found[0].key)} มี ${f.found.length} คน เลือกชื่อด้านล่าง</div>` : ''}
+  <div style="margin-top:8px">${f.found.map((m, i) => `<button class="q" data-m="${i}" style="${f.member === m ? 'border-color:var(--brand);background:var(--brand-soft)' : ''}">
+    <div class="grow"><b>${esc(m.key)}</b> ${m.name ? esc(m.name) : '<span class="mute">(ไม่มีชื่อ)</span>'}</div><div class="${m.balance < price ? 'mute' : ''} num">${money(m.balance)}฿${m.balance < price ? ' · ไม่พอ' : ''}</div></button>`).join('')}</div>`;
+}
+
+function queueDetail(seq){
+  const q = S.queue.find(x => x.seq == seq);
+  openSheet(`<h3>คิว #${q.seq} ${q.void ? '<span class="pill p-cash">ยกเลิกแล้ว</span>' : ''}</h3>
+  <div class="card" style="margin-top:10px"><table class="tbl">
+  <tr><td class="mute">พนักงาน</td><td>${esc(q.staff)}</td></tr><tr><td class="mute">คอร์ส</td><td>${esc(q.course || 'มาตรฐาน')}</td></tr>
+  <tr><td class="mute">เวลา</td><td>${esc(q.time)} · ${q.mins} นาที</td></tr><tr><td class="mute">ราคา</td><td class="num">${money(q.price)}฿ (${payTh[q.pay]})</td></tr>
+  ${q.member ? `<tr><td class="mute">สมาชิก</td><td>${esc(q.member + (q.memberName ? ' ' + q.memberName : ''))}</td></tr>` : ''}</table></div>
+  <div id="verr"></div>
+  ${owner() ? (q.void ? '' : `<button class="btn danger" id="void">ยกเลิกคิวนี้${q.member ? ' (คืนเครดิต)' : ''}</button><p class="mute">ไม่ลบจริง เก็บประวัติไว้เสมอ</p>`) : '<div class="warn">เฉพาะเจ้าของที่ยกเลิกคิวได้</div>'}
+  <button class="btn ghost" onclick="closeSheet()" style="margin-top:8px">ปิด</button>`, () => {
+    const v = $('#void');
+    if (v) v.onclick = async () => {
+      if (!confirm('ยกเลิกคิว #' + q.seq + ' ?')) return;
+      const r = await attempt(() => api('POST', '/queue/' + q.seq + '/void'), $('#verr'));
+      if (r) { closeSheet(); toast(r.message); go('queue'); }
+    };
+  });
+}
+
+// ---------- members ----------
+function viewMembers(){
+  return `<input type="search" id="ms" placeholder="ค้นหาเลขท้าย 4 ตัว หรือชื่อ" style="margin-bottom:10px" autocomplete="off"><div id="ml">${memberList(S.members)}</div>
+  ${owner() ? '<button class="btn" id="newm" style="margin-top:6px">＋ เติมเครดิต / สมาชิกใหม่</button>' : ''}`;
+}
+function memberList(list){
+  return list.map((m, i) => `
+  <button class="q" data-mem="${i}"><div class="seq" style="background:var(--bg);color:var(--ink)">${esc(m.key.slice(0, 2))}<small style="font-size:10px;margin-left:1px">${esc(m.key.slice(2))}</small></div>
+  <div class="grow"><b>${esc(m.name || 'ไม่มีชื่อ')}</b> ${m.duplicate ? '<span class="pill" style="background:var(--warn-soft);color:var(--warn)">เลขซ้ำ</span>' : ''}<div class="mute">เลขท้าย ${esc(m.key)}</div></div>
+  <div class="price num">${money(m.balance)}฿</div></button>`).join('') || '<p class="mute">ไม่พบสมาชิก</p>';
+}
+async function memberDetail(m){
+  const d = await attempt(() => api('GET', '/members/' + encodeURIComponent(m.key) + '?name=' + encodeURIComponent(m.name)));
+  if (!d) return;
+  const mm = d.member;
+  openSheet(`<h3>${esc(mm.name || 'ไม่มีชื่อ')} <span class="mute">· ${esc(mm.key)}</span></h3>
+  <div class="stat" style="margin:10px 0"><span class="mute">เครดิตคงเหลือ</span><b class="num">${money(mm.balance)}฿</b></div>
+  <h2>ประวัติล่าสุด</h2><div class="card"><table class="tbl">${d.history.map(h => `<tr><td class="mute">${esc(h.date)} ${h.type === 'topup' ? 'เติม' : h.type === 'refund' ? 'คืน' : 'ใช้'}</td><td class="num">${h.amount > 0 ? '+' : '−'}${money(Math.abs(h.amount))}</td></tr>`).join('') || '<tr><td class="mute">ยังไม่มีรายการ</td></tr>'}</table></div>
+  ${owner() ? `<h2>เติมเครดิต</h2><div class="grid2"><div><label style="margin-top:0">จ่ายจริง</label><input type="number" id="tp" placeholder="4500" inputmode="numeric"></div><div><label style="margin-top:0">ได้เครดิต</label><input type="number" id="tc" placeholder="6000" inputmode="numeric"></div></div>
+  <div id="terr"></div><button class="btn" id="top" style="margin-top:12px">เติมเครดิต</button>` : '<div class="warn">เฉพาะเจ้าของที่เติมเครดิตได้</div>'}
+  <button class="btn ghost" onclick="closeSheet()" style="margin-top:8px">ปิด</button>`, () => {
+    const t = $('#top');
+    if (t) t.onclick = async () => {
+      const paid = +$('#tp').value, credit = +$('#tc').value || paid;
+      const r = await attempt(() => api('POST', '/members/topup', { key: mm.key, name: mm.name || '-', paid, credit }), $('#terr'));
+      if (r) { closeSheet(); toast(stripEmoji(r.message)); go('members'); }
+    };
+  });
+}
+function newMember(){
+  openSheet(`<h3>เติมเครดิต / สมาชิกใหม่</h3>
+  <label>เลขท้ายเบอร์ 4 ตัว</label><input type="text" id="nk" inputmode="numeric" maxlength="4" placeholder="0812">
+  <div id="nw"></div>
+  <label>ชื่อ (ไม่บังคับ — จำเป็นถ้าเลขซ้ำ)</label><input type="text" id="nn" placeholder="เช่น สมชาย (คำเดียว)">
+  <div class="grid2"><div><label>จ่ายจริง</label><input type="number" id="np" inputmode="numeric"></div><div><label>ได้เครดิต</label><input type="number" id="nc" inputmode="numeric"></div></div>
+  <div id="nerr"></div><button class="btn" id="nsv" style="margin-top:14px">บันทึก</button>`, () => {
+    $('#nk').oninput = () => {
+      const same = S.members.filter(m => m.key === $('#nk').value);
+      $('#nw').innerHTML = same.length ? `<div class="warn">⚠️ เลข ${esc($('#nk').value)} มีอยู่แล้ว: ${esc(same.map(m => m.name || '(ไม่มีชื่อ)').join(', '))}<br>ใส่ชื่อเดิมเพื่อเติมให้คนเดิม หรือชื่อใหม่เพื่อสร้างสมาชิกใหม่</div>` : '';
+    };
+    $('#nsv').onclick = async () => {
+      const paid = +$('#np').value, credit = +$('#nc').value || paid, name = $('#nn').value.trim();
+      const r = await attempt(() => api('POST', '/members/topup', { key: $('#nk').value, name: name || null, paid, credit }), $('#nerr'));
+      if (r) { closeSheet(); toast(stripEmoji(r.message)); go('members'); }
+    };
+  });
+}
+
+// ---------- report ----------
+function viewReport(){
+  const r = S.report, max = a => Math.max(...a.map(x => x.amount), 1);
+  const list = a => a.map(x => `<div style="margin-bottom:10px"><div class="row"><span class="grow">${esc(x.name)}</span><b class="num">${money(x.amount)}฿</b></div><div class="bar"><i style="width:${x.amount / max(a) * 100}%"></i></div></div>`).join('') || '<span class="mute">ไม่มีข้อมูล</span>';
+  return `<div class="seg" style="margin-bottom:12px"><button data-range="day" class="${S.range === 'day' ? 'on' : ''}">วันนี้</button><button data-range="month" class="${S.range === 'month' ? 'on' : ''}">เดือนนี้</button></div>
+  <div class="mute" style="margin:0 2px 8px">${esc(r.from)}${r.from !== r.to ? ' ถึง ' + esc(r.to) : ''}</div>
+  <div class="grid2"><div class="stat"><span class="mute">รายได้รวม</span><b class="num">${money(r.total)}</b></div><div class="stat"><span class="mute">จำนวนคิว</span><b>${r.count}</b></div></div>
+  <h2>แยกตามวิธีจ่าย</h2><div class="card"><table class="tbl"><tr><td><span class="pill p-cash">สด</span></td><td class="num">${money(r.cash)}฿</td></tr><tr><td><span class="pill p-transfer">โอน</span></td><td class="num">${money(r.transfer)}฿</td></tr><tr><td><span class="pill p-member">เมม</span></td><td class="num">${money(r.member)}฿</td></tr></table></div>
+  <h2>แยกตามคอร์ส</h2><div class="card">${list(r.byCourse)}</div>
+  <h2>แยกตามพนักงาน</h2><div class="card">${list(r.byStaff)}</div>
+  <h2>เงินสด</h2><div class="card"><table class="tbl"><tr><td class="mute">รับเงินสด</td><td class="num">${money(r.cash)}฿</td></tr><tr><td class="mute">ค่าใช้จ่าย (สด)</td><td class="num">−${money(r.expenseCash)}฿</td></tr><tr><td><b>เงินสดในลิ้นชัก</b></td><td class="num"><b>${money(r.drawerCash)}฿</b></td></tr><tr><td class="mute">ค่ามือที่บันทึก</td><td class="num">${money(r.payouts)}฿</td></tr></table></div>
+  <button class="btn ghost" id="addexp">＋ บันทึกค่าใช้จ่าย${owner() ? ' / ค่ามือ' : ''}</button>`;
+}
+function expenseSheet(){
+  let kind = 1, staff = S.settings.staff[0], method = 'cash';
+  openSheet(`<h3>บันทึกค่าใช้จ่าย${owner() ? ' / ค่ามือ' : ''}</h3>
+  ${owner() ? '<div class="seg" style="margin-top:10px"><button id="k1">ค่าใช้จ่าย (สด)</button><button id="k2">ค่ามือ</button></div>' : ''}
+  <div id="ef"></div><div id="eerr"></div><button class="btn" id="es" style="margin-top:14px">บันทึก</button>`, () => {
+    const draw = () => {
+      if (owner()) { $('#k1').className = kind === 1 ? 'on' : ''; $('#k2').className = kind === 2 ? 'on' : ''; }
+      $('#ef').innerHTML = kind === 1 ? `<label>รายการ</label><input type="text" id="ei" placeholder="เช่น ข้าว"><label>จำนวน</label><input type="number" id="ea" inputmode="numeric">`
+        : `<label>พนักงาน</label><div class="chips">${S.settings.staff.map(s => `<button class="chip ${s === staff ? 'on' : ''}" data-ps="${esc(s)}">${esc(s)}</button>`).join('')}</div><label>จำนวน</label><input type="number" id="ea" inputmode="numeric"><label>จ่ายเป็น</label><div class="seg"><button class="${method === 'cash' ? 'on' : ''}" data-pm="cash">สด</button><button class="${method === 'transfer' ? 'on' : ''}" data-pm="transfer">โอน</button></div>`;
+      $$('#ef [data-ps]').forEach(b => b.onclick = () => { staff = b.dataset.ps; const a = $('#ea').value; draw(); $('#ea').value = a; });
+      $$('#ef [data-pm]').forEach(b => b.onclick = () => { method = b.dataset.pm; const a = $('#ea').value; draw(); $('#ea').value = a; });
+    };
+    if (owner()) { $('#k1').onclick = () => { kind = 1; draw(); }; $('#k2').onclick = () => { kind = 2; draw(); }; }
+    draw();
+    $('#es').onclick = async () => {
+      const amount = +$('#ea').value;
+      const r = await attempt(() => kind === 1 ? api('POST', '/expenses', { item: $('#ei').value, amount }) : api('POST', '/payouts', { staff, amount, method }), $('#eerr'));
+      if (r) { closeSheet(); toast(stripEmoji(r.message)); go('report'); }
+    };
+  });
+}
+
+// ---------- settings (owner): edit a draft, save once ----------
+function viewSettings(){
+  const d = S.draft;
+  return `<h2>ราคามาตรฐาน</h2><div class="card">${Object.entries(d.rates).sort((a, b) => a[0] - b[0]).map(([m, p]) => `<div class="row" style="margin-bottom:8px"><span class="grow">${esc(m)} นาที</span><input type="number" value="${esc(p)}" data-rate="${esc(m)}" style="width:110px;text-align:right"><span>฿</span><button class="x" data-delrate="${esc(m)}">✕</button></div>`).join('')}
+    <div class="row"><input type="number" id="rm" placeholder="นาที" style="width:90px"><input type="number" id="rp" placeholder="ราคา" style="flex:1"><button class="btn sm" id="addrate">เพิ่ม</button></div></div>
+  <h2>คอร์สพิเศษ</h2>${Object.entries(d.courses).map(([c, pr]) => `<div class="card"><div class="row"><b class="grow">${esc(c)}</b><button class="x" data-delcourse="${esc(c)}">ลบคอร์ส</button></div>
+    ${Object.entries(pr).sort((a, b) => a[0] - b[0]).map(([m, p]) => `<div class="row" style="margin-top:8px"><span class="grow">${esc(m)} นาที</span><input type="number" value="${esc(p)}" data-cp="${esc(c)}|${esc(m)}" style="width:110px;text-align:right"><span>฿</span><button class="x" data-delcp="${esc(c)}|${esc(m)}">✕</button></div>`).join('')}
+    <div class="row" style="margin-top:10px"><input type="number" placeholder="นาที" data-newm="${esc(c)}" style="width:90px"><input type="number" placeholder="ราคา" data-newp="${esc(c)}" style="flex:1"><button class="btn sm" data-addcp="${esc(c)}">เพิ่ม</button></div></div>`).join('')}
+  <div class="card"><div class="row"><input type="text" id="nc" placeholder="ชื่อคอร์สใหม่ (คำเดียว) เช่น อโรม่า"><button class="btn sm" id="addcourse">สร้าง</button></div></div>
+  <h2>พนักงาน</h2><div class="card"><div class="chips">${d.staff.map(s => `<span class="chip on" style="cursor:default">${esc(s)} <button class="x" data-delstaff="${esc(s)}" style="padding:0 0 0 6px;color:inherit">✕</button></span>`).join('')}</div>
+    <div class="row" style="margin-top:12px"><input type="text" id="ns" placeholder="ชื่อพนักงานใหม่ (คำเดียว)"><button class="btn sm" id="addstaff">เพิ่ม</button></div></div>
+  <div id="serr"></div><button class="btn" id="savesettings">บันทึกการตั้งค่า</button>
+  <p class="mute">การเปลี่ยนแปลงยังไม่ถูกบันทึกจนกว่าจะกดปุ่มด้านบน</p>`;
+}
+
+// ---------- wiring ----------
+function bind(){
+  $$('[data-q]').forEach(b => b.onclick = () => queueDetail(b.dataset.q));
+  const add = $('#add'); if (add) add.onclick = queueForm;
+  const ms = $('#ms');
+  if (ms) { let t; ms.oninput = () => { clearTimeout(t); t = setTimeout(async () => {
+    const r = await attempt(() => api('GET', '/members?q=' + encodeURIComponent(ms.value.trim())));
+    if (r) { S.members = r; $('#ml').innerHTML = memberList(r); bindMembers(); } }, 250); }; }
+  bindMembers();
+  const nm = $('#newm'); if (nm) nm.onclick = newMember;
+  $$('[data-range]').forEach(b => b.onclick = () => { S.range = b.dataset.range; go('report'); });
+  const ae = $('#addexp'); if (ae) ae.onclick = expenseSheet;
+  if (S.tab !== 'settings') return;
+  const d = S.draft;
+  $$('[data-rate]').forEach(i => i.onchange = () => { d.rates[i.dataset.rate] = +i.value; });
+  $$('[data-delrate]').forEach(b => b.onclick = () => { delete d.rates[b.dataset.delrate]; render(); });
+  $('#addrate').onclick = () => { const m = +$('#rm').value, p = +$('#rp').value; if (m > 0 && p > 0) { d.rates[m] = p; render(); } else toast('ใส่นาทีและราคา'); };
+  $$('[data-cp]').forEach(i => i.onchange = () => { const [c, m] = i.dataset.cp.split('|'); d.courses[c][m] = +i.value; });
+  $$('[data-delcp]').forEach(b => b.onclick = () => { const [c, m] = b.dataset.delcp.split('|'); delete d.courses[c][m]; render(); });
+  $$('[data-delcourse]').forEach(b => b.onclick = () => { if (confirm('ลบคอร์ส ' + b.dataset.delcourse + ' ?')) { delete d.courses[b.dataset.delcourse]; render(); } });
+  $$('[data-addcp]').forEach(b => b.onclick = () => {
+    const c = b.dataset.addcp, m = +document.querySelector(`[data-newm="${CSS.escape(c)}"]`).value, p = +document.querySelector(`[data-newp="${CSS.escape(c)}"]`).value;
+    if (m > 0 && p > 0) { d.courses[c][m] = p; render(); } else toast('ใส่นาทีและราคา'); });
+  $('#addcourse').onclick = () => {
+    const n = $('#nc').value.trim();
+    if (!n || /\s/.test(n) || /^\d+$/.test(n)) return toast('ชื่อคอร์สต้องเป็นคำเดียว ไม่ใช่ตัวเลข');
+    if (d.staff.includes(n)) return toast('ชื่อซ้ำกับพนักงาน');
+    d.courses[n] = d.courses[n] || {}; render(); };
+  $$('[data-delstaff]').forEach(b => b.onclick = () => { d.staff = d.staff.filter(s => s !== b.dataset.delstaff); render(); });
+  $('#addstaff').onclick = () => {
+    const n = $('#ns').value.trim();
+    if (!n || /\s/.test(n)) return toast('ชื่อพนักงานต้องเป็นคำเดียว');
+    if (!d.staff.includes(n)) { d.staff.push(n); render(); } };
+  $('#savesettings').onclick = async () => {
+    const r = await attempt(() => api('PUT', '/settings', d), $('#serr'));
+    if (r) { S.settings = r; toast('บันทึกการตั้งค่าแล้ว'); go('settings'); }
+  };
+}
+function bindMembers(){ $$('[data-mem]').forEach(b => b.onclick = () => memberDetail(S.members[+b.dataset.mem])); }
+
+if (!window.__NO_BOOT) boot();
+</script>
+</body>
+</html>
