@@ -112,7 +112,7 @@ const pages = {
   },
   bookSabuy: {
     name: "Book Sabuy",
-    appUrl: "/booksabuy/",
+    appUrl: "https://drivetodev.online/booksabuy/",
     kind: "แนวคิดระบบจัดการร้านนวดผ่าน LINE",
     title: "จัดคิว ดูแลสมาชิก และสรุปยอดผ่าน LINE",
     description: "Book Sabuy ช่วยร้านนวดบันทึกคิว เลือกพนักงาน คอร์ส เวลา และวิธีชำระ พร้อมดูแลเครดิตสมาชิกและสรุปรายได้รายวันหรือรายเดือน",

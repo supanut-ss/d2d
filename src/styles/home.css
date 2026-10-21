@@ -516,6 +516,10 @@
         background: var(--soft-blue);
       }
 
+      .app-art > * {
+        border-radius: 13px;
+      }
+
       .app-art-inventory {
         background: #eaf0f8;
       }
@@ -529,8 +533,11 @@
       }
 
       .booksabuy-preview {
-        display: grid;
-        width: min(100%, 340px);
+        display: flex;
+        width: min(100%, 310px);
+        height: 176px;
+        flex-direction: column;
+        justify-content: space-between;
         gap: 6px;
         padding: 10px;
         border: 1px solid #d8e6dc;
@@ -1189,7 +1196,7 @@
       .label-window-address {
         display: grid;
         gap: 2px;
-        padding-block: 10px 8px;
+        padding-block: 5px 4px;
       }
 
       .label-window-address span {
@@ -1208,8 +1215,8 @@
       }
 
       .label-window-code {
-        height: 25px;
-        margin-block-end: 6px;
+        height: 22px;
+        margin-block-end: 4px;
         background: repeating-linear-gradient(
           90deg,
           #14243a 0 2px,
@@ -1802,27 +1809,58 @@
       .party-player-row span:first-child { color: var(--white); background: var(--blue); }
 
       .app-art .preview-card {
-        width: 380px;
-        height: 270px;
+        width: 406px;
+        height: 231px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         zoom: 0.763;
+        border-radius: 13px;
+      }
+
+      .app-art .preview-top {
+        padding-block-end: 9px;
+      }
+
+      .app-art .stock-rows {
+        gap: 4px;
+        padding-block: 7px;
+      }
+
+      .app-art .stock-rows div {
+        padding: 4px 12px;
       }
 
       .app-art .party-board {
-        width: 402px;
-        height: 286px;
+        width: 430px;
+        height: 244px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         zoom: 0.72;
+        padding: 14px;
+        border-radius: 13px;
+      }
+
+      .app-art .party-game-list {
+        gap: 8px;
+        margin-block: 12px;
+      }
+
+      .app-art .party-game-tile {
+        min-height: 46px;
+        padding: 8px;
+      }
+
+      .app-art .party-board-footer {
+        padding-block-start: 8px;
       }
 
       .app-art .label-window {
-        width: 290px;
-        height: 206px;
+        width: min(100%, 310px);
+        height: 176px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
+        padding: 10px 14px;
       }

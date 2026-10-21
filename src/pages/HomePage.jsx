@@ -344,7 +344,7 @@ export default function HomePage() {
             <p>จดคิวร้านนวด รับชำระ เติมเครดิตสมาชิก และดูสรุปยอดผ่าน LINE</p>
             <div className="app-actions">
               <a className="text-link" href="booksabuy.html">ดูแนวคิดของแอป</a>
-              <a className="text-link" href="/booksabuy/" target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
+              <a className="text-link" href="https://drivetodev.online/booksabuy/" target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
             </div>
           </div>
         </article>
@@ -475,7 +475,7 @@ export default function HomePage() {
                 {"ดูแนวคิดของแอป"}
               </a>
               {"\n                  "}
-              <a className="text-link" href="https://pimsaduak.drivetodev.online" target="_blank" rel="noopener noreferrer">
+              <a className="text-link" href="https://drivetodev.online/pimsaduak/" target="_blank" rel="noopener noreferrer">
                 {"เปิดแอปจริง ↗"}
               </a>
               {"\n                "}

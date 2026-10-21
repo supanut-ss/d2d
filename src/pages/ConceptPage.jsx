@@ -36,7 +36,7 @@ export default function ConceptPage() {
         {"แอปทั้งหมด"}
       </a>
       {"\n          "}
-      <a className="nav-cta" href="https://pimsaduak.drivetodev.online" target="_blank" rel="noopener noreferrer">
+      <a className="nav-cta" href="https://drivetodev.online/pimsaduak/" target="_blank" rel="noopener noreferrer">
         {"เปิดแอปพิมพ์สะดวก ↗"}
       </a>
       {"\n        "}
@@ -66,7 +66,7 @@ export default function ConceptPage() {
       {"\n          "}
       <div className="hero-actions">
         {"\n            "}
-        <a className="button button-primary" href="https://pimsaduak.drivetodev.online" target="_blank" rel="noopener noreferrer">
+        <a className="button button-primary" href="https://drivetodev.online/pimsaduak/" target="_blank" rel="noopener noreferrer">
           {"เปิดแอปจริง ↗"}
         </a>
         {"\n            "}
@@ -356,7 +356,7 @@ export default function ConceptPage() {
         {"\n          "}
       </div>
       {"\n          "}
-      <a className="text-link" href="https://pimsaduak.drivetodev.online" target="_blank" rel="noopener noreferrer">
+      <a className="text-link" href="https://drivetodev.online/pimsaduak/" target="_blank" rel="noopener noreferrer">
         {"ไปที่แอปพิมพ์สะดวก ↗"}
       </a>
       {"\n        "}
