@@ -14,6 +14,7 @@ export default defineConfig({
         concept: resolve(projectRoot, "pimsaduak.html"),
         meestock: resolve(projectRoot, "meestock.html"),
         partygame: resolve(projectRoot, "partygame.html"),
+        booksabuy: resolve(projectRoot, "booksabuy.html"),
         qrOrdering: resolve(projectRoot, "qr-ordering.html"),
         sabaizy: resolve(projectRoot, "sabaizy.html"),
         payyet: resolve(projectRoot, "payyet.html"),

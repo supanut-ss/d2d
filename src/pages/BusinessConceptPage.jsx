@@ -110,6 +110,42 @@ const pages = {
     closingTitle: "ดูเครื่องมือและแอปอื่นใน drivetodev",
     closingDescription: "กลับไปที่รายการแอปและเลือกหมวดเครื่องมือเพื่อสำรวจ JodDaily กับโปรเจกต์อื่น",
   },
+  bookSabuy: {
+    name: "Book Sabuy",
+    appUrl: "/booksabuy/",
+    kind: "แนวคิดระบบจัดการร้านนวดผ่าน LINE",
+    title: "จัดคิว ดูแลสมาชิก และสรุปยอดผ่าน LINE",
+    description: "Book Sabuy ช่วยร้านนวดบันทึกคิว เลือกพนักงาน คอร์ส เวลา และวิธีชำระ พร้อมดูแลเครดิตสมาชิกและสรุปรายได้รายวันหรือรายเดือน",
+    art: "booksabuy",
+    artLabel: "ตัวอย่างหน้าจอ Book Sabuy แสดงคิวร้านนวด รายได้วันนี้ และรายการบริการ",
+    overviewTitle: "เชื่อมคิว สมาชิก และยอดของร้าน",
+    overviewDescription: "จัดการคิวประจำวัน รับชำระ ดูแลเครดิตสมาชิก และเปิดรายงานในแอปเดียวที่ใช้งานผ่าน LINE",
+    principles: [
+      { title: "ลงคิวพร้อมรายละเอียด", description: "เลือกพนักงาน คอร์ส ระยะเวลา เวลาเริ่ม และวิธีชำระ แล้วดูคิวทั้งหมดของวันได้ในหน้าเดียว" },
+      { title: "ดูแลสมาชิกและเครดิต", description: "ค้นหาสมาชิกด้วยเลขท้ายเบอร์โทร ดูเครดิตคงเหลือและประวัติ พร้อมบันทึกการเติมเครดิต" },
+      { title: "เห็นรายได้ของร้าน", description: "ดูยอดรายวันหรือรายเดือน แยกตามวิธีจ่าย คอร์ส และพนักงาน พร้อมบันทึกค่าใช้จ่าย" },
+    ],
+    featureTitle: "งานร้านนวดที่จัดการได้จากมือถือ",
+    features: [
+      { title: "คิวและการรับชำระ", description: "บันทึกคิวตามพนักงาน คอร์ส เวลา และระยะเวลา พร้อมระบุเงินสด โอน หรือใช้เครดิตสมาชิก" },
+      { title: "สมาชิกและเครดิต", description: "ค้นหาจากเลขท้าย 4 หลัก ดูยอดคงเหลือ ประวัติการใช้ และเติมเครดิตให้สมาชิก" },
+      { title: "รายงานร้าน", description: "สรุปรายได้และจำนวนคิว แยกตามช่องทางชำระ คอร์ส และพนักงาน พร้อมดูเงินสดและค่าใช้จ่าย" },
+      { title: "ตั้งค่าคอร์สและทีม", description: "กำหนดราคาตามระยะเวลา เพิ่มคอร์สพิเศษ และจัดการรายชื่อพนักงานของร้าน" },
+    ],
+    stepsTitle: "จากการลงคิวสู่การดูรายงาน",
+    steps: [
+      { title: "ตั้งค่าร้าน", description: "กำหนดพนักงาน คอร์ส และราคาตามระยะเวลาที่ให้บริการ" },
+      { title: "บันทึกคิวและการชำระ", description: "เลือกพนักงานกับบริการ ระบุเวลาเริ่ม แล้วบันทึกวิธีรับชำระหรือใช้เครดิต" },
+      { title: "ติดตามสมาชิกและยอด", description: "เติมเครดิตให้สมาชิกและตรวจรายงานรายวันหรือรายเดือนของร้าน" },
+    ],
+    noteTitle: "ออกแบบให้ใช้ผ่าน LINE",
+    notes: [
+      "เปิดแอปผ่าน LINE ได้โดยไม่ต้องติดตั้งแอปเพิ่ม และรองรับการจัดการหลายร้านหลายสาขา",
+      "รายละเอียดในหน้านี้สรุปจากฟีเจอร์ของ Book Sabuy; เปิดแอปจริงจากปุ่มด้านบน",
+    ],
+    closingTitle: "ดูแอปอื่นใน drivetodev",
+    closingDescription: "กลับไปยังหน้าแอปทั้งหมดเพื่อสำรวจโปรเจกต์และเครื่องมืออื่น",
+  },
   sabaizy: {
     name: "Sabaizy",
     appUrl: "https://sm.drivetodev.online/",
@@ -238,6 +274,28 @@ function JodDailyPreview() {
   );
 }
 
+function BookSabuyPreview() {
+  return (
+    <div className="concept-booksabuy-preview">
+      <div className="concept-booksabuy-head">
+        <span className="concept-booksabuy-mark">B</span>
+        <span><strong>ร้านสบายดี</strong><small>Book Sabuy · วันนี้</small></span>
+        <span className="concept-booksabuy-tag">LINE</span>
+      </div>
+      <div className="concept-booksabuy-summary">
+        <span>รายได้วันนี้</span>
+        <strong>฿1,250</strong>
+        <small>4 คิว · เงินสด ฿0 · โอน ฿450 · สมาชิก ฿800</small>
+      </div>
+      <div className="concept-booksabuy-queue">
+        <div><time>10:00</time><span><strong>นวดไทย · 60 นาที</strong><small>มีน · โอน</small></span><b>฿450</b></div>
+        <div><time>11:30</time><span><strong>อโรม่า · 90 นาที</strong><small>ฝน · สมาชิก</small></span><b>฿800</b></div>
+      </div>
+      <div className="concept-booksabuy-footer"><span>คิววันนี้</span><span>สมาชิก</span><span>รายงาน</span></div>
+    </div>
+  );
+}
+
 export default function BusinessConceptPage({ app }) {
   const page = pages[app];
   if (!page) return null;
@@ -279,7 +337,7 @@ export default function BusinessConceptPage({ app }) {
             </div>
           </div>
           <div className={`hero-art concept-${page.art}-art`} role="img" aria-label={page.artLabel}>
-            {page.art === "ordering" ? <OrderingPreview /> : page.art === "branch" ? <BranchPreview /> : page.art === "payyet" ? <PayYetPreview /> : <JodDailyPreview />}
+            {page.art === "ordering" ? <OrderingPreview /> : page.art === "branch" ? <BranchPreview /> : page.art === "payyet" ? <PayYetPreview /> : page.art === "booksabuy" ? <BookSabuyPreview /> : <JodDailyPreview />}
           </div>
         </section>
 

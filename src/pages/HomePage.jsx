@@ -4,9 +4,11 @@ const qrOrderingSearch = "qr ordering qrordering ร้านอาหาร ส
 const sabaizySearch = "sabaizy branch manager สาขา จัดการธุรกิจ คิว นัดหมาย บริการ แคชเชียร์ พนักงาน สมาชิก คอร์ส";
 const payYetSearch = "payyet pay yet line bot บอทไลน์ เก็บเงิน กลุ่ม เรียกเก็บเงิน qr พร้อมเพย์ สลิป แจ้งเตือน";
 const jodDailySearch = "joddaily จดเดลี่ รายรับ รายจ่าย บัญชีส่วนตัว บันทึกเงิน line bot ตั้งงบ ค่าสมาชิก csv";
+const bookSabuySearch = "booksabuy book sabuy บุ๊คสบาย ระบบจัดการร้านนวด จดคิว สมาชิก เติมเครดิต รายงาน line";
 const apps = [
   { category: "web", search: qrOrderingSearch },
   { category: "web", search: sabaizySearch },
+  { category: "web", search: bookSabuySearch },
   { category: "tool", search: payYetSearch },
   { category: "tool", search: jodDailySearch },
   { category: "web", search: "pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป" },
@@ -322,6 +324,31 @@ export default function HomePage() {
           </div>
         </article>
 
+        <article className="app-card" data-category="web" data-search={bookSabuySearch} hidden={!isAppVisible("web", bookSabuySearch)}>
+          <div className="app-art app-art-booksabuy" aria-hidden="true">
+            <div className="booksabuy-preview">
+              <div className="booksabuy-preview-head">
+                <div><span>ร้านสบายดี · วันนี้</span><strong>คิวของร้าน</strong></div>
+                <span className="booksabuy-preview-state">เปิดร้าน</span>
+              </div>
+              <div className="booksabuy-preview-summary"><span>รายได้วันนี้</span><strong>฿1,250</strong><small>4 คิว · เงินสด โอน สมาชิก</small></div>
+              <div className="booksabuy-preview-queue">
+                <div><time>10:00</time><span><strong>นวดไทย · 60 นาที</strong><small>มีน · โอน</small></span><b>฿450</b></div>
+                <div><time>11:30</time><span><strong>อโรม่า · 90 นาที</strong><small>ฝน · สมาชิก</small></span><b>฿800</b></div>
+              </div>
+            </div>
+          </div>
+          <div className="app-card-body">
+            <div className="app-meta"><span className="badge-online">Online now</span><span>เว็บแอป</span><span>ร้านนวด · LINE</span></div>
+            <h3>Book Sabuy</h3>
+            <p>จดคิวร้านนวด รับชำระ เติมเครดิตสมาชิก และดูสรุปยอดผ่าน LINE</p>
+            <div className="app-actions">
+              <a className="text-link" href="booksabuy.html">ดูแนวคิดของแอป</a>
+              <a className="text-link" href="/booksabuy/" target="_blank" rel="noopener noreferrer">เปิดแอปจริง ↗</a>
+            </div>
+          </div>
+        </article>
+
         <article className="app-card" data-category="tool" data-search={payYetSearch} hidden={!isAppVisible("tool", payYetSearch)}>
           <div className="app-art app-art-payyet" aria-hidden="true">
             <div className="payyet-preview">
@@ -436,9 +463,7 @@ export default function HomePage() {
               </span>
             </div>
             {"\n                "}
-            <h3>
-              {"พิมพ์สะดวก"}
-            </h3>
+            <h3>{"พิมพ์สะดวก"}</h3>
             {"\n                "}
             <p>
               {"เตรียมข้อมูลผู้รับ เลือกขนาดฉลาก ดูตัวอย่าง แล้วพิมพ์ใบปะหน้าพัสดุ"}
@@ -486,9 +511,7 @@ export default function HomePage() {
               </span>
             </div>
             {"\n                "}
-            <h3>
-              {"MeeStock"}
-            </h3>
+            <h3>{"MeeStock"}</h3>
             {"\n                "}
             <p>
               {"ระบบจัดการสต็อก รับ-จ่ายสินค้า จัดส่ง และรายงาน ในที่เดียว"}
@@ -540,9 +563,7 @@ export default function HomePage() {
               </span>
             </div>
             {"\n                "}
-            <h3>
-              {"เล่นกันมั้ย"}
-            </h3>
+            <h3>{"เล่นกันมั้ย"}</h3>
             {"\n                "}
             <p>
               {"รวม 6 เกมปาร์ตี้ เล่นผลัดกันบนมือถือ แท็บเล็ต หรือคอมพิวเตอร์เครื่องเดียว"}

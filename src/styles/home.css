@@ -524,6 +524,107 @@
         background: #eef1f6;
       }
 
+      .app-art-booksabuy {
+        background: linear-gradient(140deg, #e5f1eb, #f5ebd7);
+      }
+
+      .booksabuy-preview {
+        display: grid;
+        width: min(100%, 340px);
+        gap: 6px;
+        padding: 10px;
+        border: 1px solid #d8e6dc;
+        border-radius: 13px;
+        background: #fff;
+        box-shadow: 0 14px 34px rgb(24 71 57 / 12%);
+      }
+
+      .booksabuy-preview-head,
+      .booksabuy-preview-queue > div {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .booksabuy-preview-head > div,
+      .booksabuy-preview-queue > div > span {
+        display: grid;
+        gap: 2px;
+      }
+
+      .booksabuy-preview-head > div > span,
+      .booksabuy-preview-summary > span,
+      .booksabuy-preview-summary > small,
+      .booksabuy-preview-queue small,
+      .booksabuy-preview-queue time {
+        color: #6b7773;
+        font-size: 8px;
+      }
+
+      .booksabuy-preview-head strong,
+      .booksabuy-preview-queue strong {
+        color: #1c2321;
+        font-size: 9px;
+      }
+
+      .booksabuy-preview-state {
+        padding: 3px 7px;
+        border-radius: 999px;
+        color: #176347;
+        background: #e6f4eb;
+        font-size: 9px;
+        font-weight: 600;
+      }
+
+      .booksabuy-preview-summary {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 3px 8px;
+        padding: 7px 9px;
+        background: #f1f7f3;
+      }
+
+      .booksabuy-preview-summary strong {
+        color: #1e5a4d;
+        font-size: 16px;
+        line-height: 1.2;
+      }
+
+      .booksabuy-preview-summary small {
+        margin-inline-start: auto;
+      }
+
+      .booksabuy-preview-queue > div {
+        gap: 7px;
+        padding-block: 3px;
+      }
+
+      .booksabuy-preview-queue > div > span {
+        display: flex;
+        min-width: 0;
+        align-items: baseline;
+        gap: 5px;
+      }
+
+      .booksabuy-preview-queue strong {
+        white-space: nowrap;
+      }
+
+      .booksabuy-preview-queue small {
+        white-space: nowrap;
+      }
+
+      .booksabuy-preview-queue > div {
+        border-bottom: 1px solid #edf0ed;
+      }
+
+      .booksabuy-preview-queue b {
+        color: #1e5a4d;
+        font-size: 10px;
+      }
+
       .app-art-ordering {
         background: #e8efff;
       }

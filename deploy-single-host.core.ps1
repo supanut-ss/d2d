@@ -47,6 +47,11 @@ if (-not (Test-Path -LiteralPath $partyGameFile -PathType Leaf)) {
     throw "PartyGame concept page is missing: $partyGameFile"
 }
 
+$bookSabuyFile = Join-Path $PSScriptRoot "booksabuy.html"
+if (-not (Test-Path -LiteralPath $bookSabuyFile -PathType Leaf)) {
+    throw "Book Sabuy concept page is missing: $bookSabuyFile"
+}
+
 $gitRoot = Split-Path -Parent $PSScriptRoot
 $uploaderPath = Join-Path $gitRoot "P2S\upload-ftp.ps1"
 if (-not (Test-Path -LiteralPath $uploaderPath -PathType Leaf)) {
@@ -70,6 +75,9 @@ if (-not (Test-Path -LiteralPath (Join-Path $distPath "pimsaduak.html") -PathTyp
 if (-not (Test-Path -LiteralPath (Join-Path $distPath "partygame.html") -PathType Leaf)) {
     throw "React build output is missing partygame.html: $distPath"
 }
+if (-not (Test-Path -LiteralPath (Join-Path $distPath "booksabuy.html") -PathType Leaf)) {
+    throw "React build output is missing booksabuy.html: $distPath"
+}
 
 $stagingParent = [System.IO.Path]::GetFullPath([System.IO.Path]::GetTempPath())
 $stagingPath = [System.IO.Path]::GetFullPath(
@@ -83,6 +91,7 @@ $dryRun = $env:D2D_DEPLOY_DRY_RUN -eq "1"
 $healthFile = Join-Path $stagingPath "health-check.html"
 $conceptHealthFile = Join-Path $stagingPath "concept-health-check.html"
 $partyGameHealthFile = Join-Path $stagingPath "partygame-health-check.html"
+$bookSabuyHealthFile = Join-Path $stagingPath "booksabuy-health-check.html"
 
 try {
     New-Item -ItemType Directory -Path $stagingPath -ErrorAction Stop | Out-Null
@@ -174,7 +183,32 @@ try {
         throw "Upload finished, but https://$targetHost/partygame.html did not return the built PartyGame concept page."
     }
 
-    Write-Host "Deployment verified: https://$targetHost/, /pimsaduak.html, and /partygame.html returned HTTP 200."
+    $bookSabuyHealthUrl = "https://$targetHost/booksabuy.html?deploy-check=$([guid]::NewGuid().ToString('N'))"
+    $bookSabuyHttpStatus = & $curl.Source -sS --max-time 30 -o $bookSabuyHealthFile -w "%{http_code}" $bookSabuyHealthUrl
+    if ($LASTEXITCODE -ne 0) {
+        throw "Upload finished, but the public concept-page health check could not reach https://$targetHost/booksabuy.html."
+    }
+    if ([string]$bookSabuyHttpStatus -ne "200") {
+        throw "Upload finished, but the Book Sabuy concept-page health check returned HTTP $bookSabuyHttpStatus."
+    }
+
+    $bookSabuyResponseHtml = [System.IO.File]::ReadAllText($bookSabuyHealthFile)
+    if ($bookSabuyResponseHtml -notmatch 'src="/assets/booksabuy-[^"]+\.js"') {
+        throw "Upload finished, but https://$targetHost/booksabuy.html did not return the built Book Sabuy concept page."
+    }
+
+    $bookSabuyAppHealthUrl = "https://$targetHost/booksabuy/?deploy-check=$([guid]::NewGuid().ToString('N'))"
+    $bookSabuyAppHttpStatus = & $curl.Source -sS --max-time 30 -o $bookSabuyHealthFile -w "%{http_code}" $bookSabuyAppHealthUrl
+    if ($LASTEXITCODE -ne 0 -or [string]$bookSabuyAppHttpStatus -ne "200") {
+        throw "Upload finished, but the Book Sabuy app health check did not return HTTP 200 at https://$targetHost/booksabuy/."
+    }
+
+    $bookSabuyAppResponseHtml = [System.IO.File]::ReadAllText($bookSabuyHealthFile)
+    if ($bookSabuyAppResponseHtml -notmatch '<div id="app">' -or $bookSabuyAppResponseHtml -notmatch '<script src="\./config\.js"></script>') {
+        throw "Upload finished, but https://$targetHost/booksabuy/ did not return the Book Sabuy app shell."
+    }
+
+    Write-Host "Deployment verified: https://$targetHost/, /pimsaduak.html, /partygame.html, /booksabuy.html, and /booksabuy/ returned HTTP 200."
 }
 finally {
     if (Test-Path -LiteralPath $stagingPath -PathType Container) {

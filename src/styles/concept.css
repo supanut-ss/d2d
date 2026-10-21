@@ -243,6 +243,123 @@
         background: #e8f3e9;
       }
 
+      .concept-booksabuy-art {
+        overflow: hidden;
+        background: linear-gradient(140deg, #e5f1eb, #f5ebd7);
+      }
+
+      .concept-booksabuy-preview {
+        display: grid;
+        width: min(100%, 420px);
+        gap: 15px;
+        padding: 22px;
+        border: 1px solid #d8e6dc;
+        background: var(--white);
+        box-shadow: 0 18px 45px rgb(24 71 57 / 13%);
+      }
+
+      .concept-booksabuy-head {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+      }
+
+      .concept-booksabuy-mark {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 11px;
+        color: #fff;
+        background: #1e5a4d;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 20px;
+        font-weight: 700;
+      }
+
+      .concept-booksabuy-head > span:nth-child(2) {
+        display: grid;
+        gap: 2px;
+      }
+
+      .concept-booksabuy-head strong {
+        font-size: 14px;
+      }
+
+      .concept-booksabuy-head small,
+      .concept-booksabuy-summary > span,
+      .concept-booksabuy-summary small,
+      .concept-booksabuy-queue small,
+      .concept-booksabuy-queue time {
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .concept-booksabuy-tag {
+        margin-inline-start: auto;
+        padding: 4px 9px;
+        border-radius: 999px;
+        color: #087443;
+        background: #e6f7ee;
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .concept-booksabuy-summary {
+        display: grid;
+        gap: 3px;
+        padding: 14px 16px;
+        background: #f1f7f3;
+      }
+
+      .concept-booksabuy-summary strong {
+        color: #1e5a4d;
+        font-family: "Space Grotesk", sans-serif;
+        font-size: 30px;
+        line-height: 1.2;
+      }
+
+      .concept-booksabuy-queue {
+        display: grid;
+      }
+
+      .concept-booksabuy-queue > div {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding-block: 9px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .concept-booksabuy-queue > div > span {
+        display: grid;
+        flex: 1;
+        gap: 2px;
+      }
+
+      .concept-booksabuy-queue strong,
+      .concept-booksabuy-queue b {
+        font-size: 12px;
+      }
+
+      .concept-booksabuy-queue b {
+        color: #1e5a4d;
+        white-space: nowrap;
+      }
+
+      .concept-booksabuy-footer {
+        display: flex;
+        justify-content: space-around;
+        padding-block-start: 2px;
+        color: var(--muted);
+        font-size: 11px;
+      }
+
+      .concept-booksabuy-footer span:first-child {
+        color: #1e5a4d;
+        font-weight: 700;
+      }
+
       .concept-joddaily-preview {
         display: grid;
         width: min(100%, 355px);
