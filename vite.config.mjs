@@ -11,6 +11,8 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(projectRoot, "index.html"),
+        hwmonitor: resolve(projectRoot, "hwmonitor.html"),
+        disccleanup: resolve(projectRoot, "disccleanup.html"),
         concept: resolve(projectRoot, "pimsaduak.html"),
         meestock: resolve(projectRoot, "meestock.html"),
         partygame: resolve(projectRoot, "partygame.html"),

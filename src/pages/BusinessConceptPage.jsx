@@ -1,4 +1,21 @@
+import { downloadTools } from "../data/downloadTools.js";
+import ToolPreview from "../components/ToolPreview.jsx";
+import "../styles/download-tools.css";
+
 const pages = {
+  ...Object.fromEntries(downloadTools.map((tool) => [tool.id, {
+    ...tool,
+    kind: "เครื่องมือสำหรับ Windows · ดาวน์โหลดได้ทันที",
+    artLabel: `ภาพแนะนำ ${tool.name}`,
+    overviewTitle: `รู้จัก ${tool.name}`,
+    overviewDescription: tool.description,
+    principles: tool.features,
+    featureTitle: "สิ่งที่เครื่องมือช่วยได้",
+    stepsTitle: "เริ่มใช้งานใน 3 ขั้นตอน",
+    noteTitle: "ข้อมูลก่อนเริ่มใช้งาน",
+    closingTitle: "เครื่องมืออื่นจาก drivetodev",
+    closingDescription: "เลือกดูแอปและเครื่องมืออื่นที่ช่วยให้การทำงานสะดวกขึ้น",
+  }])),
   qrOrdering: {
     name: "QR Ordering",
     appUrl: "https://qrodrder.drivetodev.online/",
@@ -326,7 +343,9 @@ export default function BusinessConceptPage({ app }) {
             <h1 id="hero-title">{page.title}</h1>
             <p className="hero-description">{page.description}</p>
             <div className="hero-actions">
-              {page.appUrl ? (
+              {page.downloadUrl ? (
+                <a className="button button-primary" href={page.downloadUrl} download={page.filename}>ดาวน์โหลด {page.name} ↓</a>
+              ) : page.appUrl ? (
                 <a className="button button-primary" href={page.appUrl} {...(page.appUrl.startsWith("http") ? { target: "_blank", rel: "noopener noreferrer" } : {})}>เปิดแอปจริง {page.appUrl.startsWith("http") ? "↗" : "→"}</a>
               ) : (
                 <a className="button button-primary" href="#overview">ดูภาพรวม</a>
@@ -335,9 +354,10 @@ export default function BusinessConceptPage({ app }) {
                 {page.appUrl ? "ดูภาพรวม" : "กลับไปรายการแอป"}
               </a>
             </div>
+            {page.downloadUrl && <p className="tool-download-note">ไฟล์ {page.filename} · Windows · ดาวน์โหลดโดยไม่ต้องสมัครสมาชิก</p>}
           </div>
           <div className={`hero-art concept-${page.art}-art`} role="img" aria-label={page.artLabel}>
-            {page.art === "ordering" ? <OrderingPreview /> : page.art === "branch" ? <BranchPreview /> : page.art === "payyet" ? <PayYetPreview /> : page.art === "booksabuy" ? <BookSabuyPreview /> : <JodDailyPreview />}
+            {page.downloadUrl ? <ToolPreview tool={page} /> : page.art === "ordering" ? <OrderingPreview /> : page.art === "branch" ? <BranchPreview /> : page.art === "payyet" ? <PayYetPreview /> : page.art === "booksabuy" ? <BookSabuyPreview /> : <JodDailyPreview />}
           </div>
         </section>
 

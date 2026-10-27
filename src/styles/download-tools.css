@@ -1,0 +1,7 @@
+.tool-preview { width: min(100%, 340px); padding: 24px; border: 1px solid var(--line); background: var(--white); color: var(--ink); box-shadow: 0 12px 32px #14243a0d; }
+.tool-preview svg { width: 48px; height: 48px; float: right; color: var(--blue); }
+.tool-preview strong { display: block; font-family: "Space Grotesk", sans-serif; font-size: 25px; }
+.tool-preview > span { display: block; color: var(--muted); font-size: 14px; }
+.tool-preview ul { margin: 18px 0 0; padding-left: 20px; font-size: 14px; line-height: 1.8; }
+.concept-monitor-art, .concept-cleanup-art { display: flex; justify-content: center; align-items: center; background: var(--soft-blue); padding: 24px; }
+.tool-download-note { color: var(--muted); font-size: 14px; }

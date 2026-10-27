@@ -1,0 +1,46 @@
+export const downloadTools = [
+  {
+    id: "hwmonitor",
+    name: "HW Monitor",
+    title: "HW Monitor — รู้ทันการทำงานของเครื่อง",
+    description: "ดูสเปก การใช้งาน CPU, GPU, RAM และอุณหภูมิฮาร์ดแวร์ในหน้าจอเดียว พร้อมติดตามประสิทธิภาพระหว่างใช้งาน",
+    search: "hwmonitor hw monitor hardware cpu gpu ram อุณหภูมิ ฮาร์ดแวร์ เครื่องมือ ดาวน์โหลด download windows",
+    downloadUrl: "/downloads/HWMonitor.exe",
+    filename: "HWMonitor.exe",
+    art: "monitor",
+    highlights: ["CPU · GPU · RAM", "อุณหภูมิและพัดลม", "ติดตามประสิทธิภาพ"],
+    features: [
+      { title: "ดูข้อมูลฮาร์ดแวร์", description: "รวมข้อมูลหน่วยประมวลผล หน่วยความจำ การ์ดจอ ไดรฟ์ และเครือข่าย" },
+      { title: "ติดตามเซนเซอร์", description: "ดูอุณหภูมิ ความเร็วพัดลม และการใช้พลังงาน ตามเซนเซอร์ที่ฮาร์ดแวร์รองรับ" },
+      { title: "บันทึกการใช้งาน", description: "ติดตามสถานะเครื่อง แจ้งเตือนตามเกณฑ์ และส่งออกข้อมูลเซสชันเป็น CSV" },
+    ],
+    steps: [
+      { title: "ดาวน์โหลดไฟล์", description: "บันทึก HWMonitor.exe ลงในโฟลเดอร์ที่ต้องการ" },
+      { title: "เตรียมระบบ", description: "ต้องมี .NET 10 Desktop Runtime และ Edge WebView2 Runtime ก่อนเปิดโปรแกรม" },
+      { title: "เปิดและดูข้อมูล", description: "อนุญาตสิทธิ์ผู้ดูแลระบบ และทำตามขั้นตอนติดตั้ง PawnIO หากโปรแกรมแจ้งว่าขาดไดรเวอร์" },
+    ],
+    notes: ["สำหรับ Windows โดยไฟล์นี้ต้องใช้ .NET 10 Desktop Runtime และ Edge WebView2 Runtime", "ต้องใช้สิทธิ์ผู้ดูแลระบบและไดรเวอร์ PawnIO ในการอ่านเซนเซอร์ ค่าที่แสดงขึ้นอยู่กับฮาร์ดแวร์ของเครื่อง"],
+  },
+  {
+    id: "disccleanup",
+    name: "Disk Cleaner",
+    title: "Disk Cleaner — คืนพื้นที่ให้เครื่อง",
+    description: "สแกนไฟล์ชั่วคราวและแคชบน Windows ดูพื้นที่ที่อาจเรียกคืนได้ แล้วเลือกหมวดที่ต้องการทำความสะอาดก่อนยืนยัน",
+    search: "disccleanup disc cleanup diskcleanup disk cleaner diskcleaner ล้างขยะ แคช พื้นที่ เครื่องมือ ดาวน์โหลด download windows",
+    downloadUrl: "/downloads/DiskCleaner.exe",
+    filename: "DiskCleaner.exe",
+    art: "cleanup",
+    highlights: ["สแกนไฟล์ชั่วคราว", "เลือกหมวดที่ต้องการ", "ยืนยันก่อนลบ"],
+    features: [
+      { title: "สำรวจก่อนลบ", description: "สแกนตำแหน่งไฟล์ขยะและแสดงพื้นที่ที่อาจเรียกคืน โดยยังไม่ลบไฟล์" },
+      { title: "เลือกทำความสะอาด", description: "เลือกหมวดไฟล์ชั่วคราว แคชเบราว์เซอร์ แคชแอป และแคชเครื่องมือพัฒนาได้" },
+      { title: "เปิดใช้จากไฟล์เดียว", description: "รวมหน้าต่างโปรแกรมและเครื่องมือบรรทัดคำสั่งไว้ใน DiskCleaner.exe โดยไม่ต้องติดตั้ง" },
+    ],
+    steps: [
+      { title: "ดาวน์โหลดและเปิด", description: "บันทึก DiskCleaner.exe แล้วเปิดบน Windows 10 หรือ Windows 11" },
+      { title: "สแกนและตรวจสอบ", description: "สแกนไฟล์ ตรวจรายการ และเลือกเฉพาะหมวดที่ต้องการทำความสะอาด" },
+      { title: "ยืนยันทำความสะอาด", description: "ตรวจสิ่งที่เลือกก่อนยืนยันลบ และใช้สิทธิ์ผู้ดูแลระบบเฉพาะเมื่อจำเป็น" },
+    ],
+    notes: ["ชื่อไฟล์และชื่อในโปรแกรมคือ DiskCleaner.exe รองรับ Windows 10/11", "โปรแกรมยังไม่ได้ลงลายเซ็นดิจิทัล Windows SmartScreen อาจแสดงคำเตือนเมื่อเปิดครั้งแรก", "ตรวจสอบรายการก่อนลบทุกครั้ง โดยเฉพาะเมื่อเพิ่มโฟลเดอร์เอง การตรวจไฟล์ขยะอาศัยชื่อไฟล์และโฟลเดอร์"],
+  },
+];

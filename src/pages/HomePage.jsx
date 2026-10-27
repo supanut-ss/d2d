@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { downloadTools } from "../data/downloadTools.js";
+import ToolPreview from "../components/ToolPreview.jsx";
+import "../styles/download-tools.css";
 
 const qrOrderingSearch = "qr ordering qrordering ร้านอาหาร สั่งอาหาร ระบบร้านอาหาร pos ครัว";
 const sabaizySearch = "sabaizy branch manager สาขา จัดการธุรกิจ คิว นัดหมาย บริการ แคชเชียร์ พนักงาน สมาชิก คอร์ส";
@@ -6,6 +9,7 @@ const payYetSearch = "payyet pay yet line bot บอทไลน์ เก็บ
 const jodDailySearch = "joddaily จดเดลี่ รายรับ รายจ่าย บัญชีส่วนตัว บันทึกเงิน line bot ตั้งงบ ค่าสมาชิก csv";
 const bookSabuySearch = "booksabuy book sabuy บุ๊คสบาย ระบบจัดการร้านนวด จดคิว สมาชิก เติมเครดิต รายงาน line";
 const apps = [
+  ...downloadTools.map((tool) => ({ category: "tool", search: tool.search })),
   { category: "web", search: qrOrderingSearch },
   { category: "web", search: sabaizySearch },
   { category: "web", search: bookSabuySearch },
@@ -269,6 +273,20 @@ export default function HomePage() {
       </div>
       {"\n\n          "}
       <div className="app-grid" id="app-grid">
+        {downloadTools.map((tool) => (
+          <article key={tool.id} className="app-card" data-category="tool" data-search={tool.search} hidden={!isAppVisible("tool", tool.search)}>
+            <div className="app-art" aria-hidden="true"><ToolPreview tool={tool} /></div>
+            <div className="app-card-body">
+              <div className="app-meta"><span className="badge-online">ดาวน์โหลดได้เลย</span><span>เครื่องมือ</span><span>Windows</span></div>
+              <h3>{tool.name}</h3>
+              <p>{tool.description}</p>
+              <div className="app-actions">
+                <a className="text-link" href={`${tool.id}.html`}>ดูรายละเอียด</a>
+                <a className="text-link" href={tool.downloadUrl} download={tool.filename} aria-label={`ดาวน์โหลด ${tool.name} สำหรับ Windows`}>ดาวน์โหลด</a>
+              </div>
+            </div>
+          </article>
+        ))}
         <article className="app-card" data-category="web" data-search={qrOrderingSearch} hidden={!isAppVisible("web", qrOrderingSearch)}>
           <div className="app-art app-art-ordering" aria-hidden="true">
             <div className="ordering-card-preview">
