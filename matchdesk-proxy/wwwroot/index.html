@@ -230,6 +230,10 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .ai-overall small{display:block;color:var(--muted);margin-top:6px}
 @media(max-width:760px){.ai-note{margin-left:0}}
 .pw-dialog{width:min(420px,calc(100vw - 24px))}
+.ah-tag{display:inline-block;margin-right:6px;padding:1px 8px;border-radius:20px;font-size:12px;font-weight:700;white-space:nowrap;vertical-align:1px}
+.ah-give{background:var(--mint-bg);color:var(--mint);border:1px solid #b9dccf}
+.ah-take{background:var(--red-bg);color:var(--red);border:1px solid #efc3bf}
+.ah-even{background:var(--soft);color:var(--ink2);border:1px solid var(--line)}
 .footnote{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
 @media(max-width:990px){.layout{grid-template-columns:minmax(300px,.9fr) minmax(400px,1.1fr)}.main{padding-left:18px;padding-right:18px}.detail-body{padding:14px}}
 @media(max-width:760px){.topbar{height:60px;padding:0 16px}.top-right{gap:7px}.quota{display:none}.main{padding:22px 13px 35px}.intro{align-items:flex-start;flex-direction:column}.intro .btn.ghost{align-self:flex-start}.layout{grid-template-columns:1fr}.match-list{max-height:460px;min-height:240px}.detail{min-height:340px}.detail-placeholder{min-height:300px}.controls{align-items:stretch}.field,.field.search{min-width:calc(50% - 8px)}.field input,.field select{width:100%;min-width:0}.filter-actions{width:100%;margin-left:0}.runbtn,.rankbtn{flex:1}.rank-row{grid-template-columns:24px minmax(110px,1fr) 80px 76px;gap:8px}.rank-row .rank-prob{display:none}.rank-fixture{font-size:12px}.keyhead{align-items:flex-start;flex-direction:column}.keyfoot{flex-direction:column}.matchup{grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr)}.club-name{font-size:13px}}
@@ -930,11 +934,11 @@ function expectedLine(model,line){
  var over=settlement(model,line,"total","over",null),under=settlement(model,line,"total","under",null);
  return {over:over.win,under:under.win,push:over.push};
 }
-function betOptionHtml(label,metric,odds,book,pMarket){
+function betOptionHtml(label,metric,odds,book,pMarket,ahLine){
  var blended=metric?blendEv(metric.ev,odds,pMarket):null;
  var ev=blended?blended.ev:null,evClass=ev===null?"":(ev>0?"positive":"negative"),evText=ev===null?"EV —":"EV "+(ev>0?"+":"")+ev.toFixed(1)+"%";
  var details=metric?"ชนะรวม "+pctFmt(metric.win*100)+" (เต็ม "+pctFmt(metric.fullWin*100)+" / ครึ่ง "+pctFmt(metric.halfWin*100)+") · เจ๊า "+pctFmt(metric.push*100):"ยังไม่มีสถิติประเมิน";
- return "<div class='bet-option'><div class='bet-top'><strong>"+escapeHtml(label)+"</strong><span>"+(odds&&odds>1?"@"+decimal(odds):"ไม่มีราคา")+"</span></div><div class='bet-bottom'><span>"+details+(book?" · "+escapeHtml(book):"")+"</span><b class='"+evClass+"'>"+evText+"</b></div></div>";
+ return "<div class='bet-option'><div class='bet-top'><strong>"+ahTag(ahLine)+escapeHtml(label)+"</strong><span>"+(odds&&odds>1?"@"+decimal(odds):"ไม่มีราคา")+"</span></div><div class='bet-bottom'><span>"+details+(book?" · "+escapeHtml(book):"")+"</span><b class='"+evClass+"'>"+evText+"</b></div></div>";
 }
 function ouHtml(model,market){
  var hasOdds=market&&Object.keys(market).length>0;
@@ -947,6 +951,13 @@ function ouHtml(model,market){
   return "<div class='ou-line'><span class='threshold'>รวม "+escapeHtml(line)+"</span><div class='ou-pill over'>"+betOptionHtml("สูง",over,overOdds,mk&&mk.overBook,mk&&mk.over)+"</div><div class='ou-pill under'>"+betOptionHtml("ต่ำ",under,underOdds,mk&&mk.underBook,mk&&mk.under)+"</div></div>";
  }).join("")+"</div>";
 }
+// line = handicap of the side being backed: below 0 it gives goals (ต่อ), above 0 it receives them (รอง)
+function ahTag(line){
+ if(line===undefined||line===null||!Number.isFinite(Number(line)))return "";
+ var n=Number(line);
+ if(Math.abs(n)<1e-8)return "<span class='ah-tag ah-even'>เสมอ 0</span>";
+ return n<0?"<span class='ah-tag ah-give'>ต่อ</span>":"<span class='ah-tag ah-take'>รอง</span>";
+}
 function formatHandicap(n){
  n=Number(n);if(Math.abs(n)<1e-8)return "0";
  return (n>0?"+":"")+String(Math.round(n*100)/100);
@@ -957,8 +968,8 @@ function asianHtml(model,market,homeName,awayName){
  return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ฝั่งเดิมพันคิดแต้มต่อแยกจากผลเสมอ; เส้น .25/.75 แบ่งเดิมพันครึ่ง; โอกาสชนะจากโมเดล Poisson ส่วน EV ผสมโมเดลกับราคาตลาด</p><div class='asian-list'>"+lines.map(function(line){
   var h=Number(line),mk=market[line],homeMetric=settlement(model,h,"handicap","home",mk.bestHome),awayMetric=settlement(model,-h,"handicap","away",mk.bestAway);
   return "<div class='asian-line'><div class='handicap-label'>เส้นเจ้าบ้าน "+formatHandicap(h)+" · ราคาเฉลี่ยตัดมาร์จิน "+pctFmt(mk.home*100)+" / "+pctFmt(mk.away*100)+"</div>"+
-   betOptionHtml(homeName+" "+formatHandicap(h),homeMetric,mk.bestHome,mk.homeBook,mk.home)+
-   betOptionHtml(awayName+" "+formatHandicap(-h),awayMetric,mk.bestAway,mk.awayBook,mk.away)+"</div>";
+   betOptionHtml(homeName+" "+formatHandicap(h),homeMetric,mk.bestHome,mk.homeBook,mk.home,h)+
+   betOptionHtml(awayName+" "+formatHandicap(-h),awayMetric,mk.bestAway,mk.awayBook,mk.away,-h)+"</div>";
  }).join("")+"</div>";
 }
 function comparisonHtml(c){
@@ -1019,10 +1030,10 @@ function rankGet(path,params,cacheKey){return apiGet(path,params,cacheKey)}
 function allValueEntries(prob,markets,model,homeName,awayName){
  var games=model?model.games:0;
  var entries=[];
- var add=function(category,label,metric,odds,book,pMarket,books){
+ var add=function(category,label,metric,odds,book,pMarket,books,ahLine){
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),odds:odds,book:book,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
  };
  if(model&&markets&&markets.overUnder){
   Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line];
@@ -1033,8 +1044,8 @@ function allValueEntries(prob,markets,model,homeName,awayName){
  if(model&&markets&&markets.asianHandicap){
   Object.keys(markets.asianHandicap).forEach(function(line){
    var h=Number(line),m=markets.asianHandicap[line];
-   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books);
-   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books);
+   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h);
+   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h);
   });
  }
  return entries.sort(function(a,b){return b.ev-a.ev});
@@ -1061,7 +1072,7 @@ function renderRank(){
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
-   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%":"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
+   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+ahTag(x.ahLine)+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%":"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
   }).join("");
   rankUpdate(candidates.length+" คู่มี EV บวกโดยประมาณ"+(failures?" · ข้อมูลไม่ครบ "+failures+" คู่":""),body);
   Array.prototype.forEach.call(el("rankBody").querySelectorAll("[data-rank-id]"),function(btn){btn.addEventListener("click",function(){analyze(Number(btn.dataset.rankId))})});
