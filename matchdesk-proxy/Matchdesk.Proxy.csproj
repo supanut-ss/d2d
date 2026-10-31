@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -13,4 +13,11 @@
     <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Web SDK picks up every .json/.config under the project: keep generated output and runtime data out of the package -->
+    <Content Remove="publish/**;deploy/**;App_Data/**" />
+    <None Remove="publish/**;deploy/**;App_Data/**" />
+  </ItemGroup>
+
 </Project>
+
