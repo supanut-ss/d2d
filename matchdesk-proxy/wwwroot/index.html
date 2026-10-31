@@ -234,6 +234,9 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .ah-give{background:var(--mint-bg);color:var(--mint);border:1px solid #b9dccf}
 .ah-take{background:var(--red-bg);color:var(--red);border:1px solid #efc3bf}
 .ah-even{background:var(--soft);color:var(--ink2);border:1px solid var(--line)}
+.stats-panel{margin-top:16px}
+.stats-grid{grid-template-columns:repeat(4,1fr)}
+@media(max-width:760px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 .footnote{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
 @media(max-width:990px){.layout{grid-template-columns:minmax(300px,.9fr) minmax(400px,1.1fr)}.main{padding-left:18px;padding-right:18px}.detail-body{padding:14px}}
 @media(max-width:760px){.topbar{height:60px;padding:0 16px}.top-right{gap:7px}.quota{display:none}.main{padding:22px 13px 35px}.intro{align-items:flex-start;flex-direction:column}.intro .btn.ghost{align-self:flex-start}.layout{grid-template-columns:1fr}.match-list{max-height:460px;min-height:240px}.detail{min-height:340px}.detail-placeholder{min-height:300px}.controls{align-items:stretch}.field,.field.search{min-width:calc(50% - 8px)}.field input,.field select{width:100%;min-width:0}.filter-actions{width:100%;margin-left:0}.runbtn,.rankbtn{flex:1}.rank-row{grid-template-columns:24px minmax(110px,1fr) 80px 76px;gap:8px}.rank-row .rank-prob{display:none}.rank-fixture{font-size:12px}.keyhead{align-items:flex-start;flex-direction:column}.keyfoot{flex-direction:column}.matchup{grid-template-columns:minmax(0,1fr) 70px minmax(0,1fr)}.club-name{font-size:13px}}
@@ -371,7 +374,11 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
     </div>
     </div>
   </section>
-  <dialog id="aiPwDialog" class="league-dialog pw-dialog" aria-labelledby="aiPwTitle">
+  <section id="statsPanel" class="panel stats-panel" aria-labelledby="statsTitle">
+  <div class="panel-head"><h2 id="statsTitle">ผลย้อนหลังของระบบ</h2><span id="statsCount" class="count"></span></div>
+  <div id="statsBody" class="rank-body"><p class="detail-note">กำลังโหลด…</p></div>
+</section>
+<dialog id="aiPwDialog" class="league-dialog pw-dialog" aria-labelledby="aiPwTitle">
   <form method="dialog" id="aiPwForm">
     <div class="dlg-head"><h2 id="aiPwTitle">ยืนยันรหัสผ่านก่อนส่งให้ AI</h2></div>
     <div class="dlg-list" style="min-height:0"><p id="aiPwInfo" class="detail-note" style="margin:6px 0 10px"></p><input id="aiPw" class="keyinput" type="password" autocomplete="off" spellcheck="false" placeholder="รหัสผ่าน" aria-label="รหัสผ่าน" style="width:100%"></div>
@@ -634,17 +641,25 @@ function dcTau(i,j,h,a){
  if(i===1&&j===1)return 1-DC_RHO;
  return 1;
 }
+// Goals are a little more bunched than independent Poisson: mix over a shared scale so totals get a fatter tail.
+// Mean is unchanged (weights average to 1). The spread is a judgement call, not fitted: check it against the pick log.
+var DISPERSION=.12;
 function modelFromLambdas(h,a){
  if(!(h>=0&&a>=0))return null;
- var ph=poissonArray(h,10),pa=poissonArray(a,10),home=0,draw=0,away=0,best={p:-1,h:0,a:0},outcomes=[],sum=0;
- for(var i=0;i<ph.length;i++)for(var j=0;j<pa.length;j++){
-  var q=ph[i]*pa[j]*Math.max(0,dcTau(i,j,h,a));sum+=q;
-  outcomes.push({home:i,away:j,total:i+j,diff:i-j,p:q});
- }
- outcomes.forEach(function(o){
-  o.p/=sum;
-  if(o.home>o.away)home+=o.p;else if(o.home===o.away)draw+=o.p;else away+=o.p;
-  if(o.p>best.p)best={p:o.p,h:o.home,a:o.away};
+ var scales=[[1-DISPERSION,.25],[1,.5],[1+DISPERSION,.25]],acc={},sum=0;
+ scales.forEach(function(sc){
+  var hh=h*sc[0],aa=a*sc[0],ph=poissonArray(hh,10),pa=poissonArray(aa,10);
+  for(var i=0;i<ph.length;i++)for(var j=0;j<pa.length;j++){
+   var q=sc[1]*ph[i]*pa[j]*Math.max(0,dcTau(i,j,hh,aa)),key=i*20+j;
+   acc[key]=(acc[key]||0)+q;sum+=q;
+  }
+ });
+ var home=0,draw=0,away=0,best={p:-1,h:0,a:0},outcomes=[];
+ Object.keys(acc).forEach(function(key){
+  var i=Math.floor(key/20),j=key%20,pr=acc[key]/sum;
+  outcomes.push({home:i,away:j,total:i+j,diff:i-j,p:pr});
+  if(i>j)home+=pr;else if(i===j)draw+=pr;else away+=pr;
+  if(pr>best.p)best={p:pr,h:i,a:j};
  });
  return {home:home,draw:draw,away:away,score:best,lambdaHome:h,lambdaAway:a,total:h+a,outcomes:outcomes};
 }
@@ -783,10 +798,17 @@ function modelFromTeamStats(homeStatsData,awayStatsData,adj){
  // recent xG (when fetched) is averaged with the season goal rate: it is less noisy than goals over few games
  var hx=adj.homeXg,ax=adj.awayXg;
  var mix=function(rate,x){return x===null||x===undefined?rate:(rate===null||rate===undefined?x:(rate+x)/2)};
- var hAtt=shrink(mix(choose(hs.forHome,hs.forAway),hx&&hx.for),hn,lg.home)/lg.home;
- var aDef=shrink(mix(choose(as.againstAway,as.againstHome),ax&&ax.against),an,lg.home)/lg.home;
- var aAtt=shrink(mix(choose(as.forAway,as.forHome),ax&&ax.for),an,lg.away)/lg.away;
- var hDef=shrink(mix(choose(hs.againstHome,hs.againstAway),hx&&hx.against),hn,lg.away)/lg.away;
+ // last-10 goals, recency weighted, restated for this venue via the league average; 30% weight once there are 5+ matches
+ var avgLg=(lg.home+lg.away)/2,hr=adj.homeRecent,ar=adj.awayRecent;
+ var recent=function(rate,r,key,venueAvg){
+  if(!r||r.n<5||rate===null||rate===undefined)return rate;
+  var eq=r[key]/avgLg*venueAvg;
+  return Number.isFinite(eq)?.7*rate+.3*eq:rate;
+ };
+ var hAtt=shrink(recent(mix(choose(hs.forHome,hs.forAway),hx&&hx.for),hr,"for",lg.home),hn,lg.home)/lg.home;
+ var aDef=shrink(recent(mix(choose(as.againstAway,as.againstHome),ax&&ax.against),ar,"against",lg.home),an,lg.home)/lg.home;
+ var aAtt=shrink(recent(mix(choose(as.forAway,as.forHome),ax&&ax.for),ar,"for",lg.away),an,lg.away)/lg.away;
+ var hDef=shrink(recent(mix(choose(hs.againstHome,hs.againstAway),hx&&hx.against),hr,"against",lg.away),hn,lg.away)/lg.away;
  // players ruled out lower that side's scoring rate
  var lh=lg.home*hAtt*aDef*(adj.homeAtt||1),la=lg.away*aAtt*hDef*(adj.awayAtt||1);
  if(!Number.isFinite(lh)||!Number.isFinite(la)||lh<0||la<0)return null;
@@ -804,10 +826,22 @@ function injuryInfo(data,teamId){
  });
  return {out:out,doubt:doubt,factor:1-Math.min(.12,.025*(out.length+doubt.length*.5))};
 }
-// average xG for/against over the team's last finished matches that report it (null if fewer than 3)
-async function teamXg(teamId,get){
- var last=await get("/fixtures",{team:teamId,last:6},"last:"+teamId);
- var done=((last&&last.response)||[]).filter(function(f){return ["FT","AET","PEN"].indexOf(f.fixture.status.short)>=0});
+// last 10 finished matches of a team (newest first), shared by recent-goal weighting, rest days and xG
+async function teamInfo(teamId,get,deep){
+ var last=await get("/fixtures",{team:teamId,last:10},"last10:"+teamId);
+ var done=((last&&last.response)||[]).filter(function(f){return ["FT","AET","PEN"].indexOf(f.fixture.status.short)>=0&&f.goals&&f.goals.home!==null&&f.goals.away!==null})
+  .sort(function(a,b){return new Date(b.fixture.date)-new Date(a.fixture.date)});
+ var sw=0,sf=0,sa=0;
+ done.forEach(function(f,k){
+  var w=Math.pow(.85,k),mine=f.teams.home.id===teamId?f.goals.home:f.goals.away,theirs=f.teams.home.id===teamId?f.goals.away:f.goals.home;
+  sw+=w;sf+=w*mine;sa+=w*theirs;
+ });
+ var info={recent:sw?{for:sf/sw,against:sa/sw,n:done.length}:null,lastDate:done[0]?done[0].fixture.date:null,xg:null};
+ if(deep)info.xg=await xgFrom(done.slice(0,6),teamId,get);
+ return info;
+}
+// average xG for/against over the given matches that report it (null if fewer than 3)
+async function xgFrom(done,teamId,get){
  var sumFor=0,sumAgainst=0,n=0;
  for(var i=0;i<done.length;i++){
   var st=null;
@@ -822,21 +856,39 @@ async function teamXg(teamId,get){
  }
  return n>=3?{for:sumFor/n,against:sumAgainst/n,n:n}:null;
 }
-function buildAdj(injData,fixture,homeXg,awayXg){
+// lineups are announced about an hour before kickoff: true/false once close to kickoff, null while it is still early
+function lineupsKnown(lineupData,kickoff){
+ if(lineupData&&lineupData.response&&lineupData.response.length>=2)return true;
+ return new Date(kickoff)-Date.now()<3*3600e3?false:null;
+}
+// back-to-back games: playing again within 3.5 days costs about 3% of scoring
+function restInfo(lastDate,kickoff){
+ if(!lastDate)return {days:null,factor:1};
+ var days=(new Date(kickoff)-new Date(lastDate))/864e5;
+ return {days:days,factor:days<3.5?.97:1};
+}
+function buildAdj(injData,fixture,homeInfo,awayInfo,lineups){
  var hi=injuryInfo(injData,fixture.teams.home.id),ai=injuryInfo(injData,fixture.teams.away.id);
- return {homeAtt:hi.factor,awayAtt:ai.factor,homeInj:hi,awayInj:ai,homeXg:homeXg,awayXg:awayXg};
+ var hr=restInfo(homeInfo&&homeInfo.lastDate,fixture.fixture.date),ar=restInfo(awayInfo&&awayInfo.lastDate,fixture.fixture.date);
+ return {homeAtt:hi.factor*hr.factor,awayAtt:ai.factor*ar.factor,homeInj:hi,awayInj:ai,
+  homeXg:homeInfo&&homeInfo.xg,awayXg:awayInfo&&awayInfo.xg,homeRecent:homeInfo&&homeInfo.recent,awayRecent:awayInfo&&awayInfo.recent,
+  homeRest:hr.days,awayRest:ar.days,lineups:lineups};
 }
 async function fetchOddsHistory(ids){
  if(!ids.length)return {};
  try{var r=await fetch("api/odds-history?fixtures="+ids.join(","));return r.ok?await r.json():{}}catch(e){return {}}
 }
-// change in the de-margined market probability of this pick since the first tracked snapshot
+function ladderKey(n){var v=Math.round(Number(n)*100)/100;if(v===0)v=0;return String(v)}
+// change (in points) of the market probability of this pick between the first and last tracked snapshot
 function marketMove(entry,snaps){
- if(!snaps||snaps.length<2)return null;
- var field=entry.label==="สูง 2.5"?"o25":entry.label==="ต่ำ 2.5"?"u25":null;
- if(!field)return null;
- var first=snaps.find(function(x){return x[field]!==null&&x[field]!==undefined}),last=snaps.slice().reverse().find(function(x){return x[field]!==null&&x[field]!==undefined});
- return first&&last&&first!==last?(last[field]-first[field])*100:null;
+ if(!snaps||snaps.length<2||!entry.kind)return null;
+ var k=ladderKey(entry.ladder);
+ var vals=snaps.map(function(sn){
+  var l=entry.kind==="AH"?(sn.ah&&sn.ah[k]):(sn.ou&&sn.ou[k]);
+  if(l===undefined||l===null)return null;
+  return entry.side==="home"||entry.side==="over"?l:1-l;
+ }).filter(function(v){return v!==null});
+ return vals.length>=2?(vals[vals.length-1]-vals[0])*100:null;
 }
 function moveText(delta){
  if(delta===null||delta===undefined)return "";
@@ -916,17 +968,19 @@ function parseMarkets(data,homeName,awayName){
   }
  });
  var mean=function(arr,key){return arr.length?arr.reduce(function(s,x){return s+x[key]},0)/arr.length:null};
+ var pinnacle=function(arr){return arr.find(function(x){return /pinnacle/i.test(x.book||"")})};
+ var anchorVal=function(arr,key){var pin=pinnacle(arr);return pin?pin[key]:mean(arr,key)};
  var median=function(arr,key){if(!arr.length)return null;var v=arr.map(function(x){return x[key]}).sort(function(a,b){return a-b}),m=v.length>>1;return v.length%2?v[m]:(v[m-1]+v[m])/2};
  var avg=one.length?{home:mean(one,"home"),draw:mean(one,"draw"),away:mean(one,"away"),rawHome:mean(one,"rawHome"),rawDraw:mean(one,"rawDraw"),rawAway:mean(one,"rawAway"),bestHome:bestPrices.home.odd,homeBook:bestPrices.home.book,bestDraw:bestPrices.draw.odd,drawBook:bestPrices.draw.book,bestAway:bestPrices.away.odd,awayBook:bestPrices.away.book,books:one.length}:null;
  var ouAvg={};Object.keys(ou).forEach(function(line){
   var arr=ou[line],bestOver={odd:0,book:""},bestUnder={odd:0,book:""};
   arr.forEach(function(x){if(x.overOdd>bestOver.odd)bestOver={odd:x.overOdd,book:x.book};if(x.underOdd>bestUnder.odd)bestUnder={odd:x.underOdd,book:x.book}});
-  ouAvg[line]={over:mean(arr,"over"),under:mean(arr,"under"),bestOver:bestOver.odd,overBook:bestOver.book,bestUnder:bestUnder.odd,underBook:bestUnder.book,medOver:median(arr,"overOdd"),medUnder:median(arr,"underOdd"),books:arr.length};
+  ouAvg[line]={over:anchorVal(arr,"over"),under:anchorVal(arr,"under"),anchor:pinnacle(arr)?"Pinnacle":"เฉลี่ย",bestOver:bestOver.odd,overBook:bestOver.book,bestUnder:bestUnder.odd,underBook:bestUnder.book,medOver:median(arr,"overOdd"),medUnder:median(arr,"underOdd"),books:arr.length};
  });
  var ahAvg={};Object.keys(ah).forEach(function(line){
   var arr=ah[line],bestHome={odd:0,book:""},bestAway={odd:0,book:""};
   arr.forEach(function(x){if(x.homeOdd>bestHome.odd)bestHome={odd:x.homeOdd,book:x.book};if(x.awayOdd>bestAway.odd)bestAway={odd:x.awayOdd,book:x.book}});
-  ahAvg[line]={home:mean(arr,"home"),away:mean(arr,"away"),bestHome:bestHome.odd,homeBook:bestHome.book,bestAway:bestAway.odd,awayBook:bestAway.book,medHome:median(arr,"homeOdd"),medAway:median(arr,"awayOdd"),books:arr.length};
+  ahAvg[line]={home:anchorVal(arr,"home"),away:anchorVal(arr,"away"),anchor:pinnacle(arr)?"Pinnacle":"เฉลี่ย",bestHome:bestHome.odd,homeBook:bestHome.book,bestAway:bestAway.odd,awayBook:bestAway.book,medHome:median(arr,"homeOdd"),medAway:median(arr,"awayOdd"),books:arr.length};
  });
  return {oneXtwo:avg,overUnder:ouAvg,asianHandicap:ahAvg};
 }
@@ -946,7 +1000,7 @@ function ouHtml(model,market){
  if(!model&&!hasOdds)return "<div class='detail-note'>ยังไม่มีสถิติหรือราคาสูง/ต่ำสำหรับคู่นี้</div>";
  var all=new Set(model?["1.5","2.5","3.5"]:[]);Object.keys(market||{}).forEach(function(x){all.add(x)});
  var lines=Array.from(all).sort(function(a,b){return Number(a)-Number(b)});
- return "<div class='section-title'>สูง / ต่ำ <span class='source-tag'>"+(model?"โอกาสชนะและ EV จากโมเดลประตู":"ราคาตลาดที่พบ")+"</span></div>"+(model?"<p class='detail-note'>เส้น .25/.75 แบ่งเดิมพันครึ่ง; ชนะรวมครึ่งชนะ และเจ๊าแสดงเฉพาะคืนทุนเต็ม; EV ผสมโมเดลกับราคาตลาด</p>":"<p class='detail-note'>ยังไม่มีสถิติประตูพอประเมินโอกาสและ EV</p>")+"<div class='ou-list'>"+lines.map(function(line){
+ return "<div class='section-title'>สูง / ต่ำ <span class='source-tag'>"+(model?"โอกาสชนะและ EV จากโมเดลประตู":"ราคาตลาดที่พบ")+"</span></div>"+(model?"<p class='detail-note'>เส้น .25/.75 แบ่งเดิมพันครึ่ง; ชนะรวมครึ่งชนะ และเจ๊าแสดงเฉพาะคืนทุนเต็ม; EV ผสมโมเดลกับราคาตลาด (อิง Pinnacle เมื่อมี)</p>":"<p class='detail-note'>ยังไม่มีสถิติประตูพอประเมินโอกาสและ EV</p>")+"<div class='ou-list'>"+lines.map(function(line){
   var mk=market&&market[line],overOdds=mk&&mk.bestOver,underOdds=mk&&mk.bestUnder;
   var over=model?settlement(model,line,"total","over",overOdds):null,under=model?settlement(model,line,"total","under",underOdds):null;
   return "<div class='ou-line'><span class='threshold'>รวม "+escapeHtml(line)+"</span><div class='ou-pill over'>"+betOptionHtml("สูง",over,overOdds,mk&&mk.overBook,mk&&mk.over)+"</div><div class='ou-pill under'>"+betOptionHtml("ต่ำ",under,underOdds,mk&&mk.underBook,mk&&mk.under)+"</div></div>";
@@ -966,7 +1020,7 @@ function formatHandicap(n){
 function asianHtml(model,market,homeName,awayName){
  if(!market||!Object.keys(market).length)return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ยังไม่มีราคา Asian Handicap สำหรับคู่นี้</p>";
  var lines=Object.keys(market).sort(function(a,b){return Number(a)-Number(b)});
- return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ฝั่งเดิมพันคิดแต้มต่อแยกจากผลเสมอ; เส้น .25/.75 แบ่งเดิมพันครึ่ง; โอกาสชนะจากโมเดล Poisson ส่วน EV ผสมโมเดลกับราคาตลาด</p><div class='asian-list'>"+lines.map(function(line){
+ return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ฝั่งเดิมพันคิดแต้มต่อแยกจากผลเสมอ; เส้น .25/.75 แบ่งเดิมพันครึ่ง; โอกาสชนะจากโมเดล Poisson ส่วน EV ผสมโมเดลกับราคาตลาด (อิง Pinnacle เมื่อมี)</p><div class='asian-list'>"+lines.map(function(line){
   var h=Number(line),mk=market[line],homeMetric=settlement(model,h,"handicap","home",mk.bestHome),awayMetric=settlement(model,-h,"handicap","away",mk.bestAway);
   return "<div class='asian-line'><div class='handicap-label'>เส้นเจ้าบ้าน "+formatHandicap(h)+" · ราคาเฉลี่ยตัดมาร์จิน "+pctFmt(mk.home*100)+" / "+pctFmt(mk.away*100)+"</div>"+
    betOptionHtml(homeName+" "+formatHandicap(h),homeMetric,mk.bestHome,mk.homeBook,mk.home,h)+
@@ -1005,7 +1059,7 @@ function modelPercent(data){
 var MARKET_WEIGHT=.7,MARKET_WEIGHT_MAX=.9,MIN_CONF=50,KELLY_FRACTION=.25,KELLY_CAP=.05;
 // What a pick must pass to be ranked. Bookmakers are better calibrated than a goals model on long shots
 // (favourite-longshot bias), so the market weight grows with the price and long shots are not ranked at all.
-var MIN_ODDS=1.7,MAX_ODDS=2.5,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_EV_OU=8,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
+var MOVE_AGAINST=3,MIN_ODDS=1.7,MAX_ODDS=2.5,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_EV_OU=8,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
 // market weight: 70% up to price 2.2, rising 10 points per +1.0 of price, at most 90%
 function marketWeight(odds){return Math.min(MARKET_WEIGHT_MAX,MARKET_WEIGHT+Math.max(0,odds-2.2)*.1)}
 // fractional Kelly as % of bankroll, capped; 0 when there is no edge
@@ -1022,9 +1076,9 @@ function blendEv(evModel,odds,pMarket){
  return {p:pBlend,pModel:pModel,pMarket:pMarket,ev:(pBlend*odds-1)*100};
 }
 // 0-100: bookmaker coverage, games behind the stats, and how far the model sits from the market
-function confidence(books,games,gap){
+function confidence(books,games,gap,lineups){
  var b=Math.min((books||0)/5,1),g=Math.min((games||0)/8,1),d=gap===null||gap===undefined?0:Math.max(0,1-gap/.15);
- return Math.round(100*(.35*b+.35*g+.3*d));
+ return Math.round(100*(.35*b+.35*g+.3*d)*(lineups===false?.9:1));
 }
 function rankUpdate(text,body){
  el("rankPanel").hidden=false;
@@ -1037,23 +1091,24 @@ function allValueEntries(prob,markets,model,homeName,awayName){
  var games=model?model.games:0;
  var entries=[];
  var add=function(category,label,metric,odds,book,pMarket,books,ahLine,medOdds,extra){
+  extra=extra||{};
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra?extra.ouMain:true,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups)});
  };
  if(model&&markets&&markets.overUnder){
   // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
   var mainLine=Object.keys(markets.overUnder).reduce(function(best,l){var d=Math.abs(markets.overUnder[l].over-.5);return !best||d<best.d?{line:l,d:d}:best},null);
   Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line],main={ouMain:mainLine&&line===mainLine.line};
-   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver,main);
-   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder,main);
+   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver,Object.assign({kind:"OU",side:"over",ladder:Number(line)},main,{anchor:m.anchor}));
+   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder,Object.assign({kind:"OU",side:"under",ladder:Number(line)},main,{anchor:m.anchor}));
   });
  }
  if(model&&markets&&markets.asianHandicap){
   Object.keys(markets.asianHandicap).forEach(function(line){
    var h=Number(line),m=markets.asianHandicap[line];
-   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h,m.medHome);
-   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h,m.medAway);
+   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h,m.medHome,{kind:"AH",side:"home",ladder:h,anchor:m.anchor});
+   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h,m.medAway,{kind:"AH",side:"away",ladder:h,anchor:m.anchor});
   });
  }
  return entries.sort(function(a,b){return b.ev-a.ev});
@@ -1067,6 +1122,7 @@ function rejectReason(x){
  if(x.ev>(x.category==="สูง/ต่ำ"?MAX_EV_OU:MAX_EV))return "ev";
  if(Math.abs(x.pModel-x.pMarket)>MAX_GAP)return "gap";
  if(x.priceRatio>MAX_PRICE_RATIO)return "outlier";
+ if(x.move!==null&&x.move!==undefined&&x.move<=-MOVE_AGAINST)return "against";
  if(x.conf<MIN_CONF)return "conf";
  return null;
 }
@@ -1076,7 +1132,7 @@ function renderRank(){
  var isOU=rankMode==="ou",failures=rankData.failures;
  var tabCount=function(ou){return rankData.items.filter(function(it){return it.entries.some(function(x){return (ou?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ")&&rankable(x)})}).length};
  el("modeOdds").textContent="แฮนดิแคป ("+tabCount(false)+")";el("modeOU").textContent="สูงต่ำ ("+tabCount(true)+")";
- var rejected={short:0,longshot:0,line:0,ev:0,gap:0,outlier:0,conf:0};
+ var rejected={short:0,longshot:0,line:0,ev:0,gap:0,outlier:0,against:0,conf:0};
  var candidates=rankData.items.map(function(it){
   var list=it.entries.filter(function(x){return isOU?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ"});
   var ok=list.filter(rankable);
@@ -1086,8 +1142,8 @@ function renderRank(){
  lastCandidates=candidates;
  el("aiBar").hidden=!aiProviders.length||!candidates.length;
  var modeName=isOU?"สูงต่ำ":"แฮนดิแคป";
- var skipped=[["short","ราคาต่ำกว่า "+decimal(MIN_ODDS)],["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["line","ไม่ใช่เส้นหลักของสูงต่ำ"],["ev","EV เกิน "+(isOU?MAX_EV_OU:MAX_EV)+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
- var note="<p class='rank-disclaimer'>โหมด"+modeName+": โอกาสชนะคำนวณจากโมเดลประตู Poisson แล้วผสมกับราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · แสดงเฉพาะราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+(isOU?MAX_EV_OU+"% เฉพาะเส้นหลัก":MAX_EV+"%")+" · EV ไม่ใช่กำไรที่รับประกัน · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(skipped.length?"<br>ไม่นำมาจัดอันดับ (EV บวกแต่เชื่อถือไม่ได้): "+skipped.join(" · "):"")+"</p>";
+ var skipped=[["short","ราคาต่ำกว่า "+decimal(MIN_ODDS)],["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["line","ไม่ใช่เส้นหลักของสูงต่ำ"],["ev","EV เกิน "+(isOU?MAX_EV_OU:MAX_EV)+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["against","ตลาดไหลสวนเกิน "+MOVE_AGAINST+" จุด"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
+ var note="<p class='rank-disclaimer'>โหมด"+modeName+": โอกาสชนะคำนวณจากโมเดลประตู Poisson แล้วผสมกับราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · แสดงเฉพาะราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+(isOU?MAX_EV_OU+"% เฉพาะเส้นหลัก":MAX_EV+"%")+" · ราคาตลาดอิง Pinnacle เมื่อมี · EV ไม่ใช่กำไรที่รับประกัน · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(skipped.length?"<br>ไม่นำมาจัดอันดับ (EV บวกแต่เชื่อถือไม่ได้): "+skipped.join(" · "):"")+"</p>";
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
@@ -1191,6 +1247,47 @@ function askAiPassword(info){
   dlg.showModal();input.focus();
  });
 }
+// every pick that passes the rules is stored server-side; it is settled after the match and compared with the closing price
+async function logPicks(){
+ if(!rankData)return;
+ var picks=[];
+ rankData.items.forEach(function(it){
+  [false,true].forEach(function(ou){
+   var best=it.entries.filter(function(x){return (x.category==="สูง/ต่ำ")===ou&&rankable(x)})[0];
+   if(!best||!best.kind)return;
+   picks.push({fixtureId:it.fixture.fixture.id,market:best.kind,side:best.side,line:best.kind==="AH"?best.ahLine:best.ladder,ladderLine:best.ladder,
+    label:best.category+" "+best.label,odds:best.odds,book:best.book||null,pModel:best.pModel,pMarket:best.pMarket,pBlend:best.p,ev:best.ev,conf:best.conf});
+  });
+ });
+ if(!picks.length)return;
+ try{await fetch("api/picks/log",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({picks:picks})})}catch(e){}
+ refreshStats();
+}
+async function refreshStats(){
+ var q;
+ try{var r=await fetch("api/picks/stats");if(!r.ok)return;q=await r.json()}catch(e){return}
+ var f1=function(v,suffix){return v===null||v===undefined?"—":(Number(v)>0&&suffix==="%+"?"+":"")+Number(v).toFixed(1)+(suffix==="%+"?"%":(suffix||""))};
+ var o=q.overall,c=q.clv;
+ el("statsCount").textContent="บันทึก "+q.logged+" · รอผล "+q.open+" · ตัดสินแล้ว "+q.settled;
+ var cell=function(label,value,hint){return "<div class='h2h-stat'><b>"+value+"</b><span>"+label+(hint?"<br>"+hint:"")+"</span></div>"};
+ var body="<div class='h2h-summary stats-grid'>"+
+  cell("CLV เฉลี่ย",c.avgClvPct===null?"—":(c.avgClvPct>0?"+":"")+c.avgClvPct.toFixed(2)+"%","ราคาที่แนะนำเทียบราคาปิด ("+c.clvSamples+" คู่)")+
+  cell("CLV เป็นบวก",c.clvPositivePct===null?"—":c.clvPositivePct+"%","ของคู่ที่จับราคาปิดได้")+
+  cell("ROI",f1(o.roiPct,"%+"),"จาก "+o.picks+" คู่ที่ตัดสินแล้ว")+
+  cell("ชนะจริง",o.hitPct===null?"—":o.hitPct.toFixed(1)+"%","โมเดลคาด "+(o.avgPredictedPct===null?"—":o.avgPredictedPct.toFixed(1)+"%"))+
+  "</div>";
+ body+="<p class='detail-note'>CLV (Closing Line Value) = ราคาที่แนะนำดีกว่าราคาปิดก่อนแข่งไหม เป็นตัวชี้วัดคุณภาพที่เห็นผลเร็วกว่ากำไรจริง ถ้า CLV เป็นบวกสม่ำเสมอแสดงว่าโมเดลเห็นสิ่งที่ตลาดยังไม่เห็น · ROI และอัตราชนะต้องสะสมหลายร้อยคู่ถึงจะเชื่อได้</p>";
+ if(q.calibration&&q.calibration.length)body+="<div class='section-title'>ความแม่นของโอกาส <span class='source-tag'>โมเดลคาด เทียบ ชนะจริง</span></div><div class='h2h-list'>"+q.calibration.map(function(b){
+  return "<div class='h2h-row' style='grid-template-columns:90px 1fr 1fr 70px'><span class='h2h-date'>"+escapeHtml(b.range)+"</span><span>คาด "+f1(b.predictedPct,"%")+"</span><span>ชนะจริง "+f1(b.actualPct,"%")+"</span><span class='h2h-date'>"+b.picks+" คู่</span></div>";
+ }).join("")+"</div>";
+ if(q.recent&&q.recent.length)body+="<div class='section-title'>คำแนะนำล่าสุด</div><div class='h2h-list'>"+q.recent.slice(0,12).map(function(x){
+  var status=x.status==="settled"?(x.units>0?"ชนะ":x.units<0?"แพ้":"คืนทุน")+" "+(x.units>0?"+":"")+x.units:x.status==="void"?"ยกเลิก":"รอผล";
+  var cls=x.status==="settled"?(x.units>0?"move-up":x.units<0?"move-down":""):"";
+  return "<div class='h2h-row' style='grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) 54px 84px'><span class='h2h-team'>"+escapeHtml(x.home+" พบ "+x.away)+"</span><span class='h2h-team'>"+escapeHtml(x.label)+" @"+Number(x.odds).toFixed(2)+"</span><span class='h2h-score'>"+(x.score||"")+"</span><span class='"+cls+"'>"+status+(x.clvPct!==null&&x.clvPct!==undefined?" · CLV "+(x.clvPct>0?"+":"")+x.clvPct.toFixed(1):"")+"</span></div>";
+ }).join("")+"</div>";
+ if(!q.logged)body="<p class='detail-note'>ยังไม่มีคำแนะนำที่บันทึกไว้ กด “จัดอันดับ” แล้วระบบจะบันทึกตัวเลือกที่ผ่านเกณฑ์ ตัดสินผลหลังแข่งจบ 3 ชั่วโมง และจับราคาปิดก่อนแข่ง 20 นาที</p>";
+ el("statsBody").innerHTML=body;
+}
 function setRankMode(mode){
  rankMode=mode;
  el("modeOdds").classList.toggle("active",mode==="odds");el("modeOU").classList.toggle("active",mode==="ou");
@@ -1225,14 +1322,16 @@ async function rankMatches(){
      var homeStats=null,awayStats=null;
      try{homeStats=await rankGet("/teams/statistics",{league:f.league.id,season:f.league.season,team:f.teams.home.id},"stats:"+f.league.id+":"+f.league.season+":"+f.teams.home.id,slotIdx)}catch(e){}
      try{awayStats=await rankGet("/teams/statistics",{league:f.league.id,season:f.league.season,team:f.teams.away.id},"stats:"+f.league.id+":"+f.league.season+":"+f.teams.away.id,slotIdx)}catch(e){}
-     var inj=null,hx=null,ax=null;
+     var inj=null,hInfo=null,aInfo=null,lineups=null;
      try{inj=await rankGet("/injuries",{fixture:id},"inj:"+id)}catch(e){}
-     if(deep){
-      try{hx=await teamXg(f.teams.home.id,rankGet)}catch(e){}
-      try{ax=await teamXg(f.teams.away.id,rankGet)}catch(e){}
+     try{hInfo=await teamInfo(f.teams.home.id,rankGet,deep)}catch(e){}
+     try{aInfo=await teamInfo(f.teams.away.id,rankGet,deep)}catch(e){}
+     if(new Date(f.fixture.date)-Date.now()<3*3600e3){
+      var lu=null;try{lu=await rankGet("/fixtures/lineups",{fixture:id},"lineup:"+id)}catch(e){}
+      lineups=lineupsKnown(lu,f.fixture.date);
      }
      await ensureLeagueAverage(f.league.id,f.league.season,rankGet);
-     var markets=parseMarkets(odds,f.teams.home.name,f.teams.away.name),model=modelFromTeamStats(homeStats,awayStats,buildAdj(inj,f,hx,ax));
+     var markets=parseMarkets(odds,f.teams.home.name,f.teams.away.name),model=modelFromTeamStats(homeStats,awayStats,buildAdj(inj,f,hInfo,aInfo,lineups));
      var entries=allValueEntries(null,markets,model,f.teams.home.name,f.teams.away.name);
      if(!model)failures++;
      else if(!entries.length)failures++;
@@ -1244,7 +1343,9 @@ async function rankMatches(){
   await Promise.all(alive.map(worker));
   rankData.items=results.filter(Boolean);
   rankData.history=await fetchOddsHistory(rankData.items.map(function(it){return it.fixture.fixture.id}));
+  rankData.items.forEach(function(it){var sn=(rankData.history||{})[it.fixture.fixture.id];it.entries.forEach(function(e){e.move=marketMove(e,sn)})});
   rankData.failures=failures;renderRank();
+  logPicks();
  }catch(e){
   rankUpdate("จัดอันดับไม่สำเร็จ","<div class='error' role='alert'>"+escapeHtml(e.message)+"</div>");
  }finally{rankBusy=false;updateRankButton()}
@@ -1334,12 +1435,12 @@ async function analyze(id){
    apiGet("/fixtures/headtohead",{h2h:homeId+"-"+awayId,last:10,timezone:"Asia/Bangkok"},"h2h:"+[homeId,awayId].sort().join("-")),
    apiGet("/injuries",{fixture:id},"inj:"+id),
    apiGet("/fixtures/lineups",{fixture:id},"lineup:"+id),
-   teamXg(homeId,apiGet),
-   teamXg(awayId,apiGet),
+   teamInfo(homeId,apiGet,true),
+   teamInfo(awayId,apiGet,true),
    fetchOddsHistory([id])
   ]);
   var val=function(i){return results[i].status==="fulfilled"?results[i].value:null};
-  var injData=val(5),lineupData=val(6),homeXg=val(7),awayXg=val(8),snaps=(val(9)||{})[id];
+  var injData=val(5),lineupData=val(6),homeInfo=val(7),awayInfo=val(8),snaps=(val(9)||{})[id];
   if(results.every(function(r){return r.status==="rejected"}))throw results[0].reason;
   var predData=results[0].status==="fulfilled"?results[0].value:null;
   var oddsData=results[1].status==="fulfilled"?results[1].value:null;
@@ -1348,7 +1449,7 @@ async function analyze(id){
   var h2hData=results[4].status==="fulfilled"?results[4].value:null;
   var predRoot=firstResponse(predData),pred=predRoot&&predRoot.predictions?predRoot.predictions:null,comp=predRoot&&predRoot.comparison?predRoot.comparison:null;
   await ensureLeagueAverage(leagueId,season,apiGet);
-  var model=modelFromTeamStats(hsData,asData,buildAdj(injData,fixture,homeXg,awayXg));
+  var model=modelFromTeamStats(hsData,asData,buildAdj(injData,fixture,homeInfo,awayInfo,lineupsKnown(lineupData,fixture.fixture.date)));
   var markets=parseMarkets(oddsData,fixture.teams.home.name,fixture.teams.away.name);
   var apiP=modelPercent(predData);
   var date=new Date(fixture.fixture.date);
@@ -1401,6 +1502,7 @@ el("leagueForm").addEventListener("submit",function(){
 });
 leagueSummary();
 refreshQuota();
+refreshStats();
 loadAiProviders();
 setInterval(refreshQuota,60000);
 el("searchInput").addEventListener("input",function(){el("rankPanel").hidden=true;renderFixtures()});

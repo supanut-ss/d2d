@@ -4,7 +4,9 @@ using System.Text.Json;
 namespace Matchdesk.Proxy;
 
 /// <summary>De-margined market average for one fixture at one point in time.</summary>
-public sealed record OddsSnapshot(DateTime T, double? H, double? D, double? A, double? O25, double? U25, int Books);
+/// <remarks>Ah: home-line key to the home side probability; Ou: total-line key to the over probability. Anchored on Pinnacle when present.</remarks>
+public sealed record OddsSnapshot(DateTime T, double? H, double? D, double? A, double? O25, double? U25, int Books,
+    Dictionary<string, double>? Ah = null, Dictionary<string, double>? Ou = null);
 
 /// <summary>Snapshot history per fixture, kept in memory and mirrored to App_Data so it survives app-pool recycles.</summary>
 public sealed class OddsHistory
@@ -63,7 +65,7 @@ public sealed class OddsHistory
 /// Every IntervalMinutes, snapshots 1X2 and over/under 2.5 prices for today's and tomorrow's not-started fixtures
 /// in the tracked leagues, so the page can show how the market moved.
 /// </summary>
-public sealed class OddsTracker(KeyPool pool, ResponseCache cache, OddsHistory history, IConfiguration config, ILogger<OddsTracker> log)
+public sealed class OddsTracker(KeyPool pool, ResponseCache cache, OddsHistory history, KnownFixtures known, IConfiguration config, ILogger<OddsTracker> log)
     : BackgroundService
 {
     // not-started only (live and finished matches are not used): the page asks for the same list, so both share one cached response
@@ -101,6 +103,7 @@ public sealed class OddsTracker(KeyPool pool, ResponseCache cache, OddsHistory h
             // same query string as the page so both share the cached fixture list
             var q = $"?date={d}&timezone=Asia%2FBangkok&status={FixtureStatuses}";
             var (fx, _) = await cache.GetOrAddAsync("fixtures" + q, TimeSpan.FromMinutes(10), () => pool.GetAsync("/fixtures" + q, ct, "tracker"));
+            if (fx.Status == 200) known.Note(fx.Body);
             if (fx.Status != 200) continue;
 
             var targets = new HashSet<(int League, int Season)>();
@@ -157,8 +160,10 @@ public sealed class OddsTracker(KeyPool pool, ResponseCache cache, OddsHistory h
                     ou.Add((1 / o / s, 1 / u / s));
                 }
             }
-        if (one.Count == 0 && ou.Count == 0) return null;
+        var ladders = OddsMath.Parse(item);
+        if (one.Count == 0 && ou.Count == 0 && ladders.Ah.Count == 0 && ladders.Ou.Count == 0) return null;
         double? Avg<T>(List<T> l, Func<T, double> f) => l.Count == 0 ? null : Math.Round(l.Average(f), 4);
-        return new OddsSnapshot(DateTime.UtcNow, Avg(one, x => x.H), Avg(one, x => x.D), Avg(one, x => x.A), Avg(ou, x => x.O), Avg(ou, x => x.U), Math.Max(one.Count, ou.Count));
+        return new OddsSnapshot(DateTime.UtcNow, Avg(one, x => x.H), Avg(one, x => x.D), Avg(one, x => x.A), Avg(ou, x => x.O), Avg(ou, x => x.U), Math.Max(Math.Max(one.Count, ou.Count), ladders.Books),
+            ladders.Ah.Count > 0 ? ladders.Ah : null, ladders.Ou.Count > 0 ? ladders.Ou : null);
     }
 }

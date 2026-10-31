@@ -11,6 +11,9 @@ builder.Services.AddHttpClient("ai", c => c.Timeout = TimeSpan.FromMinutes(4));
 builder.Services.AddSingleton<ResponseCache>();
 builder.Services.AddSingleton<AiService>();
 builder.Services.AddSingleton<OddsHistory>();
+builder.Services.AddSingleton<KnownFixtures>();
+builder.Services.AddSingleton<PickLog>();
+builder.Services.AddHostedService<PickWorker>();
 builder.Services.AddHostedService<OddsTracker>();
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
@@ -72,7 +75,7 @@ TimeSpan Ttl(string path) => path.ToLowerInvariant() switch
     _ => TimeSpan.FromMinutes(10),
 };
 
-app.MapGet("/api/football/{**path}", async (string path, HttpContext ctx, KeyPool pool, ResponseCache cache) =>
+app.MapGet("/api/football/{**path}", async (string path, HttpContext ctx, KeyPool pool, ResponseCache cache, KnownFixtures known) =>
 {
     path = path.Trim('/');
     if (!allowed.Contains(path)) return Results.NotFound(new { error = "endpoint ไม่ได้รับอนุญาต" });
@@ -80,6 +83,8 @@ app.MapGet("/api/football/{**path}", async (string path, HttpContext ctx, KeyPoo
     var query = ctx.Request.QueryString.Value ?? "";
     var (result, fromCache) = await cache.GetOrAddAsync(path + query, Ttl(path), () => pool.GetAsync("/" + path + query, ctx.RequestAborted));
 
+    // remember not-started fixtures so picks can be logged against their real kickoff and names
+    if (!fromCache && path == "fixtures" && result.Status == 200 && query.Contains("date=")) known.Note(result.Body);
     ctx.Response.Headers["X-Cache"] = fromCache ? "HIT" : "MISS";
     ctx.Response.Headers["X-Keys-Alive"] = $"{pool.Alive}/{pool.Total}";
     var quota = pool.Quota();
@@ -111,11 +116,18 @@ app.MapPost("/api/ai/analyze", async (AiRequest req, AiService ai, HttpContext c
     catch (ArgumentException ex) { return Results.BadRequest(new { error = ex.Message }); }
 }).RequireRateLimiting("ai");
 
+app.MapPost("/api/picks/log", (PickBatch batch, PickLog picks) =>
+    Results.Json(new { added = picks.Log(batch.Picks ?? []) })).RequireRateLimiting("api");
+
+app.MapGet("/api/picks/stats", (PickLog picks) => Results.Json(picks.Stats())).RequireRateLimiting("api");
+
 app.MapGet("/api/status", (KeyPool pool) => Results.Json(pool.Quota()));
 
 app.Run();
 
 /// <summary>In-memory cache with single-flight so concurrent identical requests cost one upstream call.</summary>
+public sealed record PickBatch(PickInput[]? Picks);
+
 public sealed record AiRequest(AiPick[] Providers, System.Text.Json.JsonElement Matches, string? Password);
 
 public sealed class ResponseCache
