@@ -342,14 +342,13 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
   <section class="controls" aria-label="ตัวกรองโปรแกรม">
     <div class="field"><label for="dateInput">วันที่แข่งขัน (เวลาไทย)</label><input id="dateInput" type="date"></div>
     <div class="field"><label for="leagueBtn">ลีกที่ต้องการดึง</label><button id="leagueBtn" class="btn ghost leaguebtn" type="button" aria-haspopup="dialog">เลือกลีก · ทั้งหมด</button></div>
-    <div class="field"><label for="statusFilter">คู่ที่กำลังแข่ง (Live)</label><select id="statusFilter"><option value="all">แสดง</option><option value="NS">ไม่แสดง</option><option value="LIVE">เฉพาะ Live</option></select></div>
     <div class="field search"><label for="searchInput">ค้นหาทีม</label><input id="searchInput" type="search" placeholder="พิมพ์ชื่อทีม"></div>
     <label class="deep-toggle" for="deepXg"><input id="deepXg" type="checkbox"><span>รวม xG <small>(ช้ากว่า ใช้โควตาเพิ่มราว 14 คำขอต่อคู่)</small></span></label>
     <div class="filter-actions"><button id="loadBtn" class="btn runbtn" type="button">1 · ดึงโปรแกรม</button><button id="rankBtn" class="btn secondary rankbtn" type="button" disabled>2 · จัดอันดับโอกาสคุ้ม</button></div>
   </section>
 
   <section id="rankPanel" class="panel rank-panel" hidden aria-live="polite">
-    <div class="panel-head"><h2>อันดับโอกาสคุ้ม · 1X2 / Handicap / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">อัตราต่อรอง</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span></div>
+    <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span></div>
     <div id="aiBar" class="ai-bar" hidden><label for="aiProvider">ให้ AI ช่วยวิเคราะห์คู่ที่คัดมา</label><select id="aiProvider" aria-label="แพลตฟอร์ม AI"></select><select id="aiModel" aria-label="โมเดล AI"></select><button id="aiBtn" class="btn secondary" type="button">วิเคราะห์ด้วย AI</button><span id="aiStatus" class="keyhint" aria-live="polite"></span></div>
     <div id="rankBody" class="rank-body"></div>
   </section>
@@ -364,7 +363,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
     <div id="detailWrap" class="detail-wrap" role="region" aria-label="บทวิเคราะห์รายคู่">
     <div id="sheetBar" class="sheet-bar"><button id="sheetBack" type="button" aria-label="กลับไปรายการแข่งขัน">← กลับ</button><span id="sheetTitle"></span></div>
     <div id="detailPanel" class="panel detail" aria-live="polite" tabindex="-1">
-      <div class="detail-placeholder"><div><div class="empty-mark">1X2</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>ดูโอกาส 1X2 สกอร์ที่เป็นไปได้ และสูง/ต่ำ</span></div></div>
+      <div class="detail-placeholder"><div><div class="empty-mark">AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>ดูสกอร์ที่เป็นไปได้ แฮนดิแคป และสูง/ต่ำ</span></div></div>
     </div>
     </div>
   </section>
@@ -529,15 +528,12 @@ function logo(src,name){
  return src?"<img loading='lazy' src='"+escapeHtml(src)+"' alt='' onerror='this.style.display=\"none\"'>":"<span aria-hidden='true' class='fallback-logo'>"+escapeHtml((name||"?").slice(0,1))+"</span>";
 }
 function filteredFixtures(){
- var status=el("statusFilter").value;
  var search=el("searchInput").value.trim().toLocaleLowerCase();
  return fixtures.filter(function(f){
   if(selectedLeagues.size&&!selectedLeagues.has(String(f.league.id)))return false;
   var s=f.fixture.status.short;
-  if(status==="NS"&&isLive(s))return false;
-  if(status==="LIVE"&&!isLive(s))return false;
-  // finished matches are never listed
-  if(["FT","AET","PEN"].indexOf(s)>=0)return false;
+  // only matches that have not started: live and finished ones are never listed
+  if(s!=="NS"&&s!=="TBD")return false;
   if(search&&!((f.teams.home.name+" "+f.teams.away.name).toLocaleLowerCase().includes(search)))return false;
   return true;
  });
@@ -591,7 +587,7 @@ function renderFixtures(){
   var score=f.goals.home!==null&&f.goals.away!==null?f.goals.home+" : "+f.goals.away:"";
   return "<article class='match "+(selectedId===id?"selected":"")+"' data-id='"+id+"' tabindex='0' role='button' aria-label='วิเคราะห์ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>"+
    "<div class='match-meta'><span class='match-league'>"+escapeHtml(f.league.country?f.league.country+" · ":"")+escapeHtml(f.league.name)+"</span><span class='badge "+statusClass(f)+"'>"+statusName(f)+"</span></div>"+
-   "<div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(f.teams.home.name)+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(f.teams.away.name)+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span></div>"+
+   "<div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span></div>"+
   "</article>";
  }).join("");
  Array.prototype.forEach.call(el("matchList").querySelectorAll(".match"),function(row){
@@ -606,11 +602,11 @@ async function loadFixtures(){
  el("loadBtn").disabled=true;el("loadBtn").innerHTML="<i class='spin'></i>กำลังดึง";
  el("matchList").innerHTML="<div class='loading'><i class='spin'></i>กำลังดึงโปรแกรมแข่งขัน</div>";
  try{
-  var data=await apiGet("/fixtures",{date:date,timezone:"Asia/Bangkok",status:"NS-TBD-1H-HT-2H-ET-BT-P-SUSP-INT-LIVE"},"fixtures:"+date);
+  var data=await apiGet("/fixtures",{date:date,timezone:"Asia/Bangkok",status:"NS-TBD"},"fixtures:"+date);
   fixtures=data.response||[];
   selectedId=null;
-  renderFixtures();
-  el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>1X2</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>โปรแกรมวันที่ "+escapeHtml(dateFmt.format(new Date(date+"T12:00:00+07:00")))+"</span></div></div>";
+  renderFixtures();loadStandings();
+  el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>โปรแกรมวันที่ "+escapeHtml(dateFmt.format(new Date(date+"T12:00:00+07:00")))+"</span></div></div>";
  }catch(e){el("matchList").innerHTML="<div class='empty'><strong>ดึงโปรแกรมไม่สำเร็จ</strong><span>ตรวจโควตาวันนี้แล้วลองใหม่</span></div>";setError(e.message)}
  finally{el("loadBtn").disabled=false;el("loadBtn").textContent="1 · ดึงโปรแกรม"}
 }
@@ -713,7 +709,7 @@ async function ensureLeagueAverage(leagueId,season,get){
  if(leagueTable.has(leagueId))return;
  var avg=null;
  try{
-  var data=await get("/standings",{league:leagueId,season:season},"std:"+leagueId+":"+season);
+  var data=await fetchStandings(leagueId,season,get);
   var root=firstResponse(data),seen={},hf=0,hp=0,af=0,ap=0;
   ((root&&root.league&&root.league.standings)||[]).forEach(function(group){(group||[]).forEach(function(row){
    if(!row.team||seen[row.team.id]||!row.home||!row.away)return;
@@ -723,6 +719,44 @@ async function ensureLeagueAverage(leagueId,season,get){
   if(hp>=10&&ap>=10)avg={home:hf/hp,away:af/ap,teams:Object.keys(seen).length,fromTable:true};
  }catch(e){}
  leagueTable.set(leagueId,avg);
+}
+// league-table position per team, filled from /standings (cached 12h on the server); cups have no table
+var standingRanks=new Map(),standingsTried=new Set();
+function noteStandings(leagueId,data){
+ var root=firstResponse(data),ranks=new Map();
+ ((root&&root.league&&root.league.standings)||[]).forEach(function(group){(group||[]).forEach(function(row){
+  if(row&&row.team&&Number.isFinite(Number(row.rank)))ranks.set(row.team.id,Number(row.rank));
+ })});
+ if(ranks.size)standingRanks.set(leagueId,ranks);
+}
+async function fetchStandings(leagueId,season,get){
+ var data=await get("/standings",{league:leagueId,season:season},"std:"+leagueId+":"+season);
+ noteStandings(leagueId,data);
+ return data;
+}
+function teamLabel(team,leagueId){
+ var m=standingRanks.get(leagueId),r=m&&m.get(team.id);
+ return team.name+(r?" ("+r+")":"");
+}
+var standingsPaint=0;
+function paintSoon(){clearTimeout(standingsPaint);standingsPaint=setTimeout(function(){renderFixtures()},120)}
+async function loadStandings(){
+ var jobs=[],seen={};
+ filteredFixtures().forEach(function(f){
+  var k=f.league.id+":"+f.league.season;
+  if(seen[k]||standingsTried.has(k))return;
+  seen[k]=1;jobs.push({id:f.league.id,season:f.league.season,key:k});
+ });
+ jobs=jobs.slice(0,40);
+ var next=0;
+ var worker=async function(){
+  for(;;){
+   var j=jobs[next++];if(!j)return;
+   standingsTried.add(j.key);
+   try{await fetchStandings(j.id,j.season,apiGet);paintSoon()}catch(e){}
+  }
+ };
+ await Promise.all([worker(),worker(),worker()]);
 }
 function leagueAverage(leagueId){
  if(leagueTable.get(leagueId))return leagueTable.get(leagueId);
@@ -795,7 +829,7 @@ async function fetchOddsHistory(ids){
 // change in the de-margined market probability of this pick since the first tracked snapshot
 function marketMove(entry,snaps){
  if(!snaps||snaps.length<2)return null;
- var field=entry.category==="1X2"?{home:"h",draw:"d",away:"a"}[entry.key]:(entry.label==="สูง 2.5"?"o25":entry.label==="ต่ำ 2.5"?"u25":null);
+ var field=entry.label==="สูง 2.5"?"o25":entry.label==="ต่ำ 2.5"?"u25":null;
  if(!field)return null;
  var first=snaps.find(function(x){return x[field]!==null&&x[field]!==undefined}),last=snaps.slice().reverse().find(function(x){return x[field]!==null&&x[field]!==undefined});
  return first&&last&&first!==last?(last[field]-first[field])*100:null;
@@ -944,13 +978,6 @@ function probBoxes(p,home,away,title,source){
   "<div class='prob-bar' role='img' aria-label='เจ้าบ้าน "+pctVals[0]+" เปอร์เซ็นต์ เสมอ "+pctVals[1]+" เปอร์เซ็นต์ ทีมเยือน "+pctVals[2]+" เปอร์เซ็นต์'><span class='p-home' style='width:"+pctVals[0]+"%'></span><span class='p-draw' style='width:"+pctVals[1]+"%'></span><span class='p-away' style='width:"+pctVals[2]+"%'></span></div>"+
   "<div class='prob-grid'><div class='prob-cell home'><span class='label'>เจ้าบ้าน</span><span class='value'>"+pctFmt(pctVals[0])+"</span></div><div class='prob-cell'><span class='label'>เสมอ</span><span class='value'>"+pctFmt(pctVals[1])+"</span></div><div class='prob-cell away'><span class='label'>ทีมเยือน</span><span class='value'>"+pctFmt(pctVals[2])+"</span></div></div>";
 }
-function marketOddsHtml(m,home,away){
- if(!m)return "<div class='detail-note'>ยังไม่มีราคา 1X2 จากผู้ให้บริการสำหรับคู่นี้</div>";
- return "<div class='section-title'>ราคาเสนอสูงสุด / โอกาสตลาดตัดมาร์จิน <span class='source-tag'>ดูราคา "+m.books+" เจ้า</span></div>"+
-  "<div class='market-row'><span class='market-name'>"+escapeHtml(home)+"<span class='market-sub'>"+escapeHtml(m.homeBook||"")+" · โอกาสหลังตัดมาร์จิน</span></span><span class='market-odd'>"+decimal(m.bestHome)+"</span><span class='market-prob'>"+pctFmt(m.home*100)+"</span></div>"+
-  "<div class='market-row'><span class='market-name'>เสมอ<span class='market-sub'>"+escapeHtml(m.drawBook||"")+" · โอกาสหลังตัดมาร์จิน</span></span><span class='market-odd'>"+decimal(m.bestDraw)+"</span><span class='market-prob'>"+pctFmt(m.draw*100)+"</span></div>"+
-  "<div class='market-row'><span class='market-name'>"+escapeHtml(away)+"<span class='market-sub'>"+escapeHtml(m.awayBook||"")+" · โอกาสหลังตัดมาร์จิน</span></span><span class='market-odd'>"+decimal(m.bestAway)+"</span><span class='market-prob'>"+pctFmt(m.away*100)+"</span></div>";
-}
 function modelSummary(model){
  var adj=model.adj||{},names=function(inj){return inj?{out:inj.out.slice(0,5),doubt:inj.doubt.slice(0,5)}:null};
  return {lambdaHome:+model.lambdaHome.toFixed(2),lambdaAway:+model.lambdaAway.toFixed(2),gamesPlayedMin:model.games,leagueTeamsInTable:model.league&&model.league.fromTable?model.league.teams:null,
@@ -982,29 +1009,6 @@ function confidence(books,games,gap){
  var b=Math.min((books||0)/5,1),g=Math.min((games||0)/8,1),d=gap===null||gap===undefined?0:Math.max(0,1-gap/.15);
  return Math.round(100*(.35*b+.35*g+.3*d));
 }
-function valueEntries(prob,market,homeName,awayName,games){
- if(!prob||!market)return [];
- return [
-  {key:"home",label:homeName,p:prob.home,odds:market.bestHome,book:market.homeBook},
-  {key:"draw",label:"เสมอ",p:prob.draw,odds:market.bestDraw,book:market.drawBook},
-  {key:"away",label:awayName,p:prob.away,odds:market.bestAway,book:market.awayBook}
- ].filter(function(x){return Number.isFinite(x.p)&&Number.isFinite(x.odds)&&x.odds>1})
- .map(function(x){
-  var b=blendEv((x.p*x.odds-1)*100,x.odds,market[x.key]);
-  x.breakEven=1/x.odds;x.pModel=b.pModel;x.pMarket=b.pMarket;x.p=b.p;x.ev=b.ev;x.kelly=kellyPct(b.p,x.odds);
-  x.conf=confidence(market.books,games,Math.abs(b.pModel-b.pMarket));
-  return x;
- })
- .sort(function(a,b){return b.ev-a.ev});
-}
-function valueHtml(prob,market,homeName,awayName,source){
- var entries=valueEntries(prob,market,homeName,awayName);
- if(!entries.length)return "<div class='section-title'>มูลค่าคาดหวัง (EV)</div><p class='detail-note'>ยังคำนวณ EV ไม่ได้ เพราะไม่มีทั้งเปอร์เซ็นต์โมเดลและราคา 1X2 ครบ</p>";
- return "<div class='section-title'>มูลค่าคาดหวัง (EV) <span class='source-tag'>"+source+" · ราคาเสนอสูงสุด</span></div>"+
-  "<p class='detail-note'>EV ต่อเงิน 100 หน่วยก่อนค่าใช้จ่าย; โอกาสชนะผสมโมเดล "+Math.round((1-MARKET_WEIGHT)*100)+"% กับราคาตลาดตัดมาร์จิน "+Math.round(MARKET_WEIGHT*100)+"%</p>"+
-  "<div class='ev-list'><div class='ev-row'><span class='ev-outcome'>ตัวเลือก</span><span class='ev-number'>ชนะ</span><span class='ev-number'>คุ้มทุน</span><span class='ev-number'>ราคา</span><span class='ev-number'>EV</span></div>"+
-  entries.map(function(x){var cls=x.ev>0?"positive":"negative",sign=x.ev>0?"+":"";return "<div class='ev-row "+cls+"'><span class='ev-outcome'>"+escapeHtml(x.label)+(x.kelly>0?"<small class='market-sub'>ทุน "+x.kelly.toFixed(1)+"%</small>":"")+"</span><span class='ev-number'>"+pctFmt(x.p*100)+"</span><span class='ev-number'>"+pctFmt(x.breakEven*100)+"</span><span class='ev-number'>"+decimal(x.odds)+"</span><span class='ev-number "+cls+"'>"+sign+x.ev.toFixed(1)+"%</span></div>"}).join("")+"</div>";
-}
 function rankUpdate(text,body){
  el("rankPanel").hidden=false;
  el("rankCount").textContent=text;
@@ -1013,8 +1017,8 @@ function rankUpdate(text,body){
 function wait(ms){return new Promise(function(resolve){setTimeout(resolve,ms)})}
 function rankGet(path,params,cacheKey){return apiGet(path,params,cacheKey)}
 function allValueEntries(prob,markets,model,homeName,awayName){
- var games=model?model.games:0,p1=model?{home:model.home,draw:model.draw,away:model.away}:prob;
- var entries=valueEntries(p1,markets&&markets.oneXtwo,homeName,awayName,games).map(function(x){x.category="1X2";x.pLabel="โอกาสชนะ";x.push=0;return x});
+ var games=model?model.games:0;
+ var entries=[];
  var add=function(category,label,metric,odds,book,pMarket,books){
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
@@ -1041,7 +1045,7 @@ function renderRank(){
  if(!rankData)return;
  var isOU=rankMode==="ou",failures=rankData.failures;
  var tabCount=function(ou){return rankData.items.filter(function(it){var l=it.entries.filter(function(x){return (ou?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ")&&rankable(x)});return l.length&&l[0].ev>0}).length};
- el("modeOdds").textContent="อัตราต่อรอง ("+tabCount(false)+")";el("modeOU").textContent="สูงต่ำ ("+tabCount(true)+")";
+ el("modeOdds").textContent="แฮนดิแคป ("+tabCount(false)+")";el("modeOU").textContent="สูงต่ำ ("+tabCount(true)+")";
  var suspect=0,lowConf=0;
  var candidates=rankData.items.map(function(it){
   var list=it.entries.filter(function(x){return isOU?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ"});
@@ -1052,12 +1056,12 @@ function renderRank(){
  }).filter(Boolean).sort(function(a,b){return b.entry.ev-a.entry.ev});
  lastCandidates=candidates;
  el("aiBar").hidden=!aiProviders.length||!candidates.length;
- var modeName=isOU?"สูงต่ำ":"อัตราต่อรอง (1X2 / แฮนดิแคป)";
- var note="<p class='rank-disclaimer'>โหมด"+modeName+": "+(isOU?"สูง/ต่ำใช้สถิติประตู Poisson":"1X2 และแฮนดิแคปใช้โมเดลประตู Poisson (ถ้าไม่มีสถิติ 1X2 ใช้เปอร์เซ็นต์จาก API-Football)")+". EV = ผลตอบแทนคาดหมายเทียบราคาเสนอสูงสุด ไม่ใช่กำไรที่รับประกัน"+" · โอกาสชนะผสมโมเดล "+Math.round((1-MARKET_WEIGHT)*100)+"% กับราคาตลาด "+Math.round(MARKET_WEIGHT*100)+"% · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดของตัวเลือกเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(suspect?" · ตัด "+suspect+" ตัวเลือกที่ EV เกิน "+MAX_EV+"% ออก เพราะมักเกิดจากราคาหรือข้อมูลผิดปกติ":"")+(lowConf?" · ซ่อน "+lowConf+" ตัวเลือก EV บวกที่ความมั่นใจต่ำกว่า "+MIN_CONF:"")+"</p>";
+ var modeName=isOU?"สูงต่ำ":"แฮนดิแคป";
+ var note="<p class='rank-disclaimer'>โหมด"+modeName+": "+(isOU?"สูง/ต่ำใช้สถิติประตู Poisson":"แฮนดิแคปใช้โมเดลประตู Poisson")+". EV = ผลตอบแทนคาดหมายเทียบราคาเสนอสูงสุด ไม่ใช่กำไรที่รับประกัน"+" · โอกาสชนะผสมโมเดล "+Math.round((1-MARKET_WEIGHT)*100)+"% กับราคาตลาด "+Math.round(MARKET_WEIGHT*100)+"% · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดของตัวเลือกเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(suspect?" · ตัด "+suspect+" ตัวเลือกที่ EV เกิน "+MAX_EV+"% ออก เพราะมักเกิดจากราคาหรือข้อมูลผิดปกติ":"")+(lowConf?" · ซ่อน "+lowConf+" ตัวเลือก EV บวกที่ความมั่นใจต่ำกว่า "+MIN_CONF:"")+"</p>";
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
-   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%":"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
+   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%":"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
   }).join("");
   rankUpdate(candidates.length+" คู่มี EV บวกโดยประมาณ"+(failures?" · ข้อมูลไม่ครบ "+failures+" คู่":""),body);
   Array.prototype.forEach.call(el("rankBody").querySelectorAll("[data-rank-id]"),function(btn){btn.addEventListener("click",function(){analyze(Number(btn.dataset.rankId))})});
@@ -1175,7 +1179,7 @@ async function rankMatches(){
  rankBusy=true;updateRankButton();setError("");
  el("rankPanel").hidden=false;
  el("rankCount").textContent="กำลังเตรียม "+items.length+" คู่";
- el("rankBody").innerHTML="<div class='rank-progress'><i class='spin'></i>กำลังรวมโมเดลและราคา 1X2, handicap, สูง/ต่ำ</div>";
+ el("rankBody").innerHTML="<div class='rank-progress'><i class='spin'></i>กำลังรวมโมเดลและราคาแฮนดิแคป, สูง/ต่ำ</div>";
  try{
   var results=new Array(items.length),done=0,nextI=0;
   var alive=new Array(RANK_PARALLEL).fill(0),deep=el("deepXg").checked;
@@ -1187,7 +1191,6 @@ async function rankMatches(){
     el("rankCount").textContent="กำลังวิเคราะห์ "+done+"/"+items.length;
     el("rankBody").innerHTML="<div class='rank-progress'><i class='spin'></i>กำลังตรวจ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+" · เสร็จแล้ว "+done+"/"+items.length+"<br><small>ทำงานพร้อมกัน "+alive.length+" คำขอ · ใช้แคชและสถิติทีมซ้ำเมื่อเป็นไปได้</small></div>";
     try{
-     var pred=await rankGet("/predictions",{fixture:id},"analysis:"+id+":prediction",slotIdx);
      var odds=await rankGet("/odds",{fixture:id},"analysis:"+id+":odds",slotIdx);
      var homeStats=null,awayStats=null;
      try{homeStats=await rankGet("/teams/statistics",{league:f.league.id,season:f.league.season,team:f.teams.home.id},"stats:"+f.league.id+":"+f.league.season+":"+f.teams.home.id,slotIdx)}catch(e){}
@@ -1200,7 +1203,7 @@ async function rankMatches(){
      }
      await ensureLeagueAverage(f.league.id,f.league.season,rankGet);
      var markets=parseMarkets(odds,f.teams.home.name,f.teams.away.name),model=modelFromTeamStats(homeStats,awayStats,buildAdj(inj,f,hx,ax));
-     var entries=allValueEntries(modelPercent(pred),markets,model,f.teams.home.name,f.teams.away.name);
+     var entries=allValueEntries(null,markets,model,f.teams.home.name,f.teams.away.name);
      if(!model)failures++;
      else if(!entries.length)failures++;
      results[i]={fixture:f,entries:entries,summary:model?modelSummary(model):null};
@@ -1270,7 +1273,7 @@ var narrow=window.matchMedia("(max-width:900px)"),sheetFrom=null;
 function openSheet(fixture){
  if(!narrow.matches)return;
  sheetFrom=document.activeElement;
- el("sheetTitle").textContent=fixture.teams.home.name+" พบ "+fixture.teams.away.name;
+ el("sheetTitle").textContent=teamLabel(fixture.teams.home,fixture.league.id)+" พบ "+teamLabel(fixture.teams.away,fixture.league.id);
  document.body.classList.add("sheet-open");
  el("detailWrap").scrollTop=0;
  el("sheetBack").focus();
@@ -1326,15 +1329,13 @@ async function analyze(id){
   var updated=new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",hour:"2-digit",minute:"2-digit"}).format(new Date());
   el("detailPanel").innerHTML="<div class='detail-body'>"+
    "<div class='fixture-title'><div class='kicker'>"+escapeHtml(fixture.league.country?fixture.league.country+" · ":"")+escapeHtml(fixture.league.name)+"　/　"+time+" น.</div>"+
-   "<div class='matchup'><div class='club'>"+logo(home.logo,home.name)+"<div class='club-name'>"+escapeHtml(home.name)+"</div></div>"+
+   "<div class='matchup'><div class='club'>"+logo(home.logo,home.name)+"<div class='club-name'>"+escapeHtml(teamLabel(home,leagueId))+"</div></div>"+
    "<div><div class='score-big'>"+(model?model.score.h+" : "+model.score.a:"—")+"</div><div class='score-label'>สกอร์ที่มีโอกาสสูงสุด</div></div>"+
-   "<div class='club'>"+logo(away.logo,away.name)+"<div class='club-name'>"+escapeHtml(away.name)+"</div></div></div>"+
+   "<div class='club'>"+logo(away.logo,away.name)+"<div class='club-name'>"+escapeHtml(teamLabel(away,leagueId))+"</div></div></div>"+
    (model?"<div class='detail-note'>ประตูคาดหมาย "+decimal(model.lambdaHome)+" – "+decimal(model.lambdaAway)+" ต่อเกม"+(model.league.fromTable?" · เทียบค่าเฉลี่ยลีก "+model.league.teams+" ทีม":"")+(model.adj.homeXg||model.adj.awayXg?" · ผสม xG":"")+(model.adj.homeAtt<1||model.adj.awayAtt<1?" · ปรับผู้เล่นขาด":"")+"</div>":"")+
    "</div>"+
-   (model?probBoxes({home:model.home,draw:model.draw,away:model.away},home.name,away.name,"โอกาสผลการแข่งขัน · โมเดลของเรา","คำนวณจากสถิติทีม"):(!apiP?"":""))+
-   (apiP?probBoxes(apiP,home.name,away.name,"โอกาสผลการแข่งขัน · API-Football","เปอร์เซ็นต์สำเร็จรูป"):(!model?"<div class='detail-note'>ไม่มีเปอร์เซ็นต์ผลการแข่งขันจาก API ในคู่นี้</div>":""))+
-   marketOddsHtml(markets.oneXtwo,home.name,away.name)+
-   valueHtml(apiP||(model?{home:model.home,draw:model.draw,away:model.away}:null),markets.oneXtwo,home.name,away.name,apiP?"โมเดล API-Football":"โมเดล Poisson จากสถิติ")+
+   (model?probBoxes({home:model.home,draw:model.draw,away:model.away},teamLabel(home,leagueId),teamLabel(away,leagueId),"โอกาสผลการแข่งขัน","คำนวณจากสถิติทีม"):"")+
+   (!model?"<div class='detail-note'>ยังมีสถิติไม่พอคำนวณโมเดลของคู่นี้</div>":"")+
    "<div class='model-grid' style='margin-top:12px'><div class='model-box'><h3>สูงกว่า 2.5</h3><strong>"+(model?pctFmt(expectedLine(model,"2.5").over*100):"—")+"</strong><p>โอกาสรวมอย่างน้อย 3 ประตู</p></div><div class='model-box'><h3>ทั้งสองทีมทำประตู</h3><strong>"+(model?pctFmt((1-Math.exp(-model.lambdaHome))*(1-Math.exp(-model.lambdaAway))*100):"—")+"</strong><p>ประเมินจากประตูคาดหมาย</p></div></div>"+
    ouHtml(model,markets.overUnder)+asianHtml(model,markets.asianHandicap,home.name,away.name)+comparisonHtml(comp)+squadHtml(model&&model.adj,lineupData,home,away)+movementHtml(snaps,home.name,away.name)+h2hHtml(h2hData,home,away)+predLine+
    "<p class='detail-note'>ข้อมูลดึงเมื่อ "+updated+" น. เวลาไทย · อัตราต่อรองแปลงเป็นความน่าจะเป็นและตัดมาร์จินรายเจ้า ก่อนเฉลี่ย · สกอร์และสูง/ต่ำคำนวณจากค่าเฉลี่ยประตูในบ้าน/นอกบ้านของฤดูกาล</p>"+sourceNotice+"</div>";
@@ -1347,7 +1348,7 @@ el("clearBtn").addEventListener("click",function(){
  requestCache.clear();fixtures=[];selectedId=null;el("rankPanel").hidden=true;updateRankButton();
  el("matchCount").textContent="ยังไม่มีข้อมูล";
  el("matchList").innerHTML="<div class='empty'><div class='empty-mark'>M/</div><strong>พร้อมเมื่อคุณกดดึงข้อมูล</strong><span>เลือกวันที่แล้วกดดึงโปรแกรม</span></div>";
- el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>1X2</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>ดูโอกาส 1X2 สกอร์ที่เป็นไปได้ และสูง/ต่ำ</span></div></div>";setError("");
+ el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>ดูสกอร์ที่เป็นไปได้ แฮนดิแคป และสูง/ต่ำ</span></div></div>";setError("");
 });
 el("loadBtn").addEventListener("click",loadFixtures);
 el("rankBtn").addEventListener("click",rankMatches);
@@ -1366,13 +1367,13 @@ el("leagueChecklist").addEventListener("change",function(ev){
 el("leagueForm").addEventListener("submit",function(){
  selectedLeagues=new Set(dialogPick);
  try{localStorage.setItem(LEAGUE_STORE,JSON.stringify(Array.from(selectedLeagues)))}catch(e){}
- leagueSummary();el("rankPanel").hidden=true;renderFixtures();
+ leagueSummary();el("rankPanel").hidden=true;renderFixtures();loadStandings();
 });
 leagueSummary();
 refreshQuota();
 loadAiProviders();
 setInterval(refreshQuota,60000);
-["statusFilter","searchInput"].forEach(function(id){el(id).addEventListener(id==="searchInput"?"input":"change",function(){el("rankPanel").hidden=true;renderFixtures()})});
+el("searchInput").addEventListener("input",function(){el("rankPanel").hidden=true;renderFixtures()});
 })();
 </script>
 </body>

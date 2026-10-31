@@ -66,8 +66,8 @@ public sealed class OddsHistory
 public sealed class OddsTracker(KeyPool pool, ResponseCache cache, OddsHistory history, IConfiguration config, ILogger<OddsTracker> log)
     : BackgroundService
 {
-    // not-started and in-play only: the page asks for the same list, so both share one cached response
-    private const string FixtureStatuses = "NS-TBD-1H-HT-2H-ET-BT-P-SUSP-INT-LIVE";
+    // not-started only (live and finished matches are not used): the page asks for the same list, so both share one cached response
+    private const string FixtureStatuses = "NS-TBD";
     private static readonly TimeZoneInfo Bangkok = TimeZoneInfo.FindSystemTimeZoneById(
         OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Bangkok");
 
