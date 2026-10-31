@@ -1005,7 +1005,7 @@ function modelPercent(data){
 var MARKET_WEIGHT=.7,MARKET_WEIGHT_MAX=.9,MIN_CONF=50,KELLY_FRACTION=.25,KELLY_CAP=.05;
 // What a pick must pass to be ranked. Bookmakers are better calibrated than a goals model on long shots
 // (favourite-longshot bias), so the market weight grows with the price and long shots are not ranked at all.
-var MAX_ODDS=2.5,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
+var MIN_ODDS=1.7,MAX_ODDS=2.5,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_EV_OU=8,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
 // market weight: 70% up to price 2.2, rising 10 points per +1.0 of price, at most 90%
 function marketWeight(odds){return Math.min(MARKET_WEIGHT_MAX,MARKET_WEIGHT+Math.max(0,odds-2.2)*.1)}
 // fractional Kelly as % of bankroll, capped; 0 when there is no edge
@@ -1036,15 +1036,17 @@ function rankGet(path,params,cacheKey){return apiGet(path,params,cacheKey)}
 function allValueEntries(prob,markets,model,homeName,awayName){
  var games=model?model.games:0;
  var entries=[];
- var add=function(category,label,metric,odds,book,pMarket,books,ahLine,medOdds){
+ var add=function(category,label,metric,odds,book,pMarket,books,ahLine,medOdds,extra){
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra?extra.ouMain:true,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
  };
  if(model&&markets&&markets.overUnder){
-  Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line];
-   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver);
-   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder);
+  // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
+  var mainLine=Object.keys(markets.overUnder).reduce(function(best,l){var d=Math.abs(markets.overUnder[l].over-.5);return !best||d<best.d?{line:l,d:d}:best},null);
+  Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line],main={ouMain:mainLine&&line===mainLine.line};
+   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver,main);
+   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder,main);
   });
  }
  if(model&&markets&&markets.asianHandicap){
@@ -1059,8 +1061,10 @@ function allValueEntries(prob,markets,model,homeName,awayName){
 var rankData=null,rankMode="odds",lastCandidates=[],aiProviders=[];
 // why a pick is not ranked (null = it passes); the first failing rule wins
 function rejectReason(x){
+ if(x.odds<MIN_ODDS)return "short";
  if(x.odds>MAX_ODDS||x.pMarket<MIN_PMARKET)return "longshot";
- if(x.ev>MAX_EV)return "ev";
+ if(x.ouMain===false)return "line";
+ if(x.ev>(x.category==="สูง/ต่ำ"?MAX_EV_OU:MAX_EV))return "ev";
  if(Math.abs(x.pModel-x.pMarket)>MAX_GAP)return "gap";
  if(x.priceRatio>MAX_PRICE_RATIO)return "outlier";
  if(x.conf<MIN_CONF)return "conf";
@@ -1072,7 +1076,7 @@ function renderRank(){
  var isOU=rankMode==="ou",failures=rankData.failures;
  var tabCount=function(ou){return rankData.items.filter(function(it){return it.entries.some(function(x){return (ou?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ")&&rankable(x)})}).length};
  el("modeOdds").textContent="แฮนดิแคป ("+tabCount(false)+")";el("modeOU").textContent="สูงต่ำ ("+tabCount(true)+")";
- var rejected={longshot:0,ev:0,gap:0,outlier:0,conf:0};
+ var rejected={short:0,longshot:0,line:0,ev:0,gap:0,outlier:0,conf:0};
  var candidates=rankData.items.map(function(it){
   var list=it.entries.filter(function(x){return isOU?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ"});
   var ok=list.filter(rankable);
@@ -1082,8 +1086,8 @@ function renderRank(){
  lastCandidates=candidates;
  el("aiBar").hidden=!aiProviders.length||!candidates.length;
  var modeName=isOU?"สูงต่ำ":"แฮนดิแคป";
- var skipped=[["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["ev","EV เกิน "+MAX_EV+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
- var note="<p class='rank-disclaimer'>โหมด"+modeName+": โอกาสชนะคำนวณจากโมเดลประตู Poisson แล้วผสมกับราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · แสดงเฉพาะตัวเลือกราคา ≤ "+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+MAX_EV+"% · EV ไม่ใช่กำไรที่รับประกัน · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(skipped.length?"<br>ไม่นำมาจัดอันดับ (EV บวกแต่เชื่อถือไม่ได้): "+skipped.join(" · "):"")+"</p>";
+ var skipped=[["short","ราคาต่ำกว่า "+decimal(MIN_ODDS)],["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["line","ไม่ใช่เส้นหลักของสูงต่ำ"],["ev","EV เกิน "+(isOU?MAX_EV_OU:MAX_EV)+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
+ var note="<p class='rank-disclaimer'>โหมด"+modeName+": โอกาสชนะคำนวณจากโมเดลประตู Poisson แล้วผสมกับราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · แสดงเฉพาะราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+(isOU?MAX_EV_OU+"% เฉพาะเส้นหลัก":MAX_EV+"%")+" · EV ไม่ใช่กำไรที่รับประกัน · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(skipped.length?"<br>ไม่นำมาจัดอันดับ (EV บวกแต่เชื่อถือไม่ได้): "+skipped.join(" · "):"")+"</p>";
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
