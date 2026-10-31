@@ -1,0 +1,11 @@
+bin/
+obj/
+publish/
+appsettings.Production.json
+appsettings.Development.json
+
+# Deploy: credentials, staging, cache
+deploy.credentials.ps1
+deploy/
+.deploy-cache/
+App_Data/
