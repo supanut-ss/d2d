@@ -1005,7 +1005,7 @@ function modelPercent(data){
 var MARKET_WEIGHT=.7,MARKET_WEIGHT_MAX=.9,MIN_CONF=50,KELLY_FRACTION=.25,KELLY_CAP=.05;
 // What a pick must pass to be ranked. Bookmakers are better calibrated than a goals model on long shots
 // (favourite-longshot bias), so the market weight grows with the price and long shots are not ranked at all.
-var MAX_ODDS=3,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
+var MAX_ODDS=2.5,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
 // market weight: 70% up to price 2.2, rising 10 points per +1.0 of price, at most 90%
 function marketWeight(odds){return Math.min(MARKET_WEIGHT_MAX,MARKET_WEIGHT+Math.max(0,odds-2.2)*.1)}
 // fractional Kelly as % of bankroll, capped; 0 when there is no edge
