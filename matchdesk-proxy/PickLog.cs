@@ -173,6 +173,12 @@ public sealed class PickLog
         return (units, win, loss);
     }
 
+    private static double StdDev(List<double> v)
+    {
+        var mean = v.Average();
+        return Math.Sqrt(v.Sum(x => (x - mean) * (x - mean)) / (v.Count - 1));
+    }
+
     // ---------- statistics
 
     public object Stats()
@@ -193,6 +199,8 @@ public sealed class PickLog
                 picks = staked,
                 units = Math.Round(units, 2),
                 roiPct = staked == 0 ? (double?)null : Math.Round(units / staked * 100, 1),
+                // standard error of the mean profit per bet: how far the ROI could be off by chance alone
+                roiSePct = staked < 2 ? (double?)null : Math.Round(StdDev(list.Select(p => p.Units ?? 0).ToList()) / Math.Sqrt(staked) * 100, 1),
                 hitPct = win + loss == 0 ? (double?)null : Math.Round(win / (win + loss) * 100, 1),
                 avgPredictedPct = staked == 0 ? (double?)null : Math.Round(list.Average(p => p.PBlend) * 100, 1),
                 avgEvPct = staked == 0 ? (double?)null : Math.Round(list.Average(p => p.Ev), 1),

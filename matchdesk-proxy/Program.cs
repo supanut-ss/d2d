@@ -81,7 +81,25 @@ app.MapGet("/api/football/{**path}", async (string path, HttpContext ctx, KeyPoo
     if (!allowed.Contains(path)) return Results.NotFound(new { error = "endpoint ไม่ได้รับอนุญาต" });
 
     var query = ctx.Request.QueryString.Value ?? "";
-    var (result, fromCache) = await cache.GetOrAddAsync(path + query, Ttl(path), () => pool.GetAsync("/" + path + query, ctx.RequestAborted));
+    // ?fresh=1 on /odds: re-read the price now (used to check a pick just before betting). Dropped from the upstream
+    // query, and refused for 20 s per fixture so it cannot be used to hammer the API.
+    var wantFresh = path.Equals("odds", StringComparison.OrdinalIgnoreCase) && ctx.Request.Query["fresh"] == "1";
+    if (wantFresh)
+        query = "?" + string.Join("&", ctx.Request.Query.Where(kv => kv.Key != "fresh")
+            .SelectMany(kv => kv.Value.Select(v => $"{kv.Key}={Uri.EscapeDataString(v ?? "")}")));
+    if (wantFresh && !cache.TryReserveFresh(path + query)) wantFresh = false;
+    UpstreamResult result;
+    bool fromCache;
+    if (wantFresh)
+    {
+        result = await pool.GetAsync("/" + path + query, ctx.RequestAborted);
+        cache.Put(path + query, Ttl(path), result);
+        fromCache = false;
+    }
+    else
+    {
+        (result, fromCache) = await cache.GetOrAddAsync(path + query, Ttl(path), () => pool.GetAsync("/" + path + query, ctx.RequestAborted));
+    }
 
     // remember not-started fixtures so picks can be logged against their real kickoff and names
     if (!fromCache && path == "fixtures" && result.Status == 200 && query.Contains("date=")) known.Note(result.Body);
@@ -136,6 +154,23 @@ public sealed class ResponseCache
     private readonly ConcurrentDictionary<string, Entry> _done = new();
     private readonly ConcurrentDictionary<string, Lazy<Task<UpstreamResult>>> _inflight = new();
     private DateTime _nextSweepUtc = DateTime.UtcNow.AddMinutes(10);
+    private readonly ConcurrentDictionary<string, DateTime> _lastFresh = new();
+
+    public void Put(string key, TimeSpan ttl, UpstreamResult result)
+    {
+        if (result.Status == 200 && !result.Body.Contains("\"errors\":{\""))
+            _done[key] = new Entry(result, DateTime.UtcNow + ttl);
+    }
+
+    /// <summary>True when a fresh read of this key is allowed now (at most one per 20 seconds).</summary>
+    public bool TryReserveFresh(string key)
+    {
+        var now = DateTime.UtcNow;
+        var last = _lastFresh.GetOrAdd(key, DateTime.MinValue);
+        if (now - last < TimeSpan.FromSeconds(20)) return false;
+        _lastFresh[key] = now;
+        return true;
+    }
 
     /// <summary>Returns the response and whether it was served without a new upstream call by this request.</summary>
     public async Task<(UpstreamResult Result, bool FromCache)> GetOrAddAsync(string key, TimeSpan ttl, Func<Task<UpstreamResult>> factory)

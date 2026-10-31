@@ -234,6 +234,10 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .ah-give{background:var(--mint-bg);color:var(--mint);border:1px solid #b9dccf}
 .ah-take{background:var(--red-bg);color:var(--red);border:1px solid #efc3bf}
 .ah-even{background:var(--soft);color:var(--ink2);border:1px solid var(--line)}
+.rank-row .price-check,.price-check{min-height:36px;margin-top:6px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink2);font-weight:700;padding:0 12px;display:inline-block}
+.price-check:disabled{opacity:.6}
+.price-result{display:block;margin-top:4px;font-size:12px}
+.price-result.ok{color:var(--mint)}.price-result.bad{color:var(--red)}
 .stats-panel{margin-top:16px}
 .stats-grid{grid-template-columns:repeat(4,1fr)}
 @media(max-width:760px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
@@ -323,7 +327,8 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
  .dlg-league input,.dlg-country input{width:22px;height:22px}
 }
 @media(max-width:340px){.controls{grid-template-columns:1fr}.filter-actions{grid-template-columns:1fr 1fr}.filter-actions .btn{font-size:13px}}
-@media(pointer:coarse){.match{padding:16px}.btn.ghost{min-height:var(--tap)}}
+@media(pointer:coarse){.match{padding:16px}.btn.ghost{min-height:var(--tap)}.rank-row .price-check{min-height:var(--tap)}}
+@media(max-width:760px){.rank-row .price-check{min-height:var(--tap)}}
 @media(orientation:landscape) and (max-height:480px){.filter-actions{position:static;box-shadow:none;border:0;padding:0}.main{padding-bottom:24px}}
 </style>
 </head>
@@ -356,6 +361,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 
   <section id="rankPanel" class="panel rank-panel" hidden aria-live="polite">
     <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span></div>
+    <div id="rankTools" class="ai-bar rank-tools"><label for="bankroll">ทุนของคุณ (บาท)</label><input id="bankroll" class="keyinput" type="number" inputmode="numeric" min="0" step="100" placeholder="เช่น 10000" style="max-width:170px"><span class="keyhint">ใช้คำนวณเงินเดิมพันตาม ¼ Kelly · เก็บไว้ในเบราว์เซอร์นี้เท่านั้น</span></div>
     <div id="aiBar" class="ai-bar" hidden><label for="aiProvider">ให้ AI ช่วยวิเคราะห์คู่ที่คัดมา</label><select id="aiProvider" aria-label="แพลตฟอร์ม AI"></select><select id="aiModel" aria-label="โมเดล AI"></select><button id="aiBtn" class="btn secondary" type="button">วิเคราะห์ด้วย AI</button><span id="aiStatus" class="keyhint" aria-live="polite"></span></div>
     <div id="rankBody" class="rank-body"></div>
   </section>
@@ -692,7 +698,7 @@ function settlement(model,line,type,side,odds){
   winStake+=o.p*wins;pushStake+=o.p*pushes;
  });
  var ev=Number.isFinite(Number(odds))&&Number(odds)>1?(winStake*Number(odds)+pushStake-1)*100:null;
- return {fullWin:fullWin,halfWin:halfWin,push:push,halfLoss:halfLoss,fullLoss:fullLoss,win:fullWin+halfWin,loss:halfLoss+fullLoss,ev:ev};
+ return {fullWin:fullWin,halfWin:halfWin,push:push,halfLoss:halfLoss,fullLoss:fullLoss,win:fullWin+halfWin,loss:halfLoss+fullLoss,ev:ev,winStake:winStake,pushStake:pushStake};
 }
 function firstResponse(data){var r=data&&data.response;return Array.isArray(r)?(r[0]||null):(r||null)}
 function goalAverages(stats){
@@ -1094,7 +1100,7 @@ function allValueEntries(prob,markets,model,homeName,awayName){
   extra=extra||{};
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups)});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups)});
  };
  if(model&&markets&&markets.overUnder){
   // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
@@ -1114,6 +1120,43 @@ function allValueEntries(prob,markets,model,homeName,awayName){
  return entries.sort(function(a,b){return b.ev-a.ev});
 }
 var rankData=null,rankMode="odds",lastCandidates=[],aiProviders=[];
+var BANKROLL_KEY="matchdesk.bankroll";
+function bankroll(){var v=Number(el("bankroll").value);return Number.isFinite(v)&&v>0?v:0}
+try{el("bankroll").value=localStorage.getItem(BANKROLL_KEY)||""}catch(e){}
+el("bankroll").addEventListener("input",function(){
+ try{localStorage.setItem(BANKROLL_KEY,el("bankroll").value)}catch(e){}
+ if(rankData&&!rankBusy)renderRank();
+});
+var REASON_TEXT={short:"ราคาต่ำกว่าเกณฑ์",longshot:"ราคาสูงเกินเกณฑ์",line:"ไม่ใช่เส้นหลัก",ev:"EV สูงผิดปกติ",gap:"โมเดลห่างตลาดเกินเกณฑ์",outlier:"ราคาสูงผิดปกติจากเจ้าเดียว",against:"ตลาดไหลสวน",conf:"ความมั่นใจต่ำ"};
+// Re-read the price right now (bypassing the server cache) and run the same rules on it, so a pick is checked just before betting.
+async function checkPrice(fixtureId,btn){
+ var c=lastCandidates.find(function(x){return x.fixture.fixture.id===fixtureId});
+ var out=document.getElementById("pc-"+fixtureId);
+ if(!c||!out)return;
+ var e=c.entry,f=c.fixture;
+ btn.disabled=true;out.className="price-result";out.textContent="กำลังเช็กราคาล่าสุด…";
+ try{
+  var res=await fetch("api/football/odds?fixture="+fixtureId+"&fresh=1");
+  var data=await res.json();
+  if(!res.ok)throw new Error(data.error||("HTTP "+res.status));
+  var markets=parseMarkets(data,f.teams.home.name,f.teams.away.name);
+  var table=e.kind==="AH"?markets.asianHandicap:markets.overUnder;
+  var key=Object.keys(table||{}).find(function(k){return Math.abs(Number(k)-e.ladder)<1e-6});
+  var m=key!==undefined?table[key]:null;
+  if(!m){out.className="price-result bad";out.textContent="ไม่พบเส้น "+e.label+" ในตลาดแล้ว (เจ้ามือปิดหรือเปลี่ยนเส้น) — ไม่ควรเล่น";return}
+  var home=e.side==="home"||e.side==="over";
+  var odds=home?(e.kind==="AH"?m.bestHome:m.bestOver):(e.kind==="AH"?m.bestAway:m.bestUnder);
+  var pM=home?(e.kind==="AH"?m.home:m.over):(e.kind==="AH"?m.away:m.under);
+  var med=home?(e.kind==="AH"?m.medHome:m.medOver):(e.kind==="AH"?m.medAway:m.medUnder);
+  var b=blendEv((e.ws*odds+e.ps-1)*100,odds,pM);
+  var now=Object.assign({},e,{odds:odds,p:b.p,pMarket:pM,pModel:b.pModel,ev:b.ev,priceRatio:med>1?odds/med:1});
+  var why=rejectReason(now),pass=!why&&now.ev>=MIN_EV;
+  var diff=odds-e.odds;
+  out.className="price-result "+(pass?"ok":"bad");
+  out.textContent=(pass?"✓ ยังผ่านเกณฑ์: ":"✗ ")+"ตอนนี้ @"+decimal(odds)+" ("+(Math.abs(diff)<.005?"ราคาเดิม":(diff>0?"▲ ":"▼ ")+Math.abs(diff).toFixed(2)+" จากที่แนะนำ @"+decimal(e.odds))+") · EV "+(b.ev>0?"+":"")+b.ev.toFixed(1)+"%"+(pass?"":" — "+(why?REASON_TEXT[why]:"EV ต่ำกว่า "+MIN_EV+"%"));
+ }catch(err){out.className="price-result bad";out.textContent="เช็กราคาไม่สำเร็จ: "+err.message}
+ finally{btn.disabled=false}
+}
 // why a pick is not ranked (null = it passes); the first failing rule wins
 function rejectReason(x){
  if(x.odds<MIN_ODDS)return "short";
@@ -1147,10 +1190,11 @@ function renderRank(){
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
-   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+ahTag(x.ahLine)+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%":"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
+   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+ahTag(x.ahLine)+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%"+(bankroll()?" ≈ ฿"+(Math.round(bankroll()*x.kelly/100/10)*10).toLocaleString("th-TH"):""):"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small><button type='button' class='price-check' data-check='"+f.fixture.id+"'>เช็กราคาก่อนวาง</button><span class='price-result' id='pc-"+f.fixture.id+"' aria-live='polite'></span></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
   }).join("");
   rankUpdate(candidates.length+" คู่มี EV บวกโดยประมาณ"+(failures?" · ข้อมูลไม่ครบ "+failures+" คู่":""),body);
   Array.prototype.forEach.call(el("rankBody").querySelectorAll("[data-rank-id]"),function(btn){btn.addEventListener("click",function(){analyze(Number(btn.dataset.rankId))})});
+  Array.prototype.forEach.call(el("rankBody").querySelectorAll("[data-check]"),function(btn){btn.addEventListener("click",function(){checkPrice(Number(btn.dataset.check),btn)})});
  }else{
   rankUpdate("ไม่พบ EV บวก",note+"<div class='empty'><strong>โมเดลยังไม่พบตัวเลือกที่คาดหวังผลตอบแทนเป็นบวกในโหมดนี้</strong><span>"+(failures?"ข้อมูลไม่ครบ "+failures+" คู่":"EV ที่โมเดลประเมินยังไม่เป็นบวก")+" · ลองสลับโหมดหรือเลือกลีกใหม่</span></div>");
  }
@@ -1273,9 +1317,10 @@ async function refreshStats(){
  var body="<div class='h2h-summary stats-grid'>"+
   cell("CLV เฉลี่ย",c.avgClvPct===null?"—":(c.avgClvPct>0?"+":"")+c.avgClvPct.toFixed(2)+"%","ราคาที่แนะนำเทียบราคาปิด ("+c.clvSamples+" คู่)")+
   cell("CLV เป็นบวก",c.clvPositivePct===null?"—":c.clvPositivePct+"%","ของคู่ที่จับราคาปิดได้")+
-  cell("ROI",f1(o.roiPct,"%+"),"จาก "+o.picks+" คู่ที่ตัดสินแล้ว")+
+  cell("ROI จริง",f1(o.roiPct,"%+")+(o.roiSePct!==null&&o.roiSePct!==undefined?" ±"+o.roiSePct.toFixed(0):""),"จาก "+o.picks+" คู่ · โมเดลคาด EV "+(o.avgEvPct===null?"—":"+"+o.avgEvPct.toFixed(1)+"%"))+
   cell("ชนะจริง",o.hitPct===null?"—":o.hitPct.toFixed(1)+"%","โมเดลคาด "+(o.avgPredictedPct===null?"—":o.avgPredictedPct.toFixed(1)+"%"))+
   "</div>";
+ if(o.picks>0&&o.picks<100)body+="<p class='detail-note' style='color:var(--amber);font-weight:600'>ตัวอย่างยังน้อย ("+o.picks+" คู่): ROI แกว่งได้มากโดยบังเอิญ (ค่า ± คือความคลาดเคลื่อนจากโชคอย่างเดียว) อย่าเพิ่งสรุปว่าโมเดลดีหรือแย่จาก ROI ให้ดู CLV เป็นหลัก</p>";
  body+="<p class='detail-note'>CLV (Closing Line Value) = ราคาที่แนะนำดีกว่าราคาปิดก่อนแข่งไหม เป็นตัวชี้วัดคุณภาพที่เห็นผลเร็วกว่ากำไรจริง ถ้า CLV เป็นบวกสม่ำเสมอแสดงว่าโมเดลเห็นสิ่งที่ตลาดยังไม่เห็น · ROI และอัตราชนะต้องสะสมหลายร้อยคู่ถึงจะเชื่อได้</p>";
  if(q.calibration&&q.calibration.length)body+="<div class='section-title'>ความแม่นของโอกาส <span class='source-tag'>โมเดลคาด เทียบ ชนะจริง</span></div><div class='h2h-list'>"+q.calibration.map(function(b){
   return "<div class='h2h-row' style='grid-template-columns:90px 1fr 1fr 70px'><span class='h2h-date'>"+escapeHtml(b.range)+"</span><span>คาด "+f1(b.predictedPct,"%")+"</span><span>ชนะจริง "+f1(b.actualPct,"%")+"</span><span class='h2h-date'>"+b.picks+" คู่</span></div>";
