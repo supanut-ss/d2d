@@ -222,6 +222,12 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .v-ok .ai-verdict{background:var(--mint-bg);color:var(--mint)}.v-warn .ai-verdict{background:var(--amber-bg);color:var(--amber)}.v-skip .ai-verdict{background:var(--red-bg);color:var(--red)}
 .ai-card ul{margin:4px 0 0;padding-left:16px;color:var(--ink2)}
 .ai-err{color:var(--red);font-size:11px}
+.ai-overall{margin:0 0 12px;border:1px solid #cbdbe6;border-radius:10px;background:#f2f8fc;padding:11px 13px;font-size:12px}
+.ai-overall h3{margin:0 0 6px;font-size:13px}
+.ai-overall ol{margin:6px 0;padding-left:20px}
+.ai-overall li{margin:3px 0}
+.ai-overall .none{color:var(--red);font-weight:600}
+.ai-overall small{display:block;color:var(--muted);margin-top:6px}
 @media(max-width:760px){.ai-note{margin-left:0}}
 .pw-dialog{width:min(420px,calc(100vw - 24px))}
 .footnote{margin-top:18px;color:var(--muted);font-size:10px;text-align:center}
@@ -961,7 +967,7 @@ function renderRank(){
  var modeName=isOU?"สูงต่ำ":"อัตราต่อรอง (1X2 / แฮนดิแคป)";
  var note="<p class='rank-disclaimer'>โหมด"+modeName+": "+(isOU?"สูง/ต่ำใช้สถิติประตู Poisson":"1X2 และแฮนดิแคปใช้โมเดลประตู Poisson (ถ้าไม่มีสถิติ 1X2 ใช้เปอร์เซ็นต์จาก API-Football)")+". EV = ผลตอบแทนคาดหมายเทียบราคาเสนอสูงสุด ไม่ใช่กำไรที่รับประกัน"+" · โอกาสชนะผสมโมเดล "+Math.round((1-MARKET_WEIGHT)*100)+"% กับราคาตลาด "+Math.round(MARKET_WEIGHT*100)+"% · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดของตัวเลือกเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(suspect?" · ตัด "+suspect+" ตัวเลือกที่ EV เกิน "+MAX_EV+"% ออก เพราะมักเกิดจากราคาหรือข้อมูลผิดปกติ":"")+(lowConf?" · ซ่อน "+lowConf+" ตัวเลือก EV บวกที่ความมั่นใจต่ำกว่า "+MIN_CONF:"")+"</p>";
  if(candidates.length){
-  var body=note+candidates.map(function(item,index){
+  var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
    return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%":"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
   }).join("");
@@ -977,11 +983,29 @@ function aiNoteHtml(id){
  var byProvider=rankData&&rankData.ai&&rankData.ai[id];
  if(!byProvider)return "";
  var cards=Object.keys(byProvider).map(function(pid){
-  var r=byProvider[pid],cls=r.verdict==="น่าสนใจ"?"v-ok":r.verdict==="ข้าม"?"v-skip":"v-warn";
+  var r=byProvider[pid],cls=(r.verdict==="เล่น"||r.verdict==="น่าสนใจ")?"v-ok":r.verdict==="ข้าม"?"v-skip":"v-warn";
   return "<div class='ai-card "+cls+"'><div class='ai-head'><b>"+escapeHtml(r.name)+"</b><span>"+escapeHtml(r.model)+"</span>"+(r.verdict?"<span class='ai-verdict'>"+escapeHtml(r.verdict)+"</span>":"")+"</div>"+
    escapeHtml(r.summary||"")+((r.risks&&r.risks.length)?"<ul>"+r.risks.map(function(x){return "<li>"+escapeHtml(x)+"</li>"}).join("")+"</ul>":"")+"</div>";
  });
  return cards.length?"<div class='ai-note'>"+cards.join("")+"</div>":"";
+}
+function aiOverallHtml(){
+ var all=rankData&&rankData.aiOverall;
+ if(!all)return "";
+ var names={};
+ rankData.items.forEach(function(it){names[it.fixture.fixture.id]=it.fixture.teams.home.name+" พบ "+it.fixture.teams.away.name});
+ var pickOf={};
+ lastCandidates.forEach(function(c){pickOf[c.fixture.fixture.id]=c.entry});
+ return Object.keys(all).map(function(pid){
+  var o=all[pid],body;
+  if(!o.picks.length)body="<p class='none'>AI เห็นว่ายังไม่มีคู่ที่น่าเล่นในชุดนี้</p>";
+  else body="<ol>"+o.picks.map(function(p){
+   var e=pickOf[p.id];
+   return "<li><b>"+escapeHtml(names[p.id]||String(p.id))+"</b>"+(e?" — "+escapeHtml(e.category+" "+e.label)+" @"+decimal(e.odds):"")+(p.reason?"<br><span>"+escapeHtml(p.reason)+"</span>":"")+"</li>";
+  }).join("")+"</ol>";
+  var skipNames=(o.skip||[]).map(function(id){return names[id]}).filter(Boolean);
+  return "<div class='ai-overall'><h3>"+escapeHtml(o.name)+" ฟันธง <span class='source-tag'>"+escapeHtml(o.model)+"</span></h3>"+(o.note?"<div>"+escapeHtml(o.note)+"</div>":"")+body+(skipNames.length?"<small>ข้าม: "+escapeHtml(skipNames.join(", "))+"</small>":"")+"<small>วิเคราะห์จากตัวเลขที่ส่งไปเท่านั้น ไม่รับประกันผล</small></div>";
+ }).join("");
 }
 function aiPayload(){
  return lastCandidates.slice(0,AI_MAX_MATCHES).map(function(c){
@@ -1006,11 +1030,12 @@ async function runAi(){
   password="";
   var data=await res.json();
   if(!res.ok)throw new Error(data.error||(res.status===429?"เรียก AI ถี่เกินไป รอสักครู่":"AI ผิดพลาด"));
-  rankData.ai=rankData.ai||{};
+  rankData.ai=rankData.ai||{};rankData.aiOverall={};
   var errors=[];
   data.forEach(function(o){
    var info=aiProviders.find(function(p){return p.id===o.provider})||{name:o.provider};
    if(o.error||!o.matches){errors.push(info.name+": "+(o.error||"ไม่มีผล"));return}
+   if(o.overall)rankData.aiOverall[o.provider]={name:info.name,model:o.model,picks:o.overall.picks||[],skip:o.overall.skip||[],note:o.overall.note};
    o.matches.forEach(function(m){
     rankData.ai[m.id]=rankData.ai[m.id]||{};
     rankData.ai[m.id][o.provider]={name:info.name,model:o.model,verdict:m.verdict,summary:m.summary,risks:m.risks};

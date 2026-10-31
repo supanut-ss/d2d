@@ -6,6 +6,10 @@ using System.Text.Json;
 namespace Matchdesk.Proxy;
 
 public sealed record AiMatch(int Id, string? Verdict, string? Summary, string[]? Risks);
+public sealed record AiPickItem(int Id, int Rank, string? Reason);
+/// <summary>The decisive part: which matches to play (ranked), which to skip, and a one-line overall note.</summary>
+public sealed record AiOverall(AiPickItem[] Picks, int[] Skip, string? Note);
+public sealed record AiResult(AiMatch[] Matches, AiOverall? Overall);
 public sealed record AiProviderInfo(string Id, string Name, string Model, string[] Models);
 public sealed record AiPick(string Id, string? Model);
 
@@ -136,14 +140,18 @@ public sealed class AiService
     private const string System = """
         You are a football betting analyst reviewing a shortlist produced by a statistical model.
         Each item has the model's pick, probabilities, expected value (evPct, in percent), confidence (0-100), the Poisson goal expectations, injuries, recent xG and how the market moved.
+        Be decisive: tell the user which of these picks to play and which to skip.
         Rules:
         - Use ONLY the numbers in the data. Never invent statistics, results, injuries or news. If something is missing, say it is missing.
         - Judge whether the pick is plausible: do the numbers agree with each other, is the edge large only because data is thin (few games, few bookmakers, no xG), did the market move against the pick, are key players out.
-        - verdict must be one of: "น่าสนใจ" (numbers consistent), "ระวัง" (usable but with clear caveats), "ข้าม" (do not trust).
+        - verdict must be one of: "เล่น" (numbers consistent, worth playing), "เล่นน้อย" (usable but with clear caveats, small stake), "ข้าม" (do not trust).
+        - overall.picks lists 3 to 5 items to play, best first, each with rank (1 = best) and a one-sentence Thai reason. Choose only from the given ids and only items you marked "เล่น" or "เล่นน้อย".
+        - overall.skip lists the ids you would not play. If none of the items deserve a bet, return picks as an empty array and say so in note. Never force a pick.
+        - overall.note is one short Thai sentence summarising the slate.
         - Write summary and risks in Thai, concise: summary at most 3 sentences, at most 3 risks of at most 15 words each.
         - Return exactly one entry per input item, using the same id.
         - This is analysis, not a guarantee of profit.
-        Reply with JSON only, no markdown: {"matches":[{"id":<number>,"verdict":"...","summary":"...","risks":["..."]}]}
+        Reply with JSON only, no markdown: {"matches":[{"id":<number>,"verdict":"...","summary":"...","risks":["..."]}],"overall":{"picks":[{"id":<number>,"rank":<number>,"reason":"..."}],"skip":[<number>],"note":"..."}}
         """;
 
     private const int MaxPayloadBytes = 120_000;
@@ -204,7 +212,7 @@ public sealed class AiService
         throw new AiAuthException("รหัสผ่านไม่ถูกต้อง", 401);
     }
 
-    public sealed record Outcome(string Provider, string Model, AiMatch[]? Matches, string? Error);
+    public sealed record Outcome(string Provider, string Model, AiMatch[]? Matches, string? Error, AiOverall? Overall = null);
 
     public async Task<Outcome[]> AnalyzeAsync(AiPick[] picks, JsonElement matches, CancellationToken ct)
     {
@@ -223,6 +231,7 @@ public sealed class AiService
         if (!_providers.TryGetValue(pick.Id, out var provider))
             return new Outcome(pick.Id, "", null, "แพลตฟอร์มนี้ยังไม่ได้ตั้งค่าคีย์บนเซิร์ฟเวอร์");
         var model = string.IsNullOrWhiteSpace(pick.Model) ? provider.DefaultModel : pick.Model;
+        var sentIds = IdsIn(payload);
         if (!provider.Models.Contains(model))
             return new Outcome(pick.Id, model, null, "โมเดลนี้ไม่อยู่ในรายการที่ตั้งค่าไว้");
         try
@@ -232,14 +241,15 @@ public sealed class AiService
             {
                 if (!TrySpend(pick.Id)) return new UpstreamResult(429, JsonSerializer.Serialize(new { error = "ใช้ครบจำนวนครั้ง AI ต่อวันแล้ว" }));
                 var text = await provider.CompleteAsync(System, "Shortlist (JSON):\n" + payload, model, ct);
-                return new UpstreamResult(200, JsonSerializer.Serialize(Parse(text)));
+                return new UpstreamResult(200, JsonSerializer.Serialize(Parse(text, sentIds)));
             });
             if (res.Status != 200)
             {
                 using var err = JsonDocument.Parse(res.Body);
                 return new Outcome(pick.Id, model, null, err.RootElement.TryGetProperty("error", out var e) ? e.GetString() : "ผิดพลาด");
             }
-            return new Outcome(pick.Id, model, JsonSerializer.Deserialize<AiMatch[]>(res.Body), null);
+            var parsed = JsonSerializer.Deserialize<AiResult>(res.Body)!;
+            return new Outcome(pick.Id, model, parsed.Matches, null, parsed.Overall);
         }
         catch (AiProviderException ex) { return new Outcome(pick.Id, model, null, ex.Message); }
         catch (JsonException) { return new Outcome(pick.Id, model, null, "AI ตอบกลับในรูปแบบที่อ่านไม่ได้ (อาจถูกตัดเพราะยาวเกิน)"); }
@@ -256,7 +266,15 @@ public sealed class AiService
         return true;
     }
 
-    private static AiMatch[] Parse(string text)
+    private static HashSet<int> IdsIn(string payload)
+    {
+        using var doc = JsonDocument.Parse(payload);
+        return [.. doc.RootElement.EnumerateArray()
+            .Where(e => e.ValueKind == JsonValueKind.Object && e.TryGetProperty("id", out var id) && id.TryGetInt32(out _))
+            .Select(e => e.GetProperty("id").GetInt32())];
+    }
+
+    private static AiResult Parse(string text, HashSet<int> sentIds)
     {
         var s = text.Trim();
         if (s.StartsWith("```"))
@@ -280,6 +298,25 @@ public sealed class AiService
                 : [];
             list.Add(new AiMatch(idv, Str("verdict", 20), Str("summary", 700), risks));
         }
-        return [.. list];
+        // only ids we actually sent may appear in the decisive part; a hallucinated id is dropped
+        AiOverall? overall = null;
+        if (doc.RootElement.TryGetProperty("overall", out var o) && o.ValueKind == JsonValueKind.Object)
+        {
+            var picks = new List<AiPickItem>();
+            if (o.TryGetProperty("picks", out var pk) && pk.ValueKind == JsonValueKind.Array)
+                foreach (var p in pk.EnumerateArray())
+                    if (p.TryGetProperty("id", out var pid) && pid.TryGetInt32(out var pidv) && sentIds.Contains(pidv) && picks.All(x => x.Id != pidv))
+                    {
+                        var rank = p.TryGetProperty("rank", out var rk) && rk.TryGetInt32(out var rkv) ? rkv : picks.Count + 1;
+                        var reason = p.TryGetProperty("reason", out var rs) && rs.ValueKind == JsonValueKind.String ? rs.GetString() : null;
+                        picks.Add(new AiPickItem(pidv, rank, reason is { Length: > 300 } ? reason[..300] : reason));
+                    }
+            var skip = o.TryGetProperty("skip", out var sk) && sk.ValueKind == JsonValueKind.Array
+                ? sk.EnumerateArray().Where(x => x.TryGetInt32(out var v) && sentIds.Contains(v)).Select(x => x.GetInt32()).Distinct().ToArray()
+                : [];
+            var note = o.TryGetProperty("note", out var nt) && nt.ValueKind == JsonValueKind.String ? nt.GetString() : null;
+            overall = new AiOverall([.. picks.OrderBy(x => x.Rank).Take(5)], skip, note is { Length: > 300 } ? note[..300] : note);
+        }
+        return new AiResult([.. list], overall);
     }
 }
