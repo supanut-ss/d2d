@@ -916,16 +916,17 @@ function parseMarkets(data,homeName,awayName){
   }
  });
  var mean=function(arr,key){return arr.length?arr.reduce(function(s,x){return s+x[key]},0)/arr.length:null};
+ var median=function(arr,key){if(!arr.length)return null;var v=arr.map(function(x){return x[key]}).sort(function(a,b){return a-b}),m=v.length>>1;return v.length%2?v[m]:(v[m-1]+v[m])/2};
  var avg=one.length?{home:mean(one,"home"),draw:mean(one,"draw"),away:mean(one,"away"),rawHome:mean(one,"rawHome"),rawDraw:mean(one,"rawDraw"),rawAway:mean(one,"rawAway"),bestHome:bestPrices.home.odd,homeBook:bestPrices.home.book,bestDraw:bestPrices.draw.odd,drawBook:bestPrices.draw.book,bestAway:bestPrices.away.odd,awayBook:bestPrices.away.book,books:one.length}:null;
  var ouAvg={};Object.keys(ou).forEach(function(line){
   var arr=ou[line],bestOver={odd:0,book:""},bestUnder={odd:0,book:""};
   arr.forEach(function(x){if(x.overOdd>bestOver.odd)bestOver={odd:x.overOdd,book:x.book};if(x.underOdd>bestUnder.odd)bestUnder={odd:x.underOdd,book:x.book}});
-  ouAvg[line]={over:mean(arr,"over"),under:mean(arr,"under"),bestOver:bestOver.odd,overBook:bestOver.book,bestUnder:bestUnder.odd,underBook:bestUnder.book,books:arr.length};
+  ouAvg[line]={over:mean(arr,"over"),under:mean(arr,"under"),bestOver:bestOver.odd,overBook:bestOver.book,bestUnder:bestUnder.odd,underBook:bestUnder.book,medOver:median(arr,"overOdd"),medUnder:median(arr,"underOdd"),books:arr.length};
  });
  var ahAvg={};Object.keys(ah).forEach(function(line){
   var arr=ah[line],bestHome={odd:0,book:""},bestAway={odd:0,book:""};
   arr.forEach(function(x){if(x.homeOdd>bestHome.odd)bestHome={odd:x.homeOdd,book:x.book};if(x.awayOdd>bestAway.odd)bestAway={odd:x.awayOdd,book:x.book}});
-  ahAvg[line]={home:mean(arr,"home"),away:mean(arr,"away"),bestHome:bestHome.odd,homeBook:bestHome.book,bestAway:bestAway.odd,awayBook:bestAway.book,books:arr.length};
+  ahAvg[line]={home:mean(arr,"home"),away:mean(arr,"away"),bestHome:bestHome.odd,homeBook:bestHome.book,bestAway:bestAway.odd,awayBook:bestAway.book,medHome:median(arr,"homeOdd"),medAway:median(arr,"awayOdd"),books:arr.length};
  });
  return {oneXtwo:avg,overUnder:ouAvg,asianHandicap:ahAvg};
 }
@@ -1001,7 +1002,12 @@ function modelPercent(data){
  var h=pct(p.home),d=pct(p.draw),a=pct(p.away);
  return h!==null&&d!==null&&a!==null?{home:h/100,draw:d/100,away:a/100}:null;
 }
-var MARKET_WEIGHT=.7,MIN_CONF=40,KELLY_FRACTION=.25,KELLY_CAP=.05;
+var MARKET_WEIGHT=.7,MARKET_WEIGHT_MAX=.9,MIN_CONF=50,KELLY_FRACTION=.25,KELLY_CAP=.05;
+// What a pick must pass to be ranked. Bookmakers are better calibrated than a goals model on long shots
+// (favourite-longshot bias), so the market weight grows with the price and long shots are not ranked at all.
+var MAX_ODDS=3,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
+// market weight: 70% up to price 2.2, rising 10 points per +1.0 of price, at most 90%
+function marketWeight(odds){return Math.min(MARKET_WEIGHT_MAX,MARKET_WEIGHT+Math.max(0,odds-2.2)*.1)}
 // fractional Kelly as % of bankroll, capped; 0 when there is no edge
 function kellyPct(p,odds){
  if(!(odds>1)||!Number.isFinite(p))return 0;
@@ -1012,7 +1018,7 @@ function kellyPct(p,odds){
 function blendEv(evModel,odds,pMarket){
  if(evModel===null||evModel===undefined||!(odds>1))return null;
  var pModel=(evModel/100+1)/odds;
- var pBlend=pMarket===null||pMarket===undefined?pModel:MARKET_WEIGHT*pMarket+(1-MARKET_WEIGHT)*pModel;
+ var w=marketWeight(odds),pBlend=pMarket===null||pMarket===undefined?pModel:w*pMarket+(1-w)*pModel;
  return {p:pBlend,pModel:pModel,pMarket:pMarket,ev:(pBlend*odds-1)*100};
 }
 // 0-100: bookmaker coverage, games behind the stats, and how far the model sits from the market
@@ -1030,45 +1036,54 @@ function rankGet(path,params,cacheKey){return apiGet(path,params,cacheKey)}
 function allValueEntries(prob,markets,model,homeName,awayName){
  var games=model?model.games:0;
  var entries=[];
- var add=function(category,label,metric,odds,book,pMarket,books,ahLine){
+ var add=function(category,label,metric,odds,book,pMarket,books,ahLine,medOdds){
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,conf:confidence(books,games,Math.abs(b.pModel-pMarket))});
  };
  if(model&&markets&&markets.overUnder){
   Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line];
-   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books);
-   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books);
+   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver);
+   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder);
   });
  }
  if(model&&markets&&markets.asianHandicap){
   Object.keys(markets.asianHandicap).forEach(function(line){
    var h=Number(line),m=markets.asianHandicap[line];
-   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h);
-   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h);
+   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h,m.medHome);
+   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h,m.medAway);
   });
  }
  return entries.sort(function(a,b){return b.ev-a.ev});
 }
-var rankData=null,rankMode="odds",MAX_EV=30,lastCandidates=[],aiProviders=[];
-function rankable(x){return x.ev<=MAX_EV&&(x.conf===undefined||x.conf>=MIN_CONF)}
+var rankData=null,rankMode="odds",lastCandidates=[],aiProviders=[];
+// why a pick is not ranked (null = it passes); the first failing rule wins
+function rejectReason(x){
+ if(x.odds>MAX_ODDS||x.pMarket<MIN_PMARKET)return "longshot";
+ if(x.ev>MAX_EV)return "ev";
+ if(Math.abs(x.pModel-x.pMarket)>MAX_GAP)return "gap";
+ if(x.priceRatio>MAX_PRICE_RATIO)return "outlier";
+ if(x.conf<MIN_CONF)return "conf";
+ return null;
+}
+function rankable(x){return rejectReason(x)===null&&x.ev>=MIN_EV}
 function renderRank(){
  if(!rankData)return;
  var isOU=rankMode==="ou",failures=rankData.failures;
- var tabCount=function(ou){return rankData.items.filter(function(it){var l=it.entries.filter(function(x){return (ou?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ")&&rankable(x)});return l.length&&l[0].ev>0}).length};
+ var tabCount=function(ou){return rankData.items.filter(function(it){return it.entries.some(function(x){return (ou?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ")&&rankable(x)})}).length};
  el("modeOdds").textContent="แฮนดิแคป ("+tabCount(false)+")";el("modeOU").textContent="สูงต่ำ ("+tabCount(true)+")";
- var suspect=0,lowConf=0;
+ var rejected={longshot:0,ev:0,gap:0,outlier:0,conf:0};
  var candidates=rankData.items.map(function(it){
   var list=it.entries.filter(function(x){return isOU?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ"});
   var ok=list.filter(rankable);
-  suspect+=list.filter(function(x){return x.ev>MAX_EV}).length;
-  lowConf+=list.filter(function(x){return x.ev<=MAX_EV&&x.conf<MIN_CONF&&x.ev>0}).length;
-  return ok.length&&ok[0].ev>0?{fixture:it.fixture,entry:ok[0]}:null;
+  list.forEach(function(x){var r=rejectReason(x);if(r&&x.ev>0)rejected[r]++});
+  return ok.length?{fixture:it.fixture,entry:ok[0]}:null;
  }).filter(Boolean).sort(function(a,b){return b.entry.ev-a.entry.ev});
  lastCandidates=candidates;
  el("aiBar").hidden=!aiProviders.length||!candidates.length;
  var modeName=isOU?"สูงต่ำ":"แฮนดิแคป";
- var note="<p class='rank-disclaimer'>โหมด"+modeName+": "+(isOU?"สูง/ต่ำใช้สถิติประตู Poisson":"แฮนดิแคปใช้โมเดลประตู Poisson")+". EV = ผลตอบแทนคาดหมายเทียบราคาเสนอสูงสุด ไม่ใช่กำไรที่รับประกัน"+" · โอกาสชนะผสมโมเดล "+Math.round((1-MARKET_WEIGHT)*100)+"% กับราคาตลาด "+Math.round(MARKET_WEIGHT*100)+"% · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดของตัวเลือกเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(suspect?" · ตัด "+suspect+" ตัวเลือกที่ EV เกิน "+MAX_EV+"% ออก เพราะมักเกิดจากราคาหรือข้อมูลผิดปกติ":"")+(lowConf?" · ซ่อน "+lowConf+" ตัวเลือก EV บวกที่ความมั่นใจต่ำกว่า "+MIN_CONF:"")+"</p>";
+ var skipped=[["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["ev","EV เกิน "+MAX_EV+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
+ var note="<p class='rank-disclaimer'>โหมด"+modeName+": โอกาสชนะคำนวณจากโมเดลประตู Poisson แล้วผสมกับราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · แสดงเฉพาะตัวเลือกราคา ≤ "+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+MAX_EV+"% · EV ไม่ใช่กำไรที่รับประกัน · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(skipped.length?"<br>ไม่นำมาจัดอันดับ (EV บวกแต่เชื่อถือไม่ได้): "+skipped.join(" · "):"")+"</p>";
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
