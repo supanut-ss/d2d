@@ -42,7 +42,7 @@ public abstract class AiProvider(string id, string name, string apiKey, string d
 
 public sealed class AiProviderException(string message) : Exception(message);
 
-public sealed class ClaudeProvider(string key, string model, string[] models, HttpClient http, string? baseUrl = null)
+public sealed class ClaudeProvider(string key, string model, string[] models, HttpClient http, string? baseUrl = null, string? effort = null)
     : AiProvider("claude", "Claude", key, model, models, http)
 {
     public override async Task<string> CompleteAsync(string system, string user, string model, CancellationToken ct)
@@ -55,6 +55,8 @@ public sealed class ClaudeProvider(string key, string model, string[] models, Ht
                 max_tokens = 8000,
                 system,
                 messages = new[] { new { role = "user", content = user } },
+                // effort: low|medium|high|xhigh|max (config); omitted when not set
+                output_config = string.IsNullOrWhiteSpace(effort) ? null : new { effort },
             }), Encoding.UTF8, "application/json"),
         };
         req.Headers.Add("x-api-key", ApiKey);
@@ -171,7 +173,7 @@ public sealed class AiService
         // defaults checked against each vendor's model list; the page only offers what is configured here
         var all = new AiProvider[]
         {
-            new ClaudeProvider(ai["Claude:ApiKey"] ?? "", ai["Claude:Model"] ?? "claude-sonnet-5-5", List("Claude"), http, ai["Claude:BaseUrl"]),
+            new ClaudeProvider(ai["Claude:ApiKey"] ?? "", ai["Claude:Model"] ?? "claude-sonnet-5-5", List("Claude"), http, ai["Claude:BaseUrl"], ai["Claude:Effort"]),
             new GeminiProvider(ai["Gemini:ApiKey"] ?? "", ai["Gemini:Model"] ?? "gemini-3.8-flash", List("Gemini"), http, ai["Gemini:BaseUrl"]),
             new OpenAiProvider(ai["OpenAi:ApiKey"] ?? "", ai["OpenAi:Model"] ?? "gpt-6-luna", List("OpenAi"), http, ai["OpenAi:BaseUrl"], ai["OpenAi:Effort"]),
         };

@@ -16,7 +16,7 @@ ASP.NET Core app that serves the Matchdesk page and proxies API-Football so the 
 - Password: `Matchdesk:Ai:Password` is required (AI stays off without it). The page asks for it on every send and never stores it; 5 wrong attempts lock that IP for 15 minutes
 - Up to 20 matches per send
 - Keys and models: `Matchdesk:Ai:Claude|Gemini|OpenAi:ApiKey|Model|Models` (Codex is OpenAI's Responses API). `Model` is the recommended default, `Models` is the list the page offers; model names are config, not code. `BaseUrl` can point at a proxy
-- Defaults (checked against the vendors' model lists, July 2026): Claude `claude-sonnet-5-5`, Gemini `gemini-3.8-flash`, OpenAI `gpt-6-luna` fixed at reasoning effort `max` (`Matchdesk:Ai:OpenAi:Effort`)
+- Defaults (checked against the vendors' model lists, July 2026): Claude `claude-sonnet-5-5` fixed at effort `low` (`Matchdesk:Ai:Claude:Effort`), Gemini `gemini-3.8-flash`, OpenAI `gpt-6-luna` fixed at reasoning effort `max` (`Matchdesk:Ai:OpenAi:Effort`)
 - Limits: `Matchdesk:Ai:DailyCalls` (default 100, all platforms together) and `RequestsPerHourPerIp` (default 10); identical requests are cached for 30 minutes
 
 ## Run locally
