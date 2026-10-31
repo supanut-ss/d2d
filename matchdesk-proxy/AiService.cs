@@ -185,7 +185,10 @@ public sealed class AiService
             new GeminiProvider(ai["Gemini:ApiKey"] ?? "", ai["Gemini:Model"] ?? "gemini-3.8-flash", List("Gemini"), http, ai["Gemini:BaseUrl"]),
             new OpenAiProvider(ai["OpenAi:ApiKey"] ?? "", ai["OpenAi:Model"] ?? "gpt-6-luna", List("OpenAi"), http, ai["OpenAi:BaseUrl"], ai["OpenAi:Effort"]),
         };
-        _providers = all.Where(p => p.Configured).ToDictionary(p => p.Id);
+        // Matchdesk:Ai:<Platform>:Enabled=false switches a platform off without removing its key
+        bool On(string section) => ai.GetValue(section + ":Enabled", true);
+        var enabled = new Dictionary<string, bool> { ["claude"] = On("Claude"), ["gemini"] = On("Gemini"), ["codex"] = On("OpenAi") };
+        _providers = all.Where(p => p.Configured && enabled[p.Id]).ToDictionary(p => p.Id);
     }
 
     /// <summary>AI is off unless a password is configured, so nothing can spend money without one.</summary>
