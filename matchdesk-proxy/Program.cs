@@ -15,6 +15,7 @@ builder.Services.AddSingleton<KnownFixtures>();
 builder.Services.AddSingleton<PickLog>();
 builder.Services.AddSingleton<PickWorker>();
 builder.Services.AddHostedService(sp => sp.GetRequiredService<PickWorker>());
+builder.Services.AddSingleton<DailyJob>();
 builder.Services.AddHostedService<OddsTracker>();
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
@@ -63,18 +64,7 @@ var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
     "fixtures", "fixtures/headtohead", "standings", "fixtures/statistics", "fixtures/lineups", "injuries", "predictions", "odds", "teams/statistics"
 };
 
-TimeSpan Ttl(string path) => path.ToLowerInvariant() switch
-{
-    "odds" => TimeSpan.FromMinutes(30),
-    "predictions" => TimeSpan.FromHours(6),
-    "teams/statistics" => TimeSpan.FromHours(12),
-    "standings" => TimeSpan.FromHours(12),
-    "fixtures/headtohead" => TimeSpan.FromHours(24),
-    "fixtures/statistics" => TimeSpan.FromHours(24),   // finished matches do not change
-    "injuries" => TimeSpan.FromHours(1),
-    "fixtures/lineups" => TimeSpan.FromMinutes(10),
-    _ => TimeSpan.FromMinutes(10),
-};
+TimeSpan Ttl(string path) => CachePolicy.Ttl(path);
 
 app.MapGet("/api/football/{**path}", async (string path, HttpContext ctx, KeyPool pool, ResponseCache cache, KnownFixtures known) =>
 {
@@ -139,6 +129,21 @@ app.MapPost("/api/picks/log", (PickBatch batch, PickLog picks) =>
     Results.Json(new { added = picks.Log(batch.Picks ?? []) })).RequireRateLimiting("api");
 
 app.MapGet("/api/picks/stats", (PickLog picks, PickWorker worker) => { worker.Kick(); return Results.Json(picks.Stats()); }).RequireRateLimiting("api");
+
+// cron entry point (GitHub Actions / Plesk scheduled task): ?task=rank|settle|all, token in X-Job-Token or ?token=
+IResult RunJob(HttpContext ctx, DailyJob job)
+{
+    if (!job.Enabled) return Results.Json(new { error = "jobs are not configured (Matchdesk:Jobs:Token)" }, statusCode: 503);
+    var token = ctx.Request.Headers["X-Job-Token"].FirstOrDefault() ?? ctx.Request.Query["token"].FirstOrDefault();
+    if (!job.TokenMatches(token)) return Results.Json(new { error = "invalid token" }, statusCode: 401);
+    var task = (ctx.Request.Query["task"].FirstOrDefault() ?? "all").ToLowerInvariant();
+    if (task is not ("rank" or "settle" or "all")) return Results.BadRequest(new { error = "task must be rank, settle or all" });
+    var started = job.TryStart(task);
+    return Results.Json(new { task, started, running = job.Running, last = job.Last }, statusCode: started ? 202 : 200);
+}
+app.MapGet("/api/jobs/run", RunJob).RequireRateLimiting("api");
+app.MapPost("/api/jobs/run", RunJob).RequireRateLimiting("api");
+app.MapGet("/api/jobs/last", (DailyJob job) => Results.Json(new { running = job.Running, last = job.Last }));
 
 app.MapGet("/api/status", (KeyPool pool, PickWorker worker) => { worker.Kick(); return Results.Json(pool.Quota()); });
 

@@ -19,6 +19,12 @@ ASP.NET Core app that serves the Matchdesk page and proxies API-Football so the 
 - Only Gemini (`gemini-3.6-flash`) is on for now. Switch a platform with `Matchdesk:Ai:<Claude|Gemini|OpenAi>:Enabled` = `true`/`false` (its key can stay in the config). Defaults (checked against the vendors' model lists, July 2026): Claude `claude-sonnet-5-5` fixed at effort `low` (`Matchdesk:Ai:Claude:Effort`), Gemini `gemini-3.6-flash` (`gemini-3.8-flash` was overloaded in testing), OpenAI `gpt-6-luna` fixed at reasoning effort `max` (`Matchdesk:Ai:OpenAi:Effort`)
 - Limits: `Matchdesk:Ai:DailyCalls` (default 100, all platforms together) and `RequestsPerHourPerIp` (default 10); identical requests are cached for 30 minutes
 
+## Daily job (cron)
+
+`/api/jobs/run?task=rank|settle|all` (GET or POST, token in `X-Job-Token` or `?token=`) runs the ranking on the server with the same `wwwroot/model.js` the page uses (executed in Jint) and logs the picks; `settle` settles finished picks and captures closing prices. It needs `Matchdesk:Jobs:Token` in `appsettings.Production.json`; without it the endpoint answers 503. `/api/jobs/last` shows the last run.
+
+An external web cron (e.g. cron-job.org) calls it: `https://drivetodev.online/matchdesk/api/jobs/run?task=rank&token=TOKEN` daily at 09:00 Bangkok, and `...?task=settle&token=TOKEN` every 10-15 minutes. IIS stops an idle app, so the frequent call also keeps the background tracker alive.
+
 ## Run locally
 
     dotnet run --urls http://localhost:5080
