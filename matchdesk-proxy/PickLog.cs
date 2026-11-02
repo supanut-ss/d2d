@@ -179,6 +179,15 @@ public sealed class PickLog
         return Math.Sqrt(v.Sum(x => (x - mean) * (x - mean)) / (v.Count - 1));
     }
 
+    /// <summary>Every logged pick, newest kickoff first, in the shape the history table needs.</summary>
+    public object History() => _picks.Values.OrderByDescending(p => p.KickoffUtc).Select(p => new
+    {
+        p.FixtureId, p.KickoffUtc, p.League, p.Home, p.Away, p.Market, p.Label, p.Odds, p.Book, p.Status,
+        predictedPct = Math.Round(p.PBlend * 100, 1), marketPct = Math.Round(p.PMarket * 100, 1), evPct = Math.Round(p.Ev, 1), p.Conf,
+        p.ClvPct, p.HomeGoals, p.AwayGoals, units = p.Units is null ? (double?)null : Math.Round(p.Units.Value, 3),
+        p.WinShare, p.LossShare,
+    }).ToList();
+
     // ---------- statistics
 
     public object Stats()

@@ -128,6 +128,8 @@ app.MapPost("/api/ai/analyze", async (AiRequest req, AiService ai, HttpContext c
 app.MapPost("/api/picks/log", (PickBatch batch, PickLog picks) =>
     Results.Json(new { added = picks.Log(batch.Picks ?? []) })).RequireRateLimiting("api");
 
+app.MapGet("/api/picks/all", (PickLog picks) => Results.Json(picks.History())).RequireRateLimiting("api");
+
 app.MapGet("/api/picks/stats", (PickLog picks, PickWorker worker) => { worker.Kick(); return Results.Json(picks.Stats()); }).RequireRateLimiting("api");
 
 // cron entry point (GitHub Actions / Plesk scheduled task): ?task=rank|settle|all, token in X-Job-Token or ?token=

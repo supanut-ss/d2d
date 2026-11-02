@@ -239,6 +239,28 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .price-result{display:block;margin-top:4px;font-size:12px}
 .price-result.ok{color:var(--mint)}.price-result.bad{color:var(--red)}
 .stats-panel{margin-top:16px}
+.hist-toggle{padding:0 15px 15px}
+.hist{border-top:1px solid var(--line);padding:14px 15px}
+.hist-filters{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.hist-filters .field input,.hist-filters .field select{width:100%;min-width:0}
+.hist-table{overflow-x:auto}
+.hist-table table{width:100%;border-collapse:collapse;font-size:13px}
+.hist-table th{position:sticky;top:0;background:var(--soft);text-align:left;font-size:12px;color:var(--muted);font-weight:700;padding:8px;white-space:nowrap}
+.hist-table td{padding:8px;border-bottom:1px solid #e8eef2;vertical-align:top}
+.hist-table td.num{font-family:"Fira Code",monospace;text-align:right;white-space:nowrap}
+.hist-table small{display:block;color:var(--muted);font-size:12px}
+.res-win{color:var(--mint);font-weight:700}.res-loss{color:var(--red);font-weight:700}.res-push,.res-open,.res-void{color:var(--muted)}
+.hist-more{margin-top:10px}
+@media(max-width:900px){.hist-filters{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:760px){
+ .hist-filters{grid-template-columns:1fr 1fr}
+ .hist-table table,.hist-table tbody,.hist-table tr,.hist-table td{display:block;width:100%}
+ .hist-table thead{display:none}
+ .hist-table tr{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px}
+ .hist-table td{border:0;padding:3px 0;text-align:left}
+ .hist-table td.num{text-align:left}
+ .hist-table td[data-k]::before{content:attr(data-k) " ";color:var(--muted);font-family:"Noto Sans Thai",sans-serif}
+}
 .stats-grid{grid-template-columns:repeat(4,1fr)}
 @media(max-width:760px){.stats-grid{grid-template-columns:repeat(2,1fr)}}
 .footnote{margin-top:18px;color:var(--muted);font-size:12px;text-align:center}
@@ -383,6 +405,19 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
   <section id="statsPanel" class="panel stats-panel" aria-labelledby="statsTitle">
   <div class="panel-head"><h2 id="statsTitle">ผลย้อนหลังของระบบ</h2><span id="statsCount" class="count"></span></div>
   <div id="statsBody" class="rank-body"><p class="detail-note">กำลังโหลด…</p></div>
+  <div class="hist-toggle"><button id="histBtn" class="btn secondary" type="button" aria-expanded="false" aria-controls="histPanel">ดูประวัติทั้งหมด</button></div>
+  <div id="histPanel" class="hist" hidden>
+    <div class="hist-filters">
+      <div class="field"><label for="hMarket">ตลาด</label><select id="hMarket"><option value="">ทั้งหมด</option><option value="AH">แฮนดิแคป</option><option value="OU">สูงต่ำ</option></select></div>
+      <div class="field"><label for="hLeague">ลีก</label><select id="hLeague"><option value="">ทุกลีก</option></select></div>
+      <div class="field"><label for="hResult">ผล</label><select id="hResult"><option value="">ทั้งหมด</option><option value="win">ชนะ (รวมชนะครึ่ง)</option><option value="loss">แพ้ (รวมแพ้ครึ่ง)</option><option value="push">คืนทุน</option><option value="open">รอผล</option><option value="void">ยกเลิก</option></select></div>
+      <div class="field"><label for="hFrom">ตั้งแต่วันที่</label><input id="hFrom" type="date"></div>
+      <div class="field"><label for="hTo">ถึงวันที่</label><input id="hTo" type="date"></div>
+      <div class="field search"><label for="hSearch">ค้นหาทีม</label><input id="hSearch" type="search" placeholder="ชื่อทีม"></div>
+    </div>
+    <div id="histSummary" class="h2h-summary stats-grid" aria-live="polite"></div>
+    <div id="histTable" class="hist-table"></div>
+  </div>
 </section>
 <dialog id="aiPwDialog" class="league-dialog pw-dialog" aria-labelledby="aiPwTitle">
   <form method="dialog" id="aiPwForm">
@@ -974,6 +1009,72 @@ async function refreshStats(){
  if(!q.logged)body="<p class='detail-note'>ยังไม่มีคำแนะนำที่บันทึกไว้ กด “จัดอันดับ” แล้วระบบจะบันทึกตัวเลือกที่ผ่านเกณฑ์ ตัดสินผลหลังแข่งจบ 3 ชั่วโมง และจับราคาปิดก่อนแข่ง 20 นาที</p>";
  el("statsBody").innerHTML=body;
 }
+// ----- full history: every logged pick, filterable, with the numbers recomputed for the filtered set
+var historyRows=null,historyShown=100;
+function resultOf(x){
+ if(x.status==="open")return "open";
+ if(x.status==="void")return "void";
+ return x.units>1e-9?"win":x.units<-1e-9?"loss":"push";
+}
+var RESULT_TEXT={win:"ชนะ",loss:"แพ้",push:"คืนทุน",open:"รอผล",void:"ยกเลิก"};
+function bkkDate(iso){return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Bangkok"}).format(new Date(iso))}
+async function loadHistory(){
+ el("histTable").innerHTML="<p class='detail-note'>กำลังโหลด…</p>";
+ try{var r=await fetch("api/picks/all");if(!r.ok)throw new Error("HTTP "+r.status);historyRows=await r.json()}
+ catch(e){el("histTable").innerHTML="<p class='detail-note'>โหลดประวัติไม่สำเร็จ: "+escapeHtml(e.message)+"</p>";return}
+ var leagues=Array.from(new Set(historyRows.map(function(x){return x.league}))).sort();
+ el("hLeague").innerHTML="<option value=''>ทุกลีก ("+leagues.length+")</option>"+leagues.map(function(l){return "<option>"+escapeHtml(l)+"</option>"}).join("");
+ historyShown=100;renderHistory();
+}
+function filteredHistory(){
+ var m=el("hMarket").value,lg=el("hLeague").value,res=el("hResult").value,from=el("hFrom").value,to=el("hTo").value,q=el("hSearch").value.trim().toLocaleLowerCase();
+ return (historyRows||[]).filter(function(x){
+  var d=bkkDate(x.kickoffUtc);
+  if(m&&x.market!==m)return false;
+  if(lg&&x.league!==lg)return false;
+  if(res&&resultOf(x)!==res)return false;
+  if(from&&d<from)return false;
+  if(to&&d>to)return false;
+  if(q&&(x.home+" "+x.away).toLocaleLowerCase().indexOf(q)<0)return false;
+  return true;
+ });
+}
+function renderHistory(){
+ var rows=filteredHistory(),settled=rows.filter(function(x){return x.status==="settled"});
+ var units=settled.reduce(function(t,x){return t+x.units},0),win=settled.reduce(function(t,x){return t+(x.winShare||0)},0),loss=settled.reduce(function(t,x){return t+(x.lossShare||0)},0);
+ var clv=rows.filter(function(x){return x.clvPct!==null&&x.clvPct!==undefined}).map(function(x){return x.clvPct});
+ var avg=function(a){return a.length?a.reduce(function(t,v){return t+v},0)/a.length:null};
+ var pred=avg(settled.map(function(x){return x.predictedPct})),clvAvg=avg(clv);
+ var sign=function(v,d){return v===null?"—":(v>0?"+":"")+v.toFixed(d)};
+ var cell=function(label,value,hint){return "<div class='h2h-stat'><b>"+value+"</b><span>"+label+(hint?"<br>"+hint:"")+"</span></div>"};
+ el("histSummary").innerHTML=
+  cell("คำแนะนำ",rows.length,"ตัดสินแล้ว "+settled.length+" · รอผล "+rows.filter(function(x){return x.status==="open"}).length)+
+  cell("กำไรสะสม",sign(units,2)+" u","ROI "+(settled.length?sign(units/settled.length*100,1)+"%":"—")+" (เดิมพันละ 1 หน่วย)")+
+  cell("ชนะจริง",win+loss?(win/(win+loss)*100).toFixed(1)+"%":"—","โมเดลคาด "+(pred===null?"—":pred.toFixed(1)+"%"))+
+  cell("CLV เฉลี่ย",clvAvg===null?"—":sign(clvAvg,2)+"%",clv.length+" คู่ · บวก "+(clv.length?Math.round(100*clv.filter(function(v){return v>0}).length/clv.length)+"%":"—"));
+ if(!rows.length){el("histTable").innerHTML="<p class='detail-note'>ไม่มีรายการตามตัวกรองนี้</p>";return}
+ var show=rows.slice(0,historyShown);
+ el("histTable").innerHTML="<table><thead><tr><th scope='col'>วันเวลา (ไทย)</th><th scope='col'>คู่</th><th scope='col'>ตัวเลือก</th><th scope='col'>ราคา</th><th scope='col'>โมเดล/ตลาด</th><th scope='col'>EV</th><th scope='col'>CLV</th><th scope='col'>สกอร์</th><th scope='col'>ผล</th></tr></thead><tbody>"+
+  show.map(function(x){
+   var r=resultOf(x),time=new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit"}).format(new Date(x.kickoffUtc));
+   return "<tr><td>"+time+"</td><td>"+escapeHtml(x.home)+" พบ "+escapeHtml(x.away)+"<small>"+escapeHtml(x.league)+"</small></td><td>"+escapeHtml(x.label)+(x.book?"<small>"+escapeHtml(x.book)+"</small>":"")+"</td>"+
+    "<td class='num' data-k='ราคา'>"+decimal(x.odds)+"</td><td class='num' data-k='โมเดล/ตลาด'>"+x.predictedPct.toFixed(0)+"% / "+x.marketPct.toFixed(0)+"%</td><td class='num' data-k='EV'>"+sign(x.evPct,1)+"%</td>"+
+    "<td class='num' data-k='CLV'>"+(x.clvPct===null||x.clvPct===undefined?"—":sign(x.clvPct,1)+"%")+"</td><td class='num' data-k='สกอร์'>"+(x.homeGoals===null||x.homeGoals===undefined?"—":x.homeGoals+"–"+x.awayGoals)+"</td>"+
+    "<td class='res-"+r+"' data-k='ผล'>"+RESULT_TEXT[r]+(x.status==="settled"?" "+sign(x.units,2)+" u":"")+"</td></tr>";
+  }).join("")+"</tbody></table>"+
+  (rows.length>historyShown?"<div class='hist-more'><button id='histMore' class='btn ghost' type='button'>แสดงเพิ่ม (เหลือ "+(rows.length-historyShown)+")</button></div>":"");
+ var more=document.getElementById("histMore");
+ if(more)more.addEventListener("click",function(){historyShown+=100;renderHistory()});
+}
+el("histBtn").addEventListener("click",function(){
+ var open=el("histPanel").hidden;
+ el("histPanel").hidden=!open;
+ el("histBtn").setAttribute("aria-expanded",String(open));
+ el("histBtn").textContent=open?"ซ่อนประวัติ":"ดูประวัติทั้งหมด";
+ if(open)loadHistory();
+});
+["hMarket","hLeague","hResult","hFrom","hTo"].forEach(function(id){el(id).addEventListener("change",function(){historyShown=100;renderHistory()})});
+el("hSearch").addEventListener("input",function(){historyShown=100;renderHistory()});
 function setRankMode(mode){
  rankMode=mode;
  el("modeOdds").classList.toggle("active",mode==="odds");el("modeOU").classList.toggle("active",mode==="ou");
