@@ -253,7 +253,7 @@ public sealed class PickLog
 /// Every few minutes: captures the closing market for picks about to kick off (closing line value),
 /// and settles finished matches from the full-time score.
 /// </summary>
-public sealed class PickWorker(PickLog log, KeyPool pool, ILogger<PickWorker> logger) : BackgroundService
+public sealed class PickWorker(PickLog log, KeyPool pool, OddsHistory history, ILogger<PickWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan Every = TimeSpan.FromMinutes(5);
 
@@ -262,11 +262,35 @@ public sealed class PickWorker(PickLog log, KeyPool pool, ILogger<PickWorker> lo
         await Task.Delay(TimeSpan.FromSeconds(45), stop);
         while (!stop.IsCancellationRequested)
         {
-            try { await CycleAsync(stop); }
+            try { await RunGuardedAsync(stop); }
             catch (OperationCanceledException) { break; }
             catch (Exception ex) { logger.LogWarning(ex, "Pick worker cycle failed"); }
             await Task.Delay(Every, stop);
         }
+    }
+
+    private readonly SemaphoreSlim _gate = new(1, 1);
+    private DateTime _lastRunUtc = DateTime.MinValue;
+
+    /// <summary>
+    /// IIS stops an idle app, and the timer stops with it. Any visit calls this so settlement catches up
+    /// (at most once every 3 minutes, never two cycles at once).
+    /// </summary>
+    public void Kick()
+    {
+        if (DateTime.UtcNow - _lastRunUtc < TimeSpan.FromMinutes(3)) return;
+        _ = Task.Run(async () =>
+        {
+            try { await RunGuardedAsync(CancellationToken.None); }
+            catch (Exception ex) { logger.LogWarning(ex, "Catch-up pick cycle failed"); }
+        });
+    }
+
+    private async Task RunGuardedAsync(CancellationToken ct)
+    {
+        if (!await _gate.WaitAsync(0, ct)) return;
+        try { _lastRunUtc = DateTime.UtcNow; await CycleAsync(ct); }
+        finally { _gate.Release(); }
     }
 
     private async Task CycleAsync(CancellationToken ct)
@@ -292,6 +316,25 @@ public sealed class PickWorker(PickLog log, KeyPool pool, ILogger<PickWorker> lo
                 p.CloseP = Math.Round(backed, 4);
                 p.ClvPct = Math.Round((p.Odds * backed - 1) * 100, 2);
                 p.ClosedAtUtc = now;
+                changed = true;
+            }
+        }
+
+        // 1b) closing line missed (app was asleep at kickoff): use the last tracked snapshot from the 2 hours before kickoff
+        var missed = log.All.Where(p => p.ClosedAtUtc is null && p.KickoffUtc <= now).ToList();
+        if (missed.Count > 0)
+        {
+            var snaps = history.Get(missed.Select(p => p.FixtureId).Distinct());
+            foreach (var p in missed)
+            {
+                if (!snaps.TryGetValue(p.FixtureId, out var list)) continue;
+                var last = list.Where(s => s.T <= p.KickoffUtc && s.T >= p.KickoffUtc.AddHours(-2)).OrderBy(s => s.T).LastOrDefault();
+                var ladder = p.Market == "AH" ? last?.Ah : last?.Ou;
+                if (ladder is null || !ladder.TryGetValue(OddsMath.Key(p.LadderLine), out var first)) continue;
+                var backed = p.Side is "home" or "over" ? first : 1 - first;
+                p.CloseP = Math.Round(backed, 4);
+                p.ClvPct = Math.Round((p.Odds * backed - 1) * 100, 2);
+                p.ClosedAtUtc = last!.T;
                 changed = true;
             }
         }

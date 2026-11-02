@@ -13,7 +13,8 @@ builder.Services.AddSingleton<AiService>();
 builder.Services.AddSingleton<OddsHistory>();
 builder.Services.AddSingleton<KnownFixtures>();
 builder.Services.AddSingleton<PickLog>();
-builder.Services.AddHostedService<PickWorker>();
+builder.Services.AddSingleton<PickWorker>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<PickWorker>());
 builder.Services.AddHostedService<OddsTracker>();
 builder.Services.AddResponseCompression(o => o.EnableForHttps = true);
 builder.Services.Configure<ForwardedHeadersOptions>(o =>
@@ -137,9 +138,9 @@ app.MapPost("/api/ai/analyze", async (AiRequest req, AiService ai, HttpContext c
 app.MapPost("/api/picks/log", (PickBatch batch, PickLog picks) =>
     Results.Json(new { added = picks.Log(batch.Picks ?? []) })).RequireRateLimiting("api");
 
-app.MapGet("/api/picks/stats", (PickLog picks) => Results.Json(picks.Stats())).RequireRateLimiting("api");
+app.MapGet("/api/picks/stats", (PickLog picks, PickWorker worker) => { worker.Kick(); return Results.Json(picks.Stats()); }).RequireRateLimiting("api");
 
-app.MapGet("/api/status", (KeyPool pool) => Results.Json(pool.Quota()));
+app.MapGet("/api/status", (KeyPool pool, PickWorker worker) => { worker.Kick(); return Results.Json(pool.Quota()); });
 
 app.Run();
 
