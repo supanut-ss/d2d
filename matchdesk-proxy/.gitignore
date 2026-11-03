@@ -9,3 +9,4 @@ deploy.credentials.ps1
 deploy/
 .deploy-cache/
 App_Data/
+backtest/data/

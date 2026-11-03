@@ -15,8 +15,8 @@
 
   <ItemGroup>
     <!-- Web SDK picks up every .json/.config under the project: keep generated output and runtime data out of the package -->
-    <Content Remove="publish/**;deploy/**;App_Data/**" />
-    <None Remove="publish/**;deploy/**;App_Data/**" />
+    <Content Remove="publish/**;deploy/**;App_Data/**;backtest/**" />
+    <None Remove="publish/**;deploy/**;App_Data/**;backtest/**" />
   </ItemGroup>
 
   <ItemGroup>
