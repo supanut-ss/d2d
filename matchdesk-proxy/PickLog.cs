@@ -99,6 +99,27 @@ public sealed class PickLog
                 foreach (var p in JsonSerializer.Deserialize<List<Pick>>(File.ReadAllText(_file)) ?? []) _picks[p.Id] = p;
         }
         catch (Exception ex) { _log.LogWarning(ex, "Could not read {File}", _file); }
+        DropDuplicates();
+    }
+
+    /// <summary>
+    /// One pick per fixture and market: a later run that lands on another line (or side) of the same match is the same bet again,
+    /// and counting it would double the win or loss. Earlier versions logged those; the first recommendation is kept.
+    /// </summary>
+    private void DropDuplicates()
+    {
+        var extra = _picks.Values.GroupBy(p => (p.FixtureId, p.Market))
+            .SelectMany(g => g.OrderBy(p => p.LoggedAt).Skip(1)).ToList();
+        if (extra.Count == 0) return;
+        try
+        {
+            var backup = Path.ChangeExtension(_file, ".before-dedupe.json");
+            if (File.Exists(_file) && !File.Exists(backup)) File.Copy(_file, backup);
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not back up {File}", _file); return; }
+        foreach (var p in extra) _picks.TryRemove(p.Id, out _);
+        _log.LogInformation("Removed {Count} duplicate picks (same fixture and market)", extra.Count);
+        Save();
     }
 
     public IEnumerable<Pick> All => _picks.Values;
@@ -121,6 +142,7 @@ public sealed class PickLog
             if (!okMarket || !okSide) continue;
             if (!(i.Odds > 1.01 && i.Odds < 10) || Math.Abs(i.Line) > 10 || Math.Abs(i.LadderLine) > 10) continue;
             if (new[] { i.PModel, i.PMarket, i.PBlend }.Any(p => !(p > 0 && p < 1))) continue;
+            if (_picks.Values.Any(p => p.FixtureId == i.FixtureId && p.Market == i.Market)) continue;   // the first recommendation is the one that counts
             var id = IdOf(i.FixtureId, i.Market, i.Side, i.LadderLine);
             var pick = new Pick
             {
