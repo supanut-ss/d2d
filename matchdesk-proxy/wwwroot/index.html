@@ -76,7 +76,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .btn.ghost.icon-btn.analyze-btn:hover{background:var(--soft)}
 .analyze-btn .ico{width:16px;height:16px}
 .analyze-btn::after{content:"";position:absolute;inset:-9px}
-.teams .match-odds{grid-column:1/-1;margin-top:-2px}
+.teams .match-odds{grid-column:2;margin-top:0}
 .pk{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;font:700 13px "Fira Code",monospace}
 .pk.g{background:var(--mint-bg);color:var(--mint)}
 .pk.r{background:var(--red-bg);color:#9c3b38}
@@ -87,6 +87,14 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .mo-side.h,.mo-side.o{color:var(--mint)}
 .mo-side.a,.mo-side.l{color:var(--red)}
 .mo-side.out{opacity:.5}
+.tcell{min-width:0}
+.tprice{min-height:18px;padding:3px 0 0 32px;font-size:12px;color:var(--muted)}
+.tcell.away .tprice{padding:3px 32px 0 0;text-align:right}
+.ahp b{font:600 12px "Fira Code",monospace;color:var(--ink)}
+.ahp .ln{font:600 12px "Fira Code",monospace}
+.ahp .ln.pos{color:var(--mint)}
+.ahp .ln.neg{color:var(--red)}
+.ahp.out{opacity:.5}
 .mo-none{font-style:italic}
 .detail-dialog{border:0;border-radius:var(--radius);padding:0;width:min(880px,calc(100vw - 24px));max-height:calc(100dvh - 32px);color:var(--ink);background:var(--white);box-shadow:0 24px 70px rgba(15,40,58,.3);overflow:hidden}
 .detail-dialog[open]{display:flex;flex-direction:column}
@@ -133,12 +141,12 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .badge{font-size:12px;border-radius:20px;padding:2px 8px;background:var(--soft);color:var(--muted);white-space:nowrap}
 .badge.live{background:var(--red-bg);color:#9c3b38}
 .badge.done{background:#e8edf0;color:#526a7c}
-.teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:center;gap:9px}
+.teams{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:start;gap:4px 9px}
 .team{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;min-width:0}
 .team.away{justify-content:flex-end;text-align:right}
 .team img{width:24px;height:24px;object-fit:contain}
 .team span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.score-mini{font:600 13px "Fira Code",monospace;color:var(--ink2);white-space:nowrap}
+.score-mini{font:600 13px "Fira Code",monospace;color:var(--ink2);white-space:nowrap;line-height:24px}
 .time{font:500 12px "Fira Code",monospace}
 .empty{padding:38px 22px;text-align:center;color:var(--muted)}
 .empty-mark{width:44px;height:44px;display:grid;place-items:center;border-radius:13px;margin:0 auto 12px;background:var(--blue2);color:var(--blue);font:600 18px "Fira Code",monospace}
@@ -399,11 +407,13 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
  .field.search,.deep-toggle{grid-column:1/-1}
  .filter-actions{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;width:auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(20,48,68,.1);display:grid;grid-template-columns:1fr 1.35fr;gap:10px}
  .filter-actions .btn{width:100%;padding:0 10px;font-size:14px}
- .teams{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h s" "a s" "o o";row-gap:8px;column-gap:12px}
- .teams .match-odds{grid-area:o}
- .teams .team:first-child{grid-area:h}
+ .teams{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h s" "a s" "o o";row-gap:6px;column-gap:12px}
+ .teams .match-odds{grid-area:o;grid-column:auto}
+ .teams .tcell:first-child{grid-area:h}
  .teams .score-mini{grid-area:s;font-size:15px}
- .teams .team.away{grid-area:a;flex-direction:row-reverse;justify-content:flex-end;text-align:left}
+ .teams .tcell.away{grid-area:a}
+ .teams .team.away{flex-direction:row-reverse;justify-content:flex-end;text-align:left}
+ .tcell.away .tprice{padding:3px 0 0 32px;text-align:left}
  .team{font-size:14px}
  .rank-body{padding:6px 12px}
  .rank-head{display:none}
@@ -593,19 +603,23 @@ function mainTotal(oddsData,home,away){
  var ou=parseMarkets(oddsData,home,away).overUnder,l=centralLine(ou,"bestOver","bestUnder","over");
  return l===null||!(ou[l].bestOver>1&&ou[l].bestUnder>1)?null:{line:Number(l),over:ou[l].bestOver,under:ou[l].bestUnder};
 }
-function listOddsHtml(id){
- var o=listOdds.get(id);
- if(!o)return "";
- var side=function(cls,letter,line,odds){return "<span class='mo-side "+cls+(inPriceRange(odds)?"":" out")+"'>"+letter+" "+line+" <b>"+decimal(odds)+"</b></span>"};
- var groups=[];
- if(o.v)groups.push(side("h","H",formatHandicap(o.v.line),o.v.home)+side("a","A",formatHandicap(-o.v.line),o.v.away));
- if(o.ou)groups.push(side("o","O",o.ou.line,o.ou.over)+side("l","L",o.ou.line,o.ou.under));
- return groups.length?"<span class='mo-line'>"+groups.map(function(g){return "<span class='mo-grp'>"+g+"</span>"}).join("<span class='mo-sep'>/</span>")+"</span>":"<span class='mo-none'>No price</span>";
+// handicap price under the team it belongs to ("+0.25 1.95": the line is green when positive, red when negative), the total under the time
+function listOddsParts(id){
+ var o=listOdds.get(id),res={home:"",away:"",total:""};
+ if(!o)return res;
+ var ah=function(line,odds){return "<span class='ahp"+(inPriceRange(odds)?"":" out")+"'><span class='ln "+(line>0?"pos":line<0?"neg":"")+"'>"+formatHandicap(line)+"</span> <b>"+decimal(odds)+"</b></span>"};
+ var tot=function(cls,letter,line,odds){return "<span class='mo-side "+cls+(inPriceRange(odds)?"":" out")+"'>"+letter+" "+line+" <b>"+decimal(odds)+"</b></span>"};
+ if(o.v){res.home=ah(o.v.line,o.v.home);res.away=ah(-o.v.line,o.v.away)}
+ if(o.ou)res.total="<span class='mo-line'>"+tot("o","O",o.ou.line,o.ou.over)+tot("l","L",o.ou.line,o.ou.under)+"</span>";
+ if(!o.v&&!o.ou)res.total="<span class='mo-none'>No price</span>";
+ return res;
 }
 function paintListOdds(id){
- var n=document.querySelector("[data-odds-for='"+id+"']"),k=document.querySelector("[data-pick-for='"+id+"']");
- if(n)n.innerHTML=listOddsHtml(id);
- if(k)k.innerHTML=pickSlotsHtml(id);
+ var parts=listOddsParts(id),set=function(sel,html){var n=document.querySelector(sel);if(n)n.innerHTML=html};
+ set("[data-odds-for='"+id+"']",parts.total);
+ set("[data-ah-for='"+id+"'][data-side='home']",parts.home);
+ set("[data-ah-for='"+id+"'][data-side='away']",parts.away);
+ set("[data-pick-for='"+id+"']",pickSlotsHtml(id));
 }
 // 3 at a time; answers come from the server cache when the odds tracker or someone else asked recently
 async function loadListOdds(){
@@ -802,9 +816,12 @@ function renderFixtures(){
  }).join("");
  function matchRow(f){
   var id=f.fixture.id;
-  var score=f.goals.home!==null&&f.goals.away!==null?f.goals.home+" : "+f.goals.away:"";
+  var score=f.goals.home!==null&&f.goals.away!==null?f.goals.home+" : "+f.goals.away:"",parts=listOddsParts(id);
   return "<article class='match "+(selectedId===id?"selected":"")+"' data-id='"+id+"'>"+
-   "<div class='match-body'><div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span><div class='match-odds' data-odds-for='"+id+"'>"+listOddsHtml(id)+"</div></div></div>"+
+   "<div class='match-body'><div class='teams'><div class='tcell'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><div class='tprice' data-ah-for='"+id+"' data-side='home'>"+parts.home+"</div></div>"+
+    "<span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span>"+
+    "<div class='tcell away'><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span><div class='tprice' data-ah-for='"+id+"' data-side='away'>"+parts.away+"</div></div>"+
+    "<div class='match-odds' data-odds-for='"+id+"'>"+parts.total+"</div></div></div>"+
    "<span class='match-pick' data-pick-for='"+id+"' role='group' aria-label='Model picks: handicap, total'>"+pickSlotsHtml(id)+"</span>"+
    "<button class='btn ghost icon-btn analyze-btn' type='button' data-analyze='"+id+"' title='บทวิเคราะห์' aria-label='เปิดบทวิเคราะห์ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>"+ICON.chart+"</button>"+
   "</article>";
@@ -999,7 +1016,17 @@ function kickText(f){
 // the model keeps Thai category names (stored picks use them); tables show English
 function enCategory(c){return c==="สูง/ต่ำ"?"Over/Under":"Handicap"}
 function enLabel(l){return String(l).replace(/^สูง /,"Over ").replace(/^ต่ำ /,"Under ")}
-function enPickLabel(l){return String(l).replace(/^แฮนดิแคป /,"AH ").replace(/^สูง\/ต่ำ สูง /,"Over ").replace(/^สูง\/ต่ำ ต่ำ /,"Under ")}
+function enPickLabel(l){return String(l).replace(/^แฮนดิแคป /,"").replace(/^สูง\/ต่ำ สูง /,"Over ").replace(/^สูง\/ต่ำ ต่ำ /,"Under ")}
+// the team that gives the handicap (ต่อ) of a logged handicap pick, so the match can show it in bold; null for totals and level lines
+function giverOf(x){
+ var m=/^แฮนดิแคป (.+) ([+-]?\d+(?:\.\d+)?)$/.exec(x.label||""),line=m?Number(m[2]):0;
+ if(!m||!line)return null;
+ return (line<0)===(m[1]===x.home)?"home":"away";
+}
+function matchHtml(x){
+ var g=giverOf(x),h=escapeHtml(x.home),a=escapeHtml(x.away);
+ return (g==="home"?"<b>"+h+"</b>":h)+" vs "+(g==="away"?"<b>"+a+"</b>":a);
+}
 function paintPicks(){if(fixtures.length)filteredFixtures().forEach(function(f){paintListOdds(f.fixture.id)})}
 function rankUpdate(text,body){
  var shared=!!(rankData&&rankData.shared);
@@ -1085,7 +1112,7 @@ function renderRank(){
  var criteria=[
   "โอกาสชนะ = โมเดลประตู Poisson ผสมราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · ราคาตลาดอิง Pinnacle เมื่อมี",
   "แสดงเฉพาะราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+(isOU?MAX_EV_OU+"% เฉพาะเส้นหลัก":MAX_EV+"%"),
-  "Kelly = สัดส่วนของทุนที่ ¼ Kelly แนะนำ (สูงสุด "+(KELLY_CAP*100)+"%) · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา",
+  "ลงทุน = สัดส่วนของทุนที่สูตร ¼ Kelly แนะนำ (สูงสุด "+(KELLY_CAP*100)+"%) · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา",
   "EV ไม่ใช่กำไรที่รับประกัน"
  ];
  var li=function(t){return "<li>"+t+"</li>"};
@@ -1097,7 +1124,7 @@ function renderRank(){
   var head="<div class='rank-head' aria-hidden='true'><span>#</span><span>Match</span><span>Pick</span><span>Pred</span><span>Odds</span><span>Win %</span><span>EV</span></div>";
   var body=note+aiOverallHtml()+head+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
-   var stake=x.kelly>0?"Kelly "+x.kelly.toFixed(1)+"%":"";
+   var stake=x.kelly>0?"ลงทุน "+x.kelly.toFixed(1)+"%":"";
    var move=moveText(marketMove(x,(rankData.history||{})[f.fixture.id]));
    var chips=[x.book?escapeHtml(x.book):"",x.anchor&&x.anchor!=="Pinnacle"?"No Pinnacle":"",x.push>0?"คืนทุน "+pctFmt(x.push*100):"",x.conf!==undefined?"มั่นใจ "+x.conf:"",stake].filter(Boolean).map(function(t){return "<span class='chip'>"+t+"</span>"}).join("")+(move?"<span class='chip'>"+move.replace(/^ · /,"")+"</span>":"");
    var vs=escapeHtml(f.teams.home.name)+" vs "+escapeHtml(f.teams.away.name);
@@ -1234,23 +1261,23 @@ async function refreshStats(){
  el("statsCount").textContent="Logged "+q.logged+" · Open "+q.open+" · Settled "+q.settled;
  var cell=function(label,value,hint){return "<div class='h2h-stat'><b>"+value+"</b><span>"+label+(hint?"<br>"+hint:"")+"</span></div>"};
  var body="<div class='h2h-summary stats-grid'>"+
-  cell("Avg CLV",c.avgClvPct===null?"—":sign(c.avgClvPct,2)+"%","Pick price vs closing price ("+c.clvSamples+" picks)")+
-  cell("CLV positive",c.clvPositivePct===null?"—":c.clvPositivePct+"%","of picks with a closing price")+
-  cell("ROI",f1(o.roiPct,"%+")+(o.roiSePct!==null&&o.roiSePct!==undefined?" ±"+o.roiSePct.toFixed(0):""),"from "+o.picks+" picks · model EV "+(o.avgEvPct===null?"—":"+"+o.avgEvPct.toFixed(1)+"%"))+
-  cell("Win rate",o.hitPct===null?"—":o.hitPct.toFixed(1)+"%","model expected "+(o.avgPredictedPct===null?"—":o.avgPredictedPct.toFixed(1)+"%"))+
+  cell("Avg CLV",c.avgClvPct===null?"—":sign(c.avgClvPct,2)+"%","ราคาที่แนะนำเทียบราคาปิด ("+c.clvSamples+" คู่)")+
+  cell("CLV positive",c.clvPositivePct===null?"—":c.clvPositivePct+"%","ของคู่ที่จับราคาปิดได้")+
+  cell("ROI",f1(o.roiPct,"%+")+(o.roiSePct!==null&&o.roiSePct!==undefined?" ±"+o.roiSePct.toFixed(0):""),"จาก "+o.picks+" คู่ · โมเดลคาด EV "+(o.avgEvPct===null?"—":"+"+o.avgEvPct.toFixed(1)+"%"))+
+  cell("Win rate",o.hitPct===null?"—":o.hitPct.toFixed(1)+"%","โมเดลคาด "+(o.avgPredictedPct===null?"—":o.avgPredictedPct.toFixed(1)+"%"))+
   "</div>";
- if(o.picks>0&&o.picks<100)body+="<p class='detail-note' style='color:var(--amber);font-weight:600'>Small sample ("+o.picks+" picks): ROI can swing a lot by luck alone (± is the error from luck only). Do not conclude yet; watch CLV first.</p>";
- body+="<p class='detail-note'>CLV (closing line value) = was the pick price better than the closing price. It shows quality faster than profit does: a CLV that stays positive means the model sees something the market has not yet. ROI and win rate need several hundred picks before they can be trusted.</p>";
- if(q.calibration&&q.calibration.length)body+="<div class='section-title'>Calibration <span class='source-tag'>model expected vs actual wins</span></div><div class='tbl-wrap'><table class='mini-table recent-table'><thead><tr><th scope='col'>Range</th><th scope='col' class='num'>Expected</th><th scope='col' class='num'>Actual</th><th scope='col' class='num'>Picks</th></tr></thead><tbody>"+q.calibration.map(function(b){
+ if(o.picks>0&&o.picks<100)body+="<p class='detail-note' style='color:var(--amber);font-weight:600'>ตัวอย่างยังน้อย ("+o.picks+" คู่): ROI แกว่งได้มากโดยบังเอิญ (ค่า ± คือความคลาดเคลื่อนจากโชคอย่างเดียว) อย่าเพิ่งสรุปว่าโมเดลดีหรือแย่จาก ROI ให้ดู CLV เป็นหลัก</p>";
+ body+="<p class='detail-note'>CLV (Closing Line Value) = ราคาที่แนะนำดีกว่าราคาปิดก่อนแข่งไหม เป็นตัวชี้วัดคุณภาพที่เห็นผลเร็วกว่ากำไรจริง ถ้า CLV เป็นบวกสม่ำเสมอแสดงว่าโมเดลเห็นสิ่งที่ตลาดยังไม่เห็น · ROI และอัตราชนะต้องสะสมหลายร้อยคู่ถึงจะเชื่อได้</p>";
+ if(q.calibration&&q.calibration.length)body+="<div class='section-title'>Calibration <span class='source-tag'>โมเดลคาด เทียบ ชนะจริง</span></div><div class='tbl-wrap'><table class='mini-table recent-table'><thead><tr><th scope='col'>Range</th><th scope='col' class='num'>Expected</th><th scope='col' class='num'>Actual</th><th scope='col' class='num'>Picks</th></tr></thead><tbody>"+q.calibration.map(function(b){
   return "<tr><td>"+escapeHtml(b.range)+"</td><td class='num'>"+f1(b.predictedPct,"%")+"</td><td class='num'>"+f1(b.actualPct,"%")+"</td><td class='num'>"+b.picks+"</td></tr>";
  }).join("")+"</tbody></table></div>";
  if(q.recent&&q.recent.length)body+="<div class='section-title'>Latest picks</div><div class='tbl-wrap'><table class='mini-table recent-table'><thead><tr><th scope='col'>Date</th><th scope='col'>Match</th><th scope='col'>Pick</th><th scope='col' class='num'>Odds</th><th scope='col' class='num'>Score</th><th scope='col'>Result</th><th scope='col' class='num'>CLV</th></tr></thead><tbody>"+q.recent.slice(0,12).map(function(x){
   var settled=x.status==="settled",word=settled?(x.units>0?"Win":x.units<0?"Loss":"Push")+" "+sign(x.units,2):x.status==="void"?"Void":"Open";
   var cls=settled?(x.units>0?"move-up":x.units<0?"move-down":""):"";
   var date=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Bangkok",day:"numeric",month:"short"}).format(new Date(x.kickoffUtc));
-  return "<tr><td class='d'>"+date+"</td><td class='m'>"+escapeHtml(x.home+" vs "+x.away)+"</td><td class='m'>"+escapeHtml(enPickLabel(x.label))+"</td><td class='num'>"+Number(x.odds).toFixed(2)+"</td><td class='num sc'>"+(x.score?x.score.replace("-","–"):"—")+"</td><td class='"+cls+"'>"+word+"</td><td class='num'>"+(x.clvPct!==null&&x.clvPct!==undefined?sign(x.clvPct,1)+"%":"—")+"</td></tr>";
+  return "<tr><td class='d'>"+date+"</td><td class='m'>"+matchHtml(x)+"</td><td class='m'>"+escapeHtml(enPickLabel(x.label))+"</td><td class='num'>"+Number(x.odds).toFixed(2)+"</td><td class='num sc'>"+(x.score?x.score.replace("-","–"):"—")+"</td><td class='"+cls+"'>"+word+"</td><td class='num'>"+(x.clvPct!==null&&x.clvPct!==undefined?sign(x.clvPct,1)+"%":"—")+"</td></tr>";
  }).join("")+"</tbody></table></div>";
- if(!q.logged)body="<p class='detail-note'>No picks logged yet. Open the page (or press Rank): picks that pass the rules are recorded, settled 3 hours after the match ends, and the closing price is captured 20 minutes before kickoff.</p>";
+ if(!q.logged)body="<p class='detail-note'>ยังไม่มีคำแนะนำที่บันทึกไว้ เปิดหน้าเว็บหรือกด “จัดอันดับ” แล้วระบบจะบันทึกตัวเลือกที่ผ่านเกณฑ์ ตัดสินผลหลังแข่งจบ 3 ชั่วโมง และจับราคาปิดก่อนแข่ง 20 นาที</p>";
  el("statsBody").innerHTML=body;
 }
 // ----- full history: every logged pick, filterable, with the numbers recomputed for the filtered set
@@ -1301,7 +1328,7 @@ function renderHistory(){
  el("histTable").innerHTML="<table><thead><tr><th scope='col'>Date/time (TH)</th><th scope='col'>Match</th><th scope='col'>Pick</th><th scope='col'>Odds</th><th scope='col'>Model/Mkt</th><th scope='col'>EV</th><th scope='col'>CLV</th><th scope='col'>Score</th><th scope='col'>Result</th></tr></thead><tbody>"+
   show.map(function(x){
    var r=resultOf(x),time=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(x.kickoffUtc));
-   return "<tr><td>"+time+"</td><td>"+escapeHtml(x.home)+" vs "+escapeHtml(x.away)+"<small>"+escapeHtml(x.league)+"</small></td><td>"+escapeHtml(enPickLabel(x.label))+(x.book?"<small>"+escapeHtml(x.book)+"</small>":"")+"</td>"+
+   return "<tr><td>"+time+"</td><td>"+matchHtml(x)+"<small>"+escapeHtml(x.league)+"</small></td><td>"+escapeHtml(enPickLabel(x.label))+(x.book?"<small>"+escapeHtml(x.book)+"</small>":"")+"</td>"+
     "<td class='num' data-k='Odds'>"+decimal(x.odds)+"</td><td class='num' data-k='Model/Mkt'>"+x.predictedPct.toFixed(0)+"% / "+x.marketPct.toFixed(0)+"%</td><td class='num' data-k='EV'>"+sign(x.evPct,1)+"%</td>"+
     "<td class='num' data-k='CLV'>"+(x.clvPct===null||x.clvPct===undefined?"—":sign(x.clvPct,1)+"%")+"</td><td class='num' data-k='Score'>"+(x.homeGoals===null||x.homeGoals===undefined?"—":x.homeGoals+"–"+x.awayGoals)+"</td>"+
     "<td class='res-"+r+"' data-k='Result'>"+RESULT_TEXT[r]+(x.status==="settled"?" "+sign(x.units,2)+" u":"")+"</td></tr>";
