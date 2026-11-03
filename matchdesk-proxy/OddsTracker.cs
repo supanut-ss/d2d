@@ -16,9 +16,9 @@ public sealed class OddsHistory
     private readonly string _file;
     private readonly ILogger<OddsHistory> _log;
 
-    public OddsHistory(IWebHostEnvironment env, ILogger<OddsHistory> log)
+    public OddsHistory(DataDir dir, ILogger<OddsHistory> log)
     {
-        _file = Path.Combine(env.ContentRootPath, "App_Data", "odds-history.json");
+        _file = dir.File("odds-history.json");
         _log = log;
         try
         {

@@ -10,6 +10,8 @@ builder.Services.AddSingleton<KeyPool>();
 builder.Services.AddHttpClient("ai", c => c.Timeout = TimeSpan.FromMinutes(4));
 builder.Services.AddSingleton<ResponseCache>();
 builder.Services.AddSingleton<AiService>();
+builder.Services.AddSingleton<DataDir>();
+builder.Services.AddSingleton<SharedRank>();
 builder.Services.AddSingleton<OddsHistory>();
 builder.Services.AddSingleton<KnownFixtures>();
 builder.Services.AddSingleton<PickLog>();
@@ -107,6 +109,27 @@ app.MapGet("/api/odds-history", (string? fixtures, OddsHistory history) =>
     var ids = (fixtures ?? "").Split(',', StringSplitOptions.RemoveEmptyEntries)
         .Select(x => int.TryParse(x, out var id) ? id : 0).Where(id => id > 0).Distinct().Take(60);
     return Results.Json(history.Get(ids));
+}).RequireRateLimiting("api");
+
+// the latest ranking (with AI notes) pulled for a date, shown to every visitor
+app.MapGet("/api/shared/rank", (string? date, SharedRank shared) =>
+{
+    if (!SharedRank.ValidDate(date)) return Results.BadRequest(new { error = "invalid date" });
+    var json = shared.Get(date!);
+    return json is null ? Results.NoContent() : Results.Content(json, "application/json");
+}).RequireRateLimiting("api");
+
+app.MapPut("/api/shared/rank", async (string? date, HttpContext ctx, SharedRank shared) =>
+{
+    if (!SharedRank.ValidDate(date)) return Results.BadRequest(new { error = "invalid date" });
+    var limit = ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
+    if (limit is { IsReadOnly: false }) limit.MaxRequestBodySize = SharedRank.MaxBytes;
+    try
+    {
+        using var reader = new StreamReader(ctx.Request.Body);
+        return shared.Put(date!, await reader.ReadToEndAsync(ctx.RequestAborted)) ? Results.NoContent() : Results.BadRequest(new { error = "invalid ranking" });
+    }
+    catch (BadHttpRequestException) { return Results.StatusCode(StatusCodes.Status413PayloadTooLarge); }
 }).RequireRateLimiting("api");
 
 app.MapGet("/api/ai/providers", (AiService ai) => Results.Json(ai.Providers));

@@ -119,6 +119,11 @@ if (-not $httpErrors) { $httpErrors = $webConfig.CreateElement("httpErrors"); [v
 $httpErrors.SetAttribute("existingResponse", "PassThrough")
 $webConfig.Save($webConfigPath)
 
+# Runtime data (picks, odds history, shared rankings) lives in App_Data on the server (or Matchdesk:DataDir). It must never be part
+# of the upload: the uploader only prunes files in the remote root, so a missing App_Data in the package leaves the server's copy alone.
+$stagedData = Join-Path $appDir "App_Data"
+if (Test-Path -LiteralPath $stagedData) { Remove-Item -LiteralPath $stagedData -Recurse -Force }
+
 New-Item -ItemType Directory -Path (Join-Path $appDir "logs") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $appDir "logs\README.txt") -Value "ANCM stdout logs are written here when stdoutLogEnabled=true."
 

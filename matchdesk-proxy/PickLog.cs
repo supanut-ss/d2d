@@ -88,9 +88,9 @@ public sealed class PickLog
     private readonly ILogger<PickLog> _log;
     private readonly object _saveLock = new();
 
-    public PickLog(IWebHostEnvironment env, KnownFixtures known, ILogger<PickLog> log)
+    public PickLog(DataDir dir, KnownFixtures known, ILogger<PickLog> log)
     {
-        _file = Path.Combine(env.ContentRootPath, "App_Data", "picks.json");
+        _file = dir.File("picks.json");
         _known = known;
         _log = log;
         try

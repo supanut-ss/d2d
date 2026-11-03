@@ -9,6 +9,14 @@ ASP.NET Core app that serves the Matchdesk page and proxies API-Football so the 
 - Responses are cached in memory (odds 30 min, predictions 6 h, team stats 12 h, head-to-head 24 h, fixtures 10 min) and shared by all visitors
 - Per-IP limit: 240 requests/minute (`Matchdesk:RequestsPerMinutePerIp`)
 
+## Stored data
+
+Everything that must survive a deploy is kept in one folder: `App_Data` next to the app, or `Matchdesk:DataDir` (absolute, or relative to the app folder). The deploy script never uploads into it.
+
+- `picks.json`: every logged pick with its closing price and result (the history page reads this, so all visitors see the same history)
+- `odds-history.json`: hourly price snapshots
+- `shared-rank-YYYY-MM-DD.json`: the latest ranking (and AI notes) pulled for that date. The first visitor's pull is shown to everyone; "จัดอันดับ" reuses it for 60 minutes when the selected fixtures match, and "ดึงใหม่" replaces it. Files older than 5 days are removed
+
 ## AI analysis (optional)
 
 `POST /api/ai/analyze` sends the shortlisted matches (numbers only, up to 20) to one or more platforms and returns a Thai verdict, summary and risks per match. Platforms with no key are hidden in the page.

@@ -382,7 +382,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
   </section>
 
   <section id="rankPanel" class="panel rank-panel" hidden aria-live="polite">
-    <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span></div>
+    <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span><button id="rankRefresh" class="btn ghost" type="button" hidden>ดึงใหม่</button></div>
     <div id="rankTools" class="ai-bar rank-tools"><label for="bankroll">ทุนของคุณ (บาท)</label><input id="bankroll" class="keyinput" type="number" inputmode="numeric" min="0" step="100" placeholder="เช่น 10000" style="max-width:170px"><span class="keyhint">ใช้คำนวณเงินเดิมพันตาม ¼ Kelly · เก็บไว้ในเบราว์เซอร์นี้เท่านั้น</span></div>
     <div id="aiBar" class="ai-bar" hidden><label for="aiProvider">ให้ AI ช่วยวิเคราะห์คู่ที่คัดมา</label><select id="aiProvider" aria-label="แพลตฟอร์ม AI"></select><select id="aiModel" aria-label="โมเดล AI"></select><button id="aiBtn" class="btn secondary" type="button">วิเคราะห์ด้วย AI</button><span id="aiStatus" class="keyhint" aria-live="polite"></span></div>
     <div id="rankBody" class="rank-body"></div>
@@ -656,7 +656,7 @@ async function loadFixtures(){
  el("matchList").innerHTML="<div class='loading'><i class='spin'></i>กำลังดึงโปรแกรมแข่งขัน</div>";
  try{
   var data=await apiGet("/fixtures",{date:date,timezone:"Asia/Bangkok",status:"NS-TBD"},"fixtures:"+date);
-  fixtures=data.response||[];
+  fixtures=data.response||[];fixturesDate=date;
   selectedId=null;
   renderFixtures();loadStandings();
   el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>โปรแกรมวันที่ "+escapeHtml(dateFmt.format(new Date(date+"T12:00:00+07:00")))+"</span></div></div>";
@@ -803,9 +803,33 @@ function modelPercent(data){
  return h!==null&&d!==null&&a!==null?{home:h/100,draw:d/100,away:a/100}:null;
 }
 function rankUpdate(text,body){
+ var shared=!!(rankData&&rankData.shared);
  el("rankPanel").hidden=false;
- el("rankCount").textContent=text;
+ el("rankCount").textContent=text+(shared?" · ดึงเมื่อ "+timeText(rankData.rankedAt)+" น. ใช้ร่วมกันทุกคน":"");
+ el("rankRefresh").hidden=!shared;
  el("rankBody").innerHTML=body;
+}
+// the first visitor's ranking (and AI notes) is kept on the server and shown to everyone, so nobody pulls it twice
+var SHARED_MAX_AGE=60*60e3,fixturesDate="";
+async function fetchShared(date){
+ try{var r=await fetch("api/shared/rank?date="+encodeURIComponent(date));return r.status===200?await r.json():null}catch(e){return null}
+}
+function sharedUsable(sh,ids){
+ var p=sh&&sh.payload;
+ return !!(p&&p.rankedAt&&Date.now()-new Date(p.rankedAt).getTime()<SHARED_MAX_AGE&&Array.isArray(p.ids)&&p.ids.join(",")===ids.join(","));
+}
+function applyShared(sh){
+ var p=sh.payload,now=Date.now();
+ p.items=(p.items||[]).filter(function(it){return new Date(it.fixture.fixture.date).getTime()>now});
+ if(!p.items.length)return false;
+ p.shared=true;rankData=p;
+ renderRank();
+ return true;
+}
+function shareRank(){
+ if(!rankData||!rankData.date)return;
+ var p=Object.assign({},rankData);delete p.shared;
+ fetch("api/shared/rank?date="+encodeURIComponent(rankData.date),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).catch(function(){});
 }
 function wait(ms){return new Promise(function(resolve){setTimeout(resolve,ms)})}
 function rankGet(path,params,cacheKey){return apiGet(path,params,cacheKey)}
@@ -940,7 +964,7 @@ async function runAi(){
     rankData.ai[m.id][o.provider]={name:info.name,model:o.model,verdict:m.verdict,summary:m.summary,risks:m.risks};
    });
   });
-  renderRank();
+  renderRank();shareRank();
   el("aiStatus").textContent=errors.length?errors.join(" · "):"เสร็จแล้ว · AI อ่านเฉพาะตัวเลขที่ส่งไป ไม่ได้รับประกันผล";
  }catch(e){el("aiStatus").textContent=e.message}
  finally{el("aiBtn").disabled=false}
@@ -1085,11 +1109,19 @@ el("aiBtn").addEventListener("click",runAi);
 el("aiProvider").addEventListener("change",fillAiModels);
 el("modeOdds").addEventListener("click",function(){setRankMode("odds")});
 el("modeOU").addEventListener("click",function(){setRankMode("ou")});
-async function rankMatches(){
+async function rankMatches(force){
  if(rankBusy)return;
  var pool=filteredFixtures().filter(function(f){return f.fixture.status.short==="NS"}).sort(function(a,b){return new Date(a.fixture.date)-new Date(b.fixture.date)});
  if(!pool.length){setError("ไม่พบคู่ที่ยังไม่เริ่มแข่งในตัวกรองนี้");return}
- var cap=RANK_CAP,items=pool.slice(0,cap),failures=0;rankData={items:[],failures:0,total:pool.length,cap:cap};
+ var cap=RANK_CAP,items=pool.slice(0,cap),failures=0;
+ var ids=items.map(function(f){return f.fixture.id}),date=fixturesDate||el("dateInput").value;
+ if(force!==true){
+  rankBusy=true;updateRankButton();
+  var sh=await fetchShared(date);
+  rankBusy=false;updateRankButton();
+  if(sharedUsable(sh,ids)&&applyShared(sh)){setError("");return}
+ }
+ rankData={items:[],failures:0,total:pool.length,cap:cap,date:date,ids:ids};
  rankBusy=true;updateRankButton();setError("");
  el("rankPanel").hidden=false;
  el("rankCount").textContent="กำลังเตรียม "+items.length+" คู่";
@@ -1129,8 +1161,8 @@ async function rankMatches(){
   rankData.items=results.filter(Boolean);
   rankData.history=await fetchOddsHistory(rankData.items.map(function(it){return it.fixture.fixture.id}));
   rankData.items.forEach(function(it){var sn=(rankData.history||{})[it.fixture.fixture.id];it.entries.forEach(function(e){e.move=marketMove(e,sn)})});
-  rankData.failures=failures;renderRank();
-  logPicks();
+  rankData.failures=failures;rankData.rankedAt=new Date().toISOString();renderRank();
+  logPicks();shareRank();
  }catch(e){
   rankUpdate("จัดอันดับไม่สำเร็จ","<div class='error' role='alert'>"+escapeHtml(e.message)+"</div>");
  }finally{rankBusy=false;updateRankButton()}
@@ -1267,7 +1299,8 @@ el("clearBtn").addEventListener("click",function(){
  el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>ดูสกอร์ที่เป็นไปได้ แฮนดิแคป และสูง/ต่ำ</span></div></div>";setError("");
 });
 el("loadBtn").addEventListener("click",loadFixtures);
-el("rankBtn").addEventListener("click",rankMatches);
+el("rankBtn").addEventListener("click",function(){rankMatches()});
+el("rankRefresh").addEventListener("click",function(){rankMatches(true)});
 el("leagueBtn").addEventListener("click",openLeagueDialog);
 el("leagueSearch").addEventListener("input",renderLeagueChecklist);
 el("leagueAll").addEventListener("click",function(){leagueGroups().forEach(function(g){g[1].forEach(function(l){dialogPick.add(l.id)})});renderLeagueChecklist()});
@@ -1289,6 +1322,8 @@ leagueSummary();
 refreshQuota();
 refreshStats();
 loadAiProviders();
+// show the ranking someone already pulled for this date, without pulling again
+fetchShared(el("dateInput").value).then(function(sh){if(sh&&sh.payload&&!rankData&&!rankBusy)applyShared(sh)});
 setInterval(refreshQuota,60000);
 el("searchInput").addEventListener("input",function(){el("rankPanel").hidden=true;renderFixtures()});
 })();
