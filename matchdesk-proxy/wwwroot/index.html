@@ -60,20 +60,28 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .panel-head h2{margin:0;font-size:15px}
 .count{font:500 12px "Fira Code",monospace;color:var(--muted)}
 .match-list{max-height:calc(100vh - 300px);min-height:340px;overflow:auto}
-.match{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid #e8eef2;transition:background .15s}
+.match{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:6px 10px;padding:13px 15px;border-bottom:1px solid #e8eef2;transition:background .15s}
 .ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
 .icon-btn,.btn.ghost.icon-btn,.rank-row .price-check.icon-btn{width:44px;height:44px;min-height:44px;padding:0;margin-top:0;display:inline-grid;place-items:center;border-radius:10px}
 .icon-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 .match-body{min-width:0}
-.match-odds{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 12px;min-height:22px;font-size:12px;color:var(--muted)}
+.match-odds{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:22px;font-size:12px;color:var(--muted)}
+.mo-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 8px}
+.mo-grp{display:inline-flex;gap:0 10px}
+.mo-sep{color:var(--line);font-weight:400}
+.match-pick{display:flex;gap:4px}
+.pslot{display:grid;place-items:center;width:26px;height:26px}
+.btn.ghost.icon-btn.analyze-btn{position:relative;width:26px;height:26px;min-height:26px;border:1px solid var(--line);border-radius:7px;background:#fff;color:var(--ink2)}
+.btn.ghost.icon-btn.analyze-btn:hover{background:var(--soft)}
+.analyze-btn .ico{width:16px;height:16px}
+.analyze-btn::after{content:"";position:absolute;inset:-9px}
 .teams .match-odds{grid-column:1/-1;margin-top:-2px}
-.mo-pick{display:inline-flex;align-items:center;gap:4px;font-weight:600;color:var(--ink2)}
-.mo-pick .pk{width:20px;height:20px;font-size:11px;border-radius:5px}
 .pk{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;font:700 13px "Fira Code",monospace}
 .pk.g{background:var(--mint-bg);color:var(--mint)}
 .pk.r{background:var(--red-bg);color:#9c3b38}
-.mo-tag{font-weight:600;color:var(--ink2)}
-.mo-side b{font:600 12px "Fira Code",monospace;color:var(--ink)}
+.mo-side b{font:600 12px "Fira Code",monospace;color:inherit}
+.mo-side.h,.mo-side.o{color:var(--mint)}
+.mo-side.a,.mo-side.l{color:var(--red)}
 .mo-side.out{opacity:.5}
 .mo-none{font-style:italic}
 .detail-dialog{border:0;border-radius:var(--radius);padding:0;width:min(880px,calc(100vw - 24px));max-height:calc(100dvh - 32px);color:var(--ink);background:var(--white);box-shadow:0 24px 70px rgba(15,40,58,.3);overflow:hidden}
@@ -564,27 +572,38 @@ function predBadge(x){
  var d=PRED[x&&x.side];
  return d?"<span class='pk "+d[1]+"' title='"+d[2]+"' aria-label='"+d[2]+"'>"+d[0]+"</span>":"";
 }
-// the ranked pick of each market for one listed fixture, from the current ranking (empty before one exists)
-function predBadges(id){
+// the ranked pick of each market for one listed fixture, from the current ranking (empty before one exists):
+// one slot for the handicap, one for the total, so the two never get mixed up
+function pickSlotsHtml(id){
  var it=rankData&&rankData.items&&rankData.items.find(function(i){return i.fixture.fixture.id===id});
- if(!it)return "";
  return [false,true].map(function(ou){
-  return predBadge(it.entries.filter(function(x){return (x.category==="สูง/ต่ำ")===ou&&rankable(x)})[0]);
+  var best=it&&it.entries.filter(function(x){return (x.category==="สูง/ต่ำ")===ou&&rankable(x)})[0];
+  return "<span class='pslot'>"+(best?predBadge(best):"")+"</span>";
  }).join("");
 }
-function listOddsHtml(id){
- var o=listOdds.get(id),picks=predBadges(id),parts=[];
- if(o){
-  if(!o.v)parts.push("<span class='mo-none'>No handicap price</span>");
-  else{
-   var side=function(label,line,odds){return "<span class='mo-side"+(inPriceRange(odds)?"":" out")+"'>"+label+" "+formatHandicap(line)+" <b>"+decimal(odds)+"</b></span>"};
-   parts.push("<span class='mo-tag'>AH</span>"+side("H",o.v.line,o.v.home)+side("A",-o.v.line,o.v.away));
-  }
- }
- if(picks)parts.push("<span class='mo-pick'>Pick "+picks+"</span>");
- return parts.join("");
+// main over/under line (priced closest to even) with the best price on each side
+function mainTotal(oddsData,home,away){
+ var ou=parseMarkets(oddsData,home,away).overUnder,best=null;
+ Object.keys(ou).forEach(function(l){
+  var m=ou[l],d=Math.abs(m.over-.5);
+  if(m.bestOver>1&&m.bestUnder>1&&(!best||d<best.d))best={d:d,line:Number(l),over:m.bestOver,under:m.bestUnder};
+ });
+ return best;
 }
-function paintListOdds(id){var n=document.querySelector("[data-odds-for='"+id+"']");if(n)n.innerHTML=listOddsHtml(id)}
+function listOddsHtml(id){
+ var o=listOdds.get(id);
+ if(!o)return "";
+ var side=function(cls,letter,line,odds){return "<span class='mo-side "+cls+(inPriceRange(odds)?"":" out")+"'>"+letter+" "+line+" <b>"+decimal(odds)+"</b></span>"};
+ var groups=[];
+ if(o.v)groups.push(side("h","H",formatHandicap(o.v.line),o.v.home)+side("a","A",formatHandicap(-o.v.line),o.v.away));
+ if(o.ou)groups.push(side("o","O",o.ou.line,o.ou.over)+side("l","L",o.ou.line,o.ou.under));
+ return groups.length?"<span class='mo-line'>"+groups.map(function(g){return "<span class='mo-grp'>"+g+"</span>"}).join("<span class='mo-sep'>/</span>")+"</span>":"<span class='mo-none'>No price</span>";
+}
+function paintListOdds(id){
+ var n=document.querySelector("[data-odds-for='"+id+"']"),k=document.querySelector("[data-pick-for='"+id+"']");
+ if(n)n.innerHTML=listOddsHtml(id);
+ if(k)k.innerHTML=pickSlotsHtml(id);
+}
 // 3 at a time; answers come from the server cache when the odds tracker or someone else asked recently
 async function loadListOdds(){
  var run=++listOddsRun,now=Date.now();
@@ -595,7 +614,7 @@ async function loadListOdds(){
    var f=queue.shift();if(!f)return;
    try{
     var data=await apiGet("/odds",{fixture:f.fixture.id},"analysis:"+f.fixture.id+":odds");
-    listOdds.set(f.fixture.id,{t:Date.now(),v:mainHandicap(data,f.teams.home.name,f.teams.away.name)});
+    listOdds.set(f.fixture.id,{t:Date.now(),v:mainHandicap(data,f.teams.home.name,f.teams.away.name),ou:mainTotal(data,f.teams.home.name,f.teams.away.name)});
     paintListOdds(f.fixture.id);
    }catch(e){}
   }
@@ -783,6 +802,7 @@ function renderFixtures(){
   var score=f.goals.home!==null&&f.goals.away!==null?f.goals.home+" : "+f.goals.away:"";
   return "<article class='match "+(selectedId===id?"selected":"")+"' data-id='"+id+"'>"+
    "<div class='match-body'><div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span><div class='match-odds' data-odds-for='"+id+"'>"+listOddsHtml(id)+"</div></div></div>"+
+   "<span class='match-pick' data-pick-for='"+id+"' role='group' aria-label='Model picks: handicap, total'>"+pickSlotsHtml(id)+"</span>"+
    "<button class='btn ghost icon-btn analyze-btn' type='button' data-analyze='"+id+"' title='บทวิเคราะห์' aria-label='เปิดบทวิเคราะห์ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>"+ICON.chart+"</button>"+
   "</article>";
  }
