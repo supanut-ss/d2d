@@ -20,7 +20,8 @@ param(
 
     [string]$Runtime = "win-x86",     # the shared app pool is 32-bit
     [switch]$FrameworkDependent,
-    [switch]$StdoutLog,               # ANCM stdout logs in logs\ on the server (first deploy / debugging)
+    [switch]$KeepServerConfig,        # appsettings.Production.json already lives on the server: do not upload or prune it
+    [switch]$StdoutLog,             # ANCM stdout logs in logs\ on the server (first deploy / debugging)
 
     [ValidateRange(0, 600)] [int]$OfflineDrainSeconds = 20,
     [ValidateRange(1, 100)] [int]$HealthCheckAttempts = 12,
@@ -47,6 +48,7 @@ $pwsh = if (Get-Command powershell -ErrorAction SilentlyContinue) { "powershell"
 $uploader = Join-Path (Split-Path -Parent (Split-Path -Parent $appRoot)) "P2S\upload-ftp.ps1"
 if (-not (Test-Path -LiteralPath $uploader -PathType Leaf)) { throw "Shared FTP uploader is missing: $uploader" }
 $dryArgs = @(); if ($dryRun) { $dryArgs = @("-DryRun") }
+$protectArgs = @(); if ($KeepServerConfig) { $protectArgs = @("-ProtectRemoteRootFiles", "appsettings.Production.json") }
 
 # The remote folder must exist (and be an IIS application) before anything is built or taken offline.
 function Assert-RemoteFolder([string]$Path) {
@@ -76,16 +78,21 @@ function Test-Url([string]$Url) {
 }
 
 # ---- production config ----------------------------------------------------------------------------------------
-if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
-    throw "Production config not found: $ConfigPath (copy appsettings.Production.example.json and fill in the API keys)."
+if ($KeepServerConfig) {
+    Write-Host "Keeping the server's appsettings.Production.json (not uploaded, not pruned)."
 }
-$config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
-$keys = @()
-if ($config.PSObject.Properties.Name -contains "Matchdesk" -and $config.Matchdesk.PSObject.Properties.Name -contains "ApiKeys") {
-    $keys = @($config.Matchdesk.ApiKeys | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -notmatch "^KEY_\d$|CHANGE_ME|PASTE_" })
+else {
+    if (-not (Test-Path -LiteralPath $ConfigPath -PathType Leaf)) {
+        throw "Production config not found: $ConfigPath (copy appsettings.Production.example.json and fill in the API keys, or pass -KeepServerConfig)."
+    }
+    $config = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
+    $keys = @()
+    if ($config.PSObject.Properties.Name -contains "Matchdesk" -and $config.Matchdesk.PSObject.Properties.Name -contains "ApiKeys") {
+        $keys = @($config.Matchdesk.ApiKeys | Where-Object { -not [string]::IsNullOrWhiteSpace($_) -and $_ -notmatch "^KEY_\d$|CHANGE_ME|PASTE_" })
+    }
+    if ($keys.Count -eq 0) { throw "No real API key found in $ConfigPath (Matchdesk.ApiKeys)." }
+    Write-Host "Config OK: $($keys.Count) API key(s)."
 }
-if ($keys.Count -eq 0) { throw "No real API key found in $ConfigPath (Matchdesk.ApiKeys)." }
-Write-Host "Config OK: $($keys.Count) API key(s)."
 
 Assert-RemoteFolder $target
 
@@ -128,7 +135,7 @@ New-Item -ItemType Directory -Path (Join-Path $appDir "logs") -Force | Out-Null
 Set-Content -LiteralPath (Join-Path $appDir "logs\README.txt") -Value "ANCM stdout logs are written here when stdoutLogEnabled=true."
 
 # ---- 2. Stage production config (removed again in 'finally') ---------------------------------------------------
-Copy-Item -LiteralPath $ConfigPath -Destination (Join-Path $appDir "appsettings.Production.json") -Force
+if (-not $KeepServerConfig) { Copy-Item -LiteralPath $ConfigPath -Destination (Join-Path $appDir "appsettings.Production.json") -Force }
 
 # ---- 3. Maintenance page --------------------------------------------------------------------------------------------
 $offlinePath = Join-Path $offlineDir "app_offline.htm"
@@ -149,7 +156,7 @@ try {
 
     Write-Host "4. Uploading application files to ftp://$Server/$target ..." -ForegroundColor Yellow
     & $pwsh -NoProfile -ExecutionPolicy Bypass -File $uploader -Server $Server -Username $Username -Password $Password `
-        -LocalPath $appDir -RemotePath $target -ManifestPath $manifestPath -PruneRemoteRootFiles @dryArgs
+        -LocalPath $appDir -RemotePath $target -ManifestPath $manifestPath -PruneRemoteRootFiles @protectArgs @dryArgs
     if ($LASTEXITCODE -ne 0) { throw "Uploading application files failed (exit code $LASTEXITCODE). The app stays in maintenance mode; fix and rerun." }
 
     if ($dryRun) { Write-Host "Dry run complete. No remote files were changed." -ForegroundColor Cyan; return }
