@@ -79,6 +79,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .pk{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:7px;font:700 13px "Fira Code",monospace}
 .pk.g{background:var(--mint-bg);color:var(--mint)}
 .pk.r{background:var(--red-bg);color:#9c3b38}
+.pk.lean{background:transparent;box-shadow:inset 0 0 0 1px currentColor;opacity:.55}
 .mo-side b{font:600 12px "Fira Code",monospace;color:inherit}
 .mo-side.h,.mo-side.o{color:var(--mint)}
 .mo-side.a,.mo-side.l{color:var(--red)}
@@ -558,19 +559,18 @@ var fixtures=[];
 var selectedId=null;
 // main Asian handicap of each listed match (the line priced closest to even) with the best price on each side
 var listOdds=new Map(),listOddsRun=0,LIST_ODDS_CAP=60,LIST_ODDS_TTL=30*60e3;
+var serverLean=new Map();   // fixture id -> {ah:{side,line},ou:{side,line}} from the server's analysis
 function mainHandicap(oddsData,home,away){
- var ah=parseMarkets(oddsData,home,away).asianHandicap,best=null;
- Object.keys(ah).forEach(function(l){
-  var m=ah[l],d=Math.abs(m.home-.5);
-  if(m.bestHome>1&&m.bestAway>1&&(!best||d<best.d))best={d:d,line:Number(l),home:m.bestHome,away:m.bestAway};
- });
- return best;
+ var ah=parseMarkets(oddsData,home,away).asianHandicap,l=centralLine(ah,"bestHome","bestAway","home");
+ return l===null||!(ah[l].bestHome>1&&ah[l].bestAway>1)?null:{line:Number(l),home:ah[l].bestHome,away:ah[l].bestAway};
 }
 // model pick of a fixture as a coloured letter: H / A for the handicap side, O / L (over / low) for the total
 var PRED={home:["H","g","Model: home covers the handicap"],away:["A","r","Model: away covers the handicap"],over:["O","g","Model: over"],under:["L","r","Model: under (low)"]};
-function predBadge(x){
+function predBadge(x,lean){
  var d=PRED[x&&x.side];
- return d?"<span class='pk "+d[1]+"' title='"+d[2]+"' aria-label='"+d[2]+"'>"+d[0]+"</span>":"";
+ if(!d)return "";
+ var tip=d[2]+(lean?" (lean, not a value pick)":"");
+ return "<span class='pk "+d[1]+(lean?" lean":"")+"' title='"+tip+"' aria-label='"+tip+"'>"+d[0]+"</span>";
 }
 // the ranked pick of each market for one listed fixture, from the current ranking (empty before one exists):
 // one slot for the handicap, one for the total, so the two never get mixed up
@@ -578,17 +578,14 @@ function pickSlotsHtml(id){
  var it=rankData&&rankData.items&&rankData.items.find(function(i){return i.fixture.fixture.id===id});
  return [false,true].map(function(ou){
   var best=it&&it.entries.filter(function(x){return (x.category==="สูง/ต่ำ")===ou&&rankable(x)})[0];
-  return "<span class='pslot'>"+(best?predBadge(best):"")+"</span>";
+  var lean=serverLean.get(id),side=lean&&lean[ou?"ou":"ah"];
+  return "<span class='pslot'>"+(best?predBadge(best):side?predBadge(side,true):"")+"</span>";
  }).join("");
 }
-// main over/under line (priced closest to even) with the best price on each side
+// main over/under line (the middle one, taken from lines whose prices are in range when there are any) with the best price on each side
 function mainTotal(oddsData,home,away){
- var ou=parseMarkets(oddsData,home,away).overUnder,best=null;
- Object.keys(ou).forEach(function(l){
-  var m=ou[l],d=Math.abs(m.over-.5);
-  if(m.bestOver>1&&m.bestUnder>1&&(!best||d<best.d))best={d:d,line:Number(l),over:m.bestOver,under:m.bestUnder};
- });
- return best;
+ var ou=parseMarkets(oddsData,home,away).overUnder,l=centralLine(ou,"bestOver","bestUnder","over");
+ return l===null||!(ou[l].bestOver>1&&ou[l].bestUnder>1)?null:{line:Number(l),over:ou[l].bestOver,under:ou[l].bestUnder};
 }
 function listOddsHtml(id){
  var o=listOdds.get(id);
@@ -827,7 +824,7 @@ async function loadFixtures(){
   fixturesDate=date;
   if(got[1].status==="rejected")setError("ดึงโปรแกรมช่วงหลังเที่ยงคืนไม่ครบ: "+got[1].reason.message);
   selectedId=null;
-  renderFixtures();loadStandings();loadListOdds();
+  renderFixtures();loadStandings();loadListOdds();syncServerAnalysis();
   el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>โปรแกรมวันที่ "+escapeHtml(dateFmt.format(new Date(date+"T12:00:00+07:00")))+"</span></div></div>";
  }catch(e){el("matchList").innerHTML="<div class='empty'><strong>ดึงโปรแกรมไม่สำเร็จ</strong><span>ตรวจโควตาวันนี้แล้วลองใหม่</span></div>";setError(e.message)}
  finally{el("loadBtn").disabled=false;el("loadBtn").textContent="1 · ดึงโปรแกรม"}
@@ -1023,7 +1020,7 @@ function applyShared(sh){
  return true;
 }
 function shareRank(){
- if(!rankData||!rankData.date)return;
+ if(!rankData||!rankData.date||rankData.serverSide)return;
  var p=Object.assign({},rankData);delete p.shared;
  fetch("api/shared/rank?date="+encodeURIComponent(rankData.date),{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)}).catch(function(){});
 }
@@ -1618,9 +1615,46 @@ leagueSummary();
 refreshQuota();
 refreshStats();
 loadAiProviders();
-// show the ranking someone already pulled for this date, without pulling again
-fetchShared(el("dateInput").value).then(function(sh){if(sh&&sh.payload&&!rankData&&!rankBusy)applyShared(sh)});
+autoStart();
 setInterval(refreshQuota,60000);
+// ---- opening the page does what the buttons would: loads the match day, shows the ranking the server already made
+// (every fixture the daily job analysed, with the model's pick or lean on each row) and, if nobody has ranked in the last hours,
+// asks the server to do it once. Visitors after that only read.
+var autoTimer=0,autoPolls=0;
+async function getJson(url){try{var r=await fetch(url);return r.ok?await r.json():null}catch(e){return null}}
+function applyServerAnalysis(data){
+ var byId=new Map(fixtures.map(function(f){return [f.fixture.id,f]})),items=[],now=Date.now();
+ data.rows.forEach(function(r){
+  if(r.model&&r.model.lean)serverLean.set(r.fixtureId,r.model.lean);
+  var f=byId.get(r.fixtureId);
+  if(f&&r.entries&&new Date(f.fixture.date).getTime()>now)items.push({fixture:f,entries:r.entries,summary:null});
+ });
+ if(items.length&&!rankBusy&&(!rankData||rankData.serverSide)){
+  rankData={items:items,failures:0,total:items.length,cap:items.length,date:fixturesDate||el("dateInput").value,
+   rankedAt:data.lastRankUtc||new Date().toISOString(),shared:true,serverSide:true,history:{}};
+  renderRank();
+ }else paintPicks();
+}
+async function syncServerAnalysis(){
+ var date=fixturesDate||el("dateInput").value,data=await getJson("api/analysis/day?date="+encodeURIComponent(date));
+ if(data)applyServerAnalysis(data);
+ return data;
+}
+function pollServerAnalysis(){
+ clearTimeout(autoTimer);
+ autoTimer=setTimeout(async function(){
+  var data=await syncServerAnalysis();
+  if(data&&data.running&&++autoPolls<180)pollServerAnalysis();
+ },20000);
+}
+async function autoStart(){
+ await loadFixtures();
+ var data=await syncServerAnalysis(),started=false;
+ try{var r=await fetch("api/auto/rank",{method:"POST"});var j=r.ok?await r.json():null;started=!!(j&&(j.started||j.running))}catch(e){}
+ if(started||(data&&data.running))pollServerAnalysis();
+ // until the server has something, fall back to a ranking a visitor already shared
+ if(!rankData){var sh=await fetchShared(fixturesDate||el("dateInput").value);if(sh&&sh.payload&&!rankData&&!rankBusy)applyShared(sh)}
+}
 var searchTimer=0;
 el("searchInput").addEventListener("input",function(){el("rankPanel").hidden=true;renderFixtures();clearTimeout(searchTimer);searchTimer=setTimeout(loadListOdds,500)});
 })();

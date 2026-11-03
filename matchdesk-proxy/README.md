@@ -44,6 +44,10 @@ On the first start after the move to SQLite, the old `picks.json`, `odds-history
 
 An external web cron (e.g. cron-job.org) calls it: `https://drivetodev.online/matchdesk/api/jobs/run?task=rank` with the header `X-Job-Token: TOKEN` daily at 09:00 Bangkok, and `...?task=settle` (same header) every 10-15 minutes. IIS stops an idle app, so the frequent call also keeps the background tracker alive.
 
+## Opening the page ranks by itself
+
+When the page opens it loads today's match day (06:00-05:59 Bangkok), reads `GET /api/analysis/day?date=` (every fixture the daily job analysed: model lean, priced options with a positive EV, picks) and builds the ranking and the H/A/O/L letters from it, so a visitor does not analyse anything. It then calls `POST /api/auto/rank`: if no ranking has finished in the last `Matchdesk:Jobs:AutoRankHours` (default 6) the server starts the same job the cron runs, once; later visitors get `reason: recent` and only read. While it runs the page polls every 20 s (a cold run takes a while because each fixture needs several API calls; results appear fixture by fixture). Switch it off with `Matchdesk:Jobs:AutoRank` = `false`. A run that analysed nothing (for example no API quota left) does not count as recent.
+
 ## Run locally
 
     dotnet run --urls http://localhost:5080

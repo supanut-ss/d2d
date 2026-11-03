@@ -143,6 +143,27 @@ app.MapPut("/api/shared/rank", async (string? date, HttpContext ctx, SharedRank 
     catch (BadHttpRequestException) { return Results.StatusCode(StatusCodes.Status413PayloadTooLarge); }
 }).RequireRateLimiting("share");
 
+// The server's own analysis of a match day (from the daily job) and, if nobody has ranked lately, a way to start it:
+// the page asks for both when it opens, so the first visitor of the day triggers the ranking and everyone else just reads it.
+app.MapGet("/api/analysis/day", (string? date, DailyJob job, MatchHistory history) =>
+{
+    if (!SharedRank.ValidDate(date)) return Results.BadRequest(new { error = "invalid date" });
+    var day = DateTime.ParseExact(date!, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
+    var fromUtc = TimeZoneInfo.ConvertTimeToUtc(DateTime.SpecifyKind(day.AddHours(6), DateTimeKind.Unspecified), MatchHistory.Bangkok);   // a match day starts at 06:00
+    var last = job.LastRankFinishedUtc;
+    var json = "{\"running\":" + (job.Running ? "true" : "false") + ",\"lastRankUtc\":" + (last is { } t ? "\"" + t.ToString("O") + "\"" : "null") + ",\"rows\":" + history.DayJson(fromUtc, fromUtc.AddDays(1)) + "}";
+    return Results.Content(json, "application/json");
+}).RequireRateLimiting("api");
+
+app.MapPost("/api/auto/rank", (DailyJob job, IConfiguration config) =>
+{
+    if (!config.GetValue("Matchdesk:Jobs:AutoRank", true)) return Results.Json(new { started = false, running = false, reason = "off" });
+    if (job.Running) return Results.Json(new { started = false, running = true, reason = "running" });
+    var maxAge = TimeSpan.FromHours(config.GetValue("Matchdesk:Jobs:AutoRankHours", 6.0));
+    if (job.LastRankFinishedUtc is { } last && DateTime.UtcNow - last < maxAge) return Results.Json(new { started = false, running = false, reason = "recent" });
+    return Results.Json(new { started = job.TryStart("rank"), running = true, reason = "started" });
+}).RequireRateLimiting("share");
+
 app.MapGet("/api/ai/providers", (AiService ai) => Results.Json(ai.Providers));
 
 app.MapPost("/api/ai/analyze", async (AiRequest req, AiService ai, HttpContext ctx) =>

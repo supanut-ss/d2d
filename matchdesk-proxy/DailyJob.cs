@@ -87,6 +87,17 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
             SHA256.HashData(Encoding.UTF8.GetBytes(given ?? "")), SHA256.HashData(Encoding.UTF8.GetBytes(expected)));
     }
 
+    /// <summary>When a ranking last finished and did its work (no error, and it analysed something unless there was nothing to analyse), or null.</summary>
+    public DateTime? LastRankFinishedUtc
+    {
+        get
+        {
+            lock (_runsLock)
+                return _byTask.Where(kv => kv.Key is "rank" or "all" && kv.Value.FinishedUtc is not null && kv.Value.Error is null && (kv.Value.Fixtures == 0 || kv.Value.Analysed > 0))
+                    .Select(kv => kv.Value.FinishedUtc).DefaultIfEmpty(null).Max();
+        }
+    }
+
     public bool Enabled => !string.IsNullOrWhiteSpace(config["Matchdesk:Jobs:Token"]);
 
     /// <summary>Set Matchdesk:Jobs:AllowQueryToken to false once the cron sends the X-Job-Token header.</summary>
@@ -212,7 +223,7 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
                         Object.keys(mk.asianHandicap||{}).forEach(function(l){var v=mk.asianHandicap[l];market.ah[l]={home:v.home,anchor:v.anchor,books:v.books}});
                       }
                       return JSON.stringify({ok:!!m,picks:picks,
-                        model:m?{lambdaHome:m.lambdaHome,lambdaAway:m.lambdaAway,home:m.home,draw:m.draw,away:m.away,over25:over25,score:m.score,games:m.games,curGames:m.curGames}:null,
+                        model:m?{lambdaHome:m.lambdaHome,lambdaAway:m.lambdaAway,home:m.home,draw:m.draw,away:m.away,over25:over25,score:m.score,games:m.games,curGames:m.curGames,lean:a.lean,picks:picks}:null,
                         market:market,entries:a.entries});
                     })()
                     """).AsString();

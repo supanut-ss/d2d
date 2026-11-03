@@ -341,6 +341,28 @@ function confidence(books,games,gap,lineups,pinnacle){
  return Math.round(100*(.35*b+.35*g+.3*d)*(lineups===false?.9:1)*(pinnacle===false?NO_PINNACLE_CONF:1));   // no Pinnacle: the market probability is only an average of softer books
 }
 
+// The middle line of a two-way market: the one priced closest to even. Lines whose two prices both lie in MIN_ODDS..MAX_ODDS come first,
+// then lines with one price in range, then any line, so the line shown (and ranked, for over/under) is one that can actually be taken.
+function centralLine(table,keyA,keyB,probKey){
+ var keys=Object.keys(table||{});
+ if(!keys.length)return null;
+ var ok=function(o){return o>=MIN_ODDS&&o<=MAX_ODDS};
+ var pool=keys.filter(function(l){return ok(table[l][keyA])&&ok(table[l][keyB])});
+ if(!pool.length)pool=keys.filter(function(l){return ok(table[l][keyA])||ok(table[l][keyB])});
+ if(!pool.length)pool=keys;
+ return pool.reduce(function(best,l){var d=Math.abs(table[l][probKey]-.5);return best===null||d<best.d?{l:l,d:d}:best},null).l;
+}
+// Which side the model leans to on the central handicap and total lines (more of the stake wins), whether or not it is a value pick.
+function leanOf(entries,markets){
+ var pick=function(kind,key,a,b){
+  if(key===null)return null;
+  var lad=Number(key),x=entries.filter(function(e){return e.kind===kind&&e.ladder===lad});
+  var A=x.filter(function(e){return e.side===a})[0],B=x.filter(function(e){return e.side===b})[0];
+  return A&&B?{side:A.ws>=B.ws?a:b,line:lad}:null;
+ };
+ return {ah:pick("AH",centralLine(markets.asianHandicap,"bestHome","bestAway","home"),"home","away"),ou:pick("OU",centralLine(markets.overUnder,"bestOver","bestUnder","over"),"over","under")};
+}
+
 function allValueEntries(prob,markets,model,homeName,awayName){
  var games=model?model.games:0,curGames=model?model.curGames:0;
  var entries=[];
@@ -352,7 +374,7 @@ function allValueEntries(prob,markets,model,homeName,awayName){
  };
  if(model&&markets&&markets.overUnder){
   // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
-  var mainLine=Object.keys(markets.overUnder).reduce(function(best,l){var d=Math.abs(markets.overUnder[l].over-.5);return !best||d<best.d?{line:l,d:d}:best},null);
+  var mainLine={line:centralLine(markets.overUnder,"bestOver","bestUnder","over")};
   Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line],main={ouMain:mainLine&&line===mainLine.line};
    add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver,Object.assign({kind:"OU",side:"over",ladder:Number(line)},main,{anchor:m.anchor,pCons:m.consOver}));
    add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder,Object.assign({kind:"OU",side:"under",ladder:Number(line)},main,{anchor:m.anchor,pCons:m.consUnder}));
@@ -421,7 +443,7 @@ function analyseFixture(input){
  var entries=allValueEntries(null,markets,model,home,away);
  entries.forEach(function(e){e.move=input.snaps?marketMove(e,input.snaps):null});
  var best=function(ou){return entries.filter(function(x){return (x.category==="สูง/ต่ำ")===ou&&rankable(x)})[0]||null};
- return {model:model,entries:entries,markets:markets,bestHandicap:best(false),bestOverUnder:best(true)};
+ return {model:model,entries:entries,markets:markets,lean:model&&markets?leanOf(entries,markets):null,bestHandicap:best(false),bestOverUnder:best(true)};
 }
 // the shape the server stores (same as the page sends to /api/picks/log)
 function pickRecord(fixtureId,e){

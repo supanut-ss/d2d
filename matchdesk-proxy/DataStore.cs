@@ -82,6 +82,51 @@ public sealed class MatchHistory(Db db, ILogger<MatchHistory> log)
         catch (Exception ex) { log.LogWarning(ex, "Could not store the result of fixture {Id}", fixtureId); }
     }
 
+    /// <summary>
+    /// What the daily job made of every fixture kicking off in [from, to): the model (with its lean and picks) and the priced options that
+    /// show a positive EV, which is what the page needs to rebuild the ranking and the picks without analysing anything itself.
+    /// </summary>
+    public string DayJson(DateTime fromUtc, DateTime toUtc)
+    {
+        using var c = db.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = """
+            SELECT m.fixture_id, m.kickoff_utc, m.home, m.away, m.league, m.model_json, a.json
+            FROM match_history m LEFT JOIN analyses a ON a.fixture_id = m.fixture_id AND a.source = 'job'
+            WHERE m.kickoff_utc >= $f AND m.kickoff_utc < $t AND m.model_json IS NOT NULL ORDER BY m.kickoff_utc
+            """;
+        cmd.Parameters.AddWithValue("$f", fromUtc.ToString("O"));
+        cmd.Parameters.AddWithValue("$t", toUtc.ToString("O"));
+        using var r = cmd.ExecuteReader();
+        using var ms = new MemoryStream();
+        using (var w = new System.Text.Json.Utf8JsonWriter(ms))
+        {
+            w.WriteStartArray();
+            while (r.Read())
+            {
+                w.WriteStartObject();
+                w.WriteNumber("fixtureId", r.GetInt32(0)); w.WriteString("kickoffUtc", r.GetString(1));
+                w.WriteString("home", r.GetString(2)); w.WriteString("away", r.GetString(3)); w.WriteString("league", r.GetString(4));
+                w.WritePropertyName("model");
+                using (var model = JsonDocument.Parse(r.GetString(5))) model.RootElement.WriteTo(w);
+                w.WritePropertyName("entries");
+                if (r.IsDBNull(6)) w.WriteNullValue();
+                else
+                {
+                    using var analysis = JsonDocument.Parse(r.GetString(6));
+                    w.WriteStartArray();
+                    if (analysis.RootElement.TryGetProperty("entries", out var entries) && entries.ValueKind == JsonValueKind.Array)
+                        foreach (var e in entries.EnumerateArray())
+                            if (e.TryGetProperty("ev", out var ev) && ev.ValueKind == JsonValueKind.Number && ev.GetDouble() > 0) e.WriteTo(w);
+                    w.WriteEndArray();
+                }
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+        }
+        return System.Text.Encoding.UTF8.GetString(ms.ToArray());
+    }
+
     /// <summary>Every row as JSON, for backtest/market.js.</summary>
     public string ExportJson()
     {
