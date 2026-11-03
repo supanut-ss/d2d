@@ -348,6 +348,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .hist-table th{position:sticky;top:0;background:var(--soft);text-align:left;font-size:12px;color:var(--muted);font-weight:700;padding:8px;white-space:nowrap}
 .hist-table td{padding:8px;border-bottom:1px solid #e8eef2;vertical-align:top}
 .hist-table td.num{font-family:"Fira Code",monospace;text-align:right;white-space:nowrap}
+.hist-table th.num{text-align:right}
 .hist-table small{display:block;color:var(--muted);font-size:12px}
 .res-win{color:var(--mint);font-weight:700}.res-loss{color:var(--red);font-weight:700}.res-push,.res-open,.res-void{color:var(--muted)}
 .hist-more{margin-top:10px}
@@ -1332,7 +1333,7 @@ function filteredHistory(){
 // the table of logged picks (date, match with the giving team in bold, pick, odds, model vs market, EV, CLV, score, result)
 function histTableHtml(show){
  var sg=function(v,d){return v===null||v===undefined?"—":(v>0?"+":"")+Number(v).toFixed(d)};
- return "<table><thead><tr><th scope='col'>Date/time (TH)</th><th scope='col'>Match</th><th scope='col'>Pick</th><th scope='col'>Odds</th><th scope='col'>Model/Mkt</th><th scope='col'>EV</th><th scope='col'>CLV</th><th scope='col'>Score</th><th scope='col'>Result</th></tr></thead><tbody>"+
+ return "<table><thead><tr><th scope='col'>Date/time (TH)</th><th scope='col'>Match</th><th scope='col'>Pick</th><th scope='col' class='num'>Odds</th><th scope='col' class='num'>Model/Mkt</th><th scope='col' class='num'>EV</th><th scope='col' class='num'>CLV</th><th scope='col' class='num'>Score</th><th scope='col'>Result</th></tr></thead><tbody>"+
   show.map(function(x){
    var r=resultOf(x),time=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(x.kickoffUtc));
    return "<tr><td>"+time+"</td><td>"+matchHtml(x)+"<small>"+escapeHtml(x.league)+"</small></td><td>"+pickHtml(x.label)+(x.book?"<small>"+escapeHtml(x.book)+"</small>":"")+"</td>"+
