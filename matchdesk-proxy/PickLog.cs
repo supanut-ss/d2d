@@ -83,22 +83,37 @@ public sealed class PickLog
 {
     private const int MaxNewPerDay = 300;
     private readonly ConcurrentDictionary<string, Pick> _picks = new();
-    private readonly string _file;
+    private readonly Db _db;
     private readonly KnownFixtures _known;
     private readonly ILogger<PickLog> _log;
     private readonly object _saveLock = new();
 
-    public PickLog(DataDir dir, KnownFixtures known, ILogger<PickLog> log)
+    public PickLog(Db db, DataDir dir, KnownFixtures known, ILogger<PickLog> log)
     {
-        _file = dir.File("picks.json");
+        _db = db;
         _known = known;
         _log = log;
         try
         {
-            if (File.Exists(_file))
-                foreach (var p in JsonSerializer.Deserialize<List<Pick>>(File.ReadAllText(_file)) ?? []) _picks[p.Id] = p;
+            using var c = db.Open();
+            // picks.json from before the database: imported once, then renamed to picks.json.migrated
+            var legacy = dir.File("picks.json");
+            if (Db.Count(c, "picks") == 0 && File.Exists(legacy))
+            {
+                foreach (var p in JsonSerializer.Deserialize<List<Pick>>(File.ReadAllText(legacy)) ?? []) _picks[p.Id] = p;
+                Write(c);
+                Db.RetireFile(legacy);
+                _log.LogInformation("Imported {Count} picks from {File}", _picks.Count, legacy);
+            }
+            else
+            {
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = "SELECT json FROM picks";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) { var p = JsonSerializer.Deserialize<Pick>(r.GetString(0)); if (p is not null) _picks[p.Id] = p; }
+            }
         }
-        catch (Exception ex) { _log.LogWarning(ex, "Could not read {File}", _file); }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not load picks"); }
         DropDuplicates();
     }
 
@@ -111,12 +126,6 @@ public sealed class PickLog
         var extra = _picks.Values.GroupBy(p => (p.FixtureId, p.Market))
             .SelectMany(g => g.OrderBy(p => p.LoggedAt).Skip(1)).ToList();
         if (extra.Count == 0) return;
-        try
-        {
-            var backup = Path.ChangeExtension(_file, ".before-dedupe.json");
-            if (File.Exists(_file) && !File.Exists(backup)) File.Copy(_file, backup);
-        }
-        catch (Exception ex) { _log.LogWarning(ex, "Could not back up {File}", _file); return; }
         foreach (var p in extra) _picks.TryRemove(p.Id, out _);
         _log.LogInformation("Removed {Count} duplicate picks (same fixture and market)", extra.Count);
         Save();
@@ -164,11 +173,22 @@ public sealed class PickLog
         {
             try
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(_file)!);
-                File.WriteAllText(_file, JsonSerializer.Serialize(_picks.Values.OrderBy(p => p.KickoffUtc).ToList()));
+                using var c = _db.Open();
+                Write(c);
             }
-            catch (Exception ex) { _log.LogWarning(ex, "Could not write {File}", _file); }
+            catch (Exception ex) { _log.LogWarning(ex, "Could not save picks"); }
         }
+    }
+
+    /// <summary>Rewrites the table from memory in one transaction (a few hundred small rows).</summary>
+    private void Write(Microsoft.Data.Sqlite.SqliteConnection c)
+    {
+        using var tx = c.BeginTransaction();
+        Db.Exec(c, "DELETE FROM picks");
+        foreach (var p in _picks.Values.OrderBy(p => p.KickoffUtc))
+            Db.Exec(c, "INSERT INTO picks(id, fixture_id, market, kickoff_utc, status, json) VALUES($id, $f, $m, $k, $s, $j)",
+                ("$id", p.Id), ("$f", p.FixtureId), ("$m", p.Market), ("$k", p.KickoffUtc.ToString("O")), ("$s", p.Status), ("$j", JsonSerializer.Serialize(p)));
+        tx.Commit();
     }
 
     // ---------- settlement (flat 1 unit at the logged odds, quarter lines split in two)

@@ -13,9 +13,13 @@ ASP.NET Core app that serves the Matchdesk page and proxies API-Football so the 
 
 Everything that must survive a deploy is kept in one folder: `App_Data` next to the app, or `Matchdesk:DataDir` (absolute, or relative to the app folder). The deploy script never uploads into it.
 
-- `picks.json`: every logged pick with its closing price and result (the history page reads this, so all visitors see the same history)
-- `odds-history.json`: hourly price snapshots
-- `shared-rank-YYYY-MM-DD.json`: the latest ranking (and AI notes) pulled for that date. The first visitor's pull is shown to everyone; "จัดอันดับ" reuses it for 60 minutes when the selected fixtures match, and "ดึงใหม่" replaces it. Files older than 5 days are removed
+All of it is one SQLite database, `matchdesk.db` (with its `-wal`/`-shm` files), in that folder. Tables:
+
+- `picks`: every logged pick with its closing price and result (the history page reads this, so all visitors see the same history)
+- `odds_history`: hourly price snapshots per fixture
+- `shared_rank`: the latest ranking (and AI notes) pulled for each date. The first visitor's pull is shown to everyone; "จัดอันดับ" reuses it for 60 minutes when the selected fixtures match, and "ดึงใหม่" replaces it. Rows older than 5 days are removed
+
+On the first start after the move to SQLite, the old `picks.json`, `odds-history.json` and `shared-rank-*.json` are imported and renamed to `*.migrated` (kept as a backup). Back up `matchdesk.db*` by copying all three files while the app is stopped.
 
 ## AI analysis (optional)
 

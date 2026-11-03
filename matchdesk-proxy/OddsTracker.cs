@@ -8,27 +8,50 @@ namespace Matchdesk.Proxy;
 public sealed record OddsSnapshot(DateTime T, double? H, double? D, double? A, double? O25, double? U25, int Books,
     Dictionary<string, double>? Ah = null, Dictionary<string, double>? Ou = null);
 
-/// <summary>Snapshot history per fixture, kept in memory and mirrored to App_Data so it survives app-pool recycles.</summary>
+/// <summary>Snapshot history per fixture, kept in memory and mirrored to the database so it survives app-pool recycles.</summary>
 public sealed class OddsHistory
 {
     private static readonly TimeSpan Keep = TimeSpan.FromDays(4);
     private readonly ConcurrentDictionary<int, List<OddsSnapshot>> _byFixture = new();
-    private readonly string _file;
+    private readonly Db _db;
     private readonly ILogger<OddsHistory> _log;
 
-    public OddsHistory(DataDir dir, ILogger<OddsHistory> log)
+    public OddsHistory(Db db, DataDir dir, ILogger<OddsHistory> log)
     {
-        _file = dir.File("odds-history.json");
+        _db = db;
         _log = log;
         try
         {
-            if (File.Exists(_file))
+            using var c = db.Open();
+            // odds-history.json from before the database: imported once, then renamed to odds-history.json.migrated
+            var legacy = dir.File("odds-history.json");
+            if (Db.Count(c, "odds_history") == 0 && File.Exists(legacy))
             {
-                var loaded = JsonSerializer.Deserialize<Dictionary<int, List<OddsSnapshot>>>(File.ReadAllText(_file));
+                var loaded = JsonSerializer.Deserialize<Dictionary<int, List<OddsSnapshot>>>(File.ReadAllText(legacy));
                 foreach (var kv in loaded ?? []) _byFixture[kv.Key] = kv.Value;
+                Write(c);
+                Db.RetireFile(legacy);
+                _log.LogInformation("Imported odds history of {Count} fixtures from {File}", _byFixture.Count, legacy);
+            }
+            else
+            {
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = "SELECT fixture_id, json FROM odds_history";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) _byFixture[r.GetInt32(0)] = JsonSerializer.Deserialize<List<OddsSnapshot>>(r.GetString(1)) ?? [];
             }
         }
-        catch (Exception ex) { _log.LogWarning(ex, "Could not read {File}", _file); }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not load odds history"); }
+    }
+
+    private void Write(Microsoft.Data.Sqlite.SqliteConnection c)
+    {
+        var snapshot = Get(_byFixture.Keys);
+        using var tx = c.BeginTransaction();
+        Db.Exec(c, "DELETE FROM odds_history");
+        foreach (var kv in snapshot)
+            Db.Exec(c, "INSERT INTO odds_history(fixture_id, json) VALUES($id, $j)", ("$id", kv.Key), ("$j", JsonSerializer.Serialize(kv.Value)));
+        tx.Commit();
     }
 
     public void Add(int fixtureId, OddsSnapshot snap)
@@ -54,10 +77,10 @@ public sealed class OddsHistory
                 if (kv.Value.Count == 0 || kv.Value[^1].T < cutoff) _byFixture.TryRemove(kv.Key, out _);
         try
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(_file)!);
-            File.WriteAllText(_file, JsonSerializer.Serialize(Get(_byFixture.Keys)));
+            using var c = _db.Open();
+            Write(c);
         }
-        catch (Exception ex) { _log.LogWarning(ex, "Could not write {File}", _file); }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not save odds history"); }
     }
 }
 

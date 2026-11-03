@@ -11,6 +11,7 @@ builder.Services.AddHttpClient("ai", c => c.Timeout = TimeSpan.FromMinutes(4));
 builder.Services.AddSingleton<ResponseCache>();
 builder.Services.AddSingleton<AiService>();
 builder.Services.AddSingleton<DataDir>();
+builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<SharedRank>();
 builder.Services.AddSingleton<OddsHistory>();
 builder.Services.AddSingleton<KnownFixtures>();

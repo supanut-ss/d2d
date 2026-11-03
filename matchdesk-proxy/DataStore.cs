@@ -5,7 +5,7 @@ using System.Text.RegularExpressions;
 namespace Matchdesk.Proxy;
 
 /// <summary>
-/// The one folder where everything that must survive a deploy lives (picks, odds history, shared rankings).
+/// The one folder where everything that must survive a deploy lives (the SQLite database matchdesk.db).
 /// Matchdesk:DataDir wins; relative paths are resolved against the app folder. Deploys never touch it.
 /// </summary>
 public sealed class DataDir
@@ -35,18 +35,35 @@ public sealed class SharedRank
     private const string Prefix = "shared-rank-";
     private static readonly Regex DateKey = new(@"^\d{4}-\d{2}-\d{2}$", RegexOptions.Compiled);
     private readonly ConcurrentDictionary<string, string> _byDate = new();
-    private readonly DataDir _dir;
+    private readonly Db _db;
     private readonly ILogger<SharedRank> _log;
 
-    public SharedRank(DataDir dir, ILogger<SharedRank> log)
+    public SharedRank(Db db, DataDir dir, ILogger<SharedRank> log)
     {
-        _dir = dir;
+        _db = db;
         _log = log;
-        foreach (var path in Directory.EnumerateFiles(dir.Root, Prefix + "*.json"))
+        try
         {
-            try { _byDate[Path.GetFileNameWithoutExtension(path)[Prefix.Length..]] = File.ReadAllText(path); }
-            catch (Exception ex) { _log.LogWarning(ex, "Could not read {File}", path); }
+            using var c = db.Open();
+            using (var cmd = c.CreateCommand())
+            {
+                cmd.CommandText = "SELECT date, json FROM shared_rank";
+                using var r = cmd.ExecuteReader();
+                while (r.Read()) _byDate[r.GetString(0)] = r.GetString(1);
+            }
+            // shared-rank-DATE.json files from before the database: imported once, then renamed
+            foreach (var path in Directory.EnumerateFiles(dir.Root, Prefix + "*.json"))
+            {
+                var date = Path.GetFileNameWithoutExtension(path)[Prefix.Length..];
+                if (!_byDate.ContainsKey(date))
+                {
+                    _byDate[date] = File.ReadAllText(path);
+                    Db.Exec(c, "INSERT OR REPLACE INTO shared_rank(date, json) VALUES($d, $j)", ("$d", date), ("$j", _byDate[date]));
+                }
+                Db.RetireFile(path);
+            }
         }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not load shared rankings"); }
     }
 
     /// <summary>Only a date within three days of today is accepted, so the folder cannot be filled with arbitrary keys.</summary>
@@ -71,8 +88,12 @@ public sealed class SharedRank
 
         var json = "{\"savedAt\":\"" + DateTime.UtcNow.ToString("O") + "\",\"payload\":" + payloadJson + "}";
         _byDate[date] = json;
-        try { File.WriteAllText(_dir.File(Prefix + date + ".json"), json); }
-        catch (Exception ex) { _log.LogWarning(ex, "Could not write shared ranking for {Date}", date); }
+        try
+        {
+            using var c = _db.Open();
+            Db.Exec(c, "INSERT OR REPLACE INTO shared_rank(date, json) VALUES($d, $j)", ("$d", date), ("$j", json));
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not save shared ranking for {Date}", date); }
         Prune();
         return true;
     }
@@ -83,7 +104,8 @@ public sealed class SharedRank
         foreach (var date in _byDate.Keys.Where(k => string.CompareOrdinal(k, oldest) < 0))
         {
             _byDate.TryRemove(date, out _);
-            try { File.Delete(_dir.File(Prefix + date + ".json")); } catch (IOException) { }
+            try { using var c = _db.Open(); Db.Exec(c, "DELETE FROM shared_rank WHERE date = $d", ("$d", date)); }
+            catch (Exception ex) { _log.LogWarning(ex, "Could not prune shared ranking for {Date}", date); }
         }
     }
 }
