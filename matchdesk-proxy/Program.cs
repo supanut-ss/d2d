@@ -13,6 +13,7 @@ builder.Services.AddSingleton<AiService>();
 builder.Services.AddSingleton<DataDir>();
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<SharedRank>();
+builder.Services.AddSingleton<AnalysisStore>();
 builder.Services.AddSingleton<OddsHistory>();
 builder.Services.AddSingleton<KnownFixtures>();
 builder.Services.AddSingleton<PickLog>();
@@ -184,6 +185,40 @@ public sealed class ResponseCache
 {
     private sealed record Entry(UpstreamResult Result, DateTime ExpiresUtc);
     private readonly ConcurrentDictionary<string, Entry> _done = new();
+    private readonly Db _db;
+    private readonly ILogger<ResponseCache> _log;
+
+    /// <summary>Every upstream response is also written to the database (kept one day), so a restart keeps what is still fresh.</summary>
+    public ResponseCache(Db db, ILogger<ResponseCache> log)
+    {
+        _db = db;
+        _log = log;
+        try
+        {
+            using var c = db.Open();
+            Db.Exec(c, "DELETE FROM api_cache WHERE fetched_utc < $cut", ("$cut", Db.Cutoff()));
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT key, status, body, expires_utc FROM api_cache WHERE expires_utc > $now";
+            cmd.Parameters.AddWithValue("$now", DateTime.UtcNow.ToString("O"));
+            using var r = cmd.ExecuteReader();
+            while (r.Read())
+                _done[r.GetString(0)] = new Entry(new UpstreamResult(r.GetInt32(1), r.GetString(2)), DateTime.Parse(r.GetString(3), null, System.Globalization.DateTimeStyles.RoundtripKind));
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not load the response cache"); }
+    }
+
+    private void Store(string key, TimeSpan ttl, UpstreamResult result)
+    {
+        var now = DateTime.UtcNow;
+        _done[key] = new Entry(result, now + ttl);
+        try
+        {
+            using var c = _db.Open();
+            Db.Exec(c, "INSERT OR REPLACE INTO api_cache(key, status, body, fetched_utc, expires_utc) VALUES($k, $s, $b, $f, $e)",
+                ("$k", key), ("$s", result.Status), ("$b", result.Body), ("$f", now.ToString("O")), ("$e", (now + ttl).ToString("O")));
+        }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not store {Key}", key); }
+    }
     private readonly ConcurrentDictionary<string, Lazy<Task<UpstreamResult>>> _inflight = new();
     private DateTime _nextSweepUtc = DateTime.UtcNow.AddMinutes(10);
     private readonly ConcurrentDictionary<string, DateTime> _lastFresh = new();
@@ -191,7 +226,7 @@ public sealed class ResponseCache
     public void Put(string key, TimeSpan ttl, UpstreamResult result)
     {
         if (result.Status == 200 && !result.Body.Contains("\"errors\":{\""))
-            _done[key] = new Entry(result, DateTime.UtcNow + ttl);
+            Store(key, ttl, result);
     }
 
     /// <summary>True when a fresh read of this key is allowed now (at most one per 20 seconds).</summary>
@@ -217,7 +252,7 @@ public sealed class ResponseCache
             var result = await lazy.Value;
             // Keep clean successes only: a body carrying API errors must not be served for hours.
             if (result.Status == 200 && !result.Body.Contains("\"errors\":{\""))
-                _done[key] = new Entry(result, DateTime.UtcNow + ttl);
+                Store(key, ttl, result);
             // a request that joined someone else's in-flight call did not spend quota itself
             return (result, !ReferenceEquals(lazy, mine));
         }
@@ -232,5 +267,7 @@ public sealed class ResponseCache
         _nextSweepUtc = now.AddMinutes(10);
         foreach (var kv in _done)
             if (kv.Value.ExpiresUtc <= now) _done.TryRemove(kv.Key, out _);
+        try { using var c = _db.Open(); Db.Exec(c, "DELETE FROM api_cache WHERE fetched_utc < $cut", ("$cut", Db.Cutoff())); }
+        catch (Exception ex) { _log.LogWarning(ex, "Could not prune the response cache"); }
     }
 }

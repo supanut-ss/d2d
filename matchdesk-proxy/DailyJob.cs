@@ -31,7 +31,7 @@ public sealed record JobRun(string Task, DateTime StartedUtc, DateTime? Finished
 /// Started by an external cron (GitHub Actions / Plesk scheduled task) through /api/jobs/run.
 /// </summary>
 public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures known, PickLog log, OddsHistory history,
-    PickWorker worker, IWebHostEnvironment env, IConfiguration config, ILogger<DailyJob> logger)
+    PickWorker worker, AnalysisStore analyses, IWebHostEnvironment env, IConfiguration config, ILogger<DailyJob> logger)
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static readonly TimeZoneInfo Bangkok = TimeZoneInfo.FindSystemTimeZoneById(
@@ -160,9 +160,13 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
                       var picks=[];
                       if(a.bestHandicap)picks.push(pickRecord(f.fixture.id,a.bestHandicap));
                       if(a.bestOverUnder)picks.push(pickRecord(f.fixture.id,a.bestOverUnder));
-                      return JSON.stringify({ok:!!a.model,picks:picks});
+                      var m=a.model;
+                      return JSON.stringify({ok:!!m,picks:picks,
+                        model:m?{lambdaHome:m.lambdaHome,lambdaAway:m.lambdaAway,home:m.home,draw:m.draw,away:m.away,score:m.score,games:m.games}:null,
+                        entries:a.entries});
                     })()
                     """).AsString();
+                analyses.Save(id, "job", output);
                 using var res = JsonDocument.Parse(output);
                 if (res.RootElement.GetProperty("ok").GetBoolean()) run = run with { Analysed = run.Analysed + 1 };
                 var picks = JsonSerializer.Deserialize<PickInput[]>(res.RootElement.GetProperty("picks").GetRawText(), Web) ?? [];

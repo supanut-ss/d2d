@@ -17,7 +17,11 @@ All of it is one SQLite database, `matchdesk.db` (with its `-wal`/`-shm` files),
 
 - `picks`: every logged pick with its closing price and result (the history page reads this, so all visitors see the same history)
 - `odds_history`: hourly price snapshots per fixture
-- `shared_rank`: the latest ranking (and AI notes) pulled for each date. The first visitor's pull is shown to everyone; "จัดอันดับ" reuses it for 60 minutes when the selected fixtures match, and "ดึงใหม่" replaces it. Rows older than 5 days are removed
+- `shared_rank`: the latest ranking (and AI notes) pulled for each date. The first visitor's pull is shown to everyone; "จัดอันดับ" reuses it for 60 minutes when the selected fixtures match, and "ดึงใหม่" replaces it. Only today's and yesterday's dates are kept
+- `api_cache`: every raw API-Football response (key, status, body, fetch and expiry time). Responses still fresh are reloaded after a restart, so a recycle does not cost quota. Kept one day
+- `analyses`: what the model made of each fixture the daily job analysed (probabilities, every priced option, the picks), latest per fixture. Kept one day
+
+Raw responses and analyses are deleted after one day (`Db.Retention`); picks and odds history keep their own rules.
 
 On the first start after the move to SQLite, the old `picks.json`, `odds-history.json` and `shared-rank-*.json` are imported and renamed to `*.migrated` (kept as a backup). Back up `matchdesk.db*` by copying all three files while the app is stopped.
 

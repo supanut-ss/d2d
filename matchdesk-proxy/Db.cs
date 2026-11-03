@@ -20,8 +20,15 @@ public sealed class Db
             CREATE INDEX IF NOT EXISTS ix_picks_fixture ON picks(fixture_id, market);
             CREATE TABLE IF NOT EXISTS odds_history(fixture_id INTEGER PRIMARY KEY, json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS shared_rank(date TEXT PRIMARY KEY, json TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS api_cache(key TEXT PRIMARY KEY, status INTEGER NOT NULL, body TEXT NOT NULL, fetched_utc TEXT NOT NULL, expires_utc TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS analyses(fixture_id INTEGER NOT NULL, source TEXT NOT NULL, created_utc TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(fixture_id, source));
             """);
     }
+
+    /// <summary>Raw API responses and analysis results are kept this long, then deleted.</summary>
+    public static readonly TimeSpan Retention = TimeSpan.FromDays(1);
+
+    public static string Cutoff() => (DateTime.UtcNow - Retention).ToString("O");
 
     public SqliteConnection Open()
     {

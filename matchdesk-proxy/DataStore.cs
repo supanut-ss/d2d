@@ -25,6 +25,22 @@ public sealed class DataDir
     public string File(string name) => Path.Combine(Root, name);
 }
 
+/// <summary>What the model made of each fixture (win probabilities, every priced option, the picks), kept one day per source.</summary>
+public sealed class AnalysisStore(Db db, ILogger<AnalysisStore> log)
+{
+    public void Save(int fixtureId, string source, string json)
+    {
+        try
+        {
+            using var c = db.Open();
+            Db.Exec(c, "INSERT OR REPLACE INTO analyses(fixture_id, source, created_utc, json) VALUES($f, $s, $t, $j)",
+                ("$f", fixtureId), ("$s", source), ("$t", DateTime.UtcNow.ToString("O")), ("$j", json));
+            Db.Exec(c, "DELETE FROM analyses WHERE created_utc < $cut", ("$cut", Db.Cutoff()));
+        }
+        catch (Exception ex) { log.LogWarning(ex, "Could not store the analysis of fixture {Id}", fixtureId); }
+    }
+}
+
 /// <summary>
 /// The latest ranking pulled for each date, kept so the first visitor's pull is shown to everyone without
 /// pulling again. Stored as the page's own JSON; the server only checks the shape and size.
@@ -100,7 +116,7 @@ public sealed class SharedRank
 
     private void Prune()
     {
-        var oldest = DateTime.UtcNow.Date.AddDays(-5).ToString("yyyy-MM-dd");
+        var oldest = DateTime.UtcNow.Date.AddDays(-1).ToString("yyyy-MM-dd");
         foreach (var date in _byDate.Keys.Where(k => string.CompareOrdinal(k, oldest) < 0))
         {
             _byDate.TryRemove(date, out _);
