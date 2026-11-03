@@ -61,7 +61,9 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .count{font:500 12px "Fira Code",monospace;color:var(--muted)}
 .match-list{max-height:calc(100vh - 300px);min-height:340px;overflow:auto}
 .match{padding:13px 15px;border-bottom:1px solid #e8eef2;transition:background .15s;cursor:pointer}
-.match:last-child{border-bottom:0}
+.league-head{position:sticky;top:0;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:8px 15px;background:var(--soft);border-bottom:1px solid var(--line);font-size:12px;font-weight:700;color:var(--ink2)}
+.league-head span:first-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.league-group:last-child .match:last-child{border-bottom:0}
 .match:hover{background:#f7fafc}
 .match.selected{background:#edf6fb;box-shadow:inset 3px 0 var(--blue)}
 .match-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;font-size:12px;color:var(--muted)}
@@ -635,14 +637,25 @@ function renderFixtures(){
   el("matchList").innerHTML="<div class='empty'><div class='empty-mark'>—</div><strong>ไม่พบคู่แข่งขัน</strong><span>ลองเปลี่ยนวันที่ ตัวกรอง หรือคำค้นหา</span></div>";
   return;
  }
- el("matchList").innerHTML=rows.map(function(f){
+ // league (country, then name), kickoff, home team; the league title is printed once above its matches
+ var leagueName=function(f){return (f.league.country?f.league.country+" · ":"")+f.league.name};
+ var groups=[];
+ rows.slice().sort(function(a,b){
+  return leagueName(a).localeCompare(leagueName(b))||a.league.id-b.league.id||new Date(a.fixture.date)-new Date(b.fixture.date)||a.teams.home.name.localeCompare(b.teams.home.name);
+ }).forEach(function(f){
+  var last=groups[groups.length-1];
+  if(last&&last.id===f.league.id)last.rows.push(f);else groups.push({id:f.league.id,title:leagueName(f),rows:[f]});
+ });
+ el("matchList").innerHTML=groups.map(function(g){
+  return "<section class='league-group' aria-labelledby='lg-"+g.id+"'><h3 id='lg-"+g.id+"' class='league-head'><span>"+escapeHtml(g.title)+"</span><span class='count'>"+g.rows.length+" คู่</span></h3>"+g.rows.map(matchRow).join("")+"</section>";
+ }).join("");
+ function matchRow(f){
   var id=f.fixture.id;
   var score=f.goals.home!==null&&f.goals.away!==null?f.goals.home+" : "+f.goals.away:"";
   return "<article class='match "+(selectedId===id?"selected":"")+"' data-id='"+id+"' tabindex='0' role='button' aria-label='วิเคราะห์ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>"+
-   "<div class='match-meta'><span class='match-league'>"+escapeHtml(f.league.country?f.league.country+" · ":"")+escapeHtml(f.league.name)+"</span><span class='badge "+statusClass(f)+"'>"+statusName(f)+"</span></div>"+
    "<div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span></div>"+
   "</article>";
- }).join("");
+ }
  Array.prototype.forEach.call(el("matchList").querySelectorAll(".match"),function(row){
   row.addEventListener("click",function(){analyze(Number(row.dataset.id))});
   row.addEventListener("keydown",function(ev){if(ev.key==="Enter"||ev.key===" "){ev.preventDefault();analyze(Number(row.dataset.id))}});
