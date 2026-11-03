@@ -61,16 +61,43 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .count{font:500 12px "Fira Code",monospace;color:var(--muted)}
 .match-list{max-height:calc(100vh - 300px);min-height:340px;overflow:auto}
 .match{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;padding:13px 15px;border-bottom:1px solid #e8eef2;transition:background .15s}
-.analyze-btn{white-space:nowrap}
+.ico{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.icon-btn,.btn.ghost.icon-btn,.rank-row .price-check.icon-btn{width:44px;height:44px;min-height:44px;padding:0;margin-top:0;display:inline-grid;place-items:center;border-radius:10px}
+.icon-btn:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.match-body{min-width:0}
+.match-odds{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;margin-top:6px;min-height:18px;font-size:12px;color:var(--muted)}
+.mo-tag{font-weight:600;color:var(--ink2)}
+.mo-side b{font:600 12px "Fira Code",monospace;color:var(--ink)}
+.mo-side.out{opacity:.5}
+.mo-none{font-style:italic}
 .detail-dialog{border:0;border-radius:var(--radius);padding:0;width:min(880px,calc(100vw - 24px));max-height:calc(100dvh - 32px);color:var(--ink);background:var(--white);box-shadow:0 24px 70px rgba(15,40,58,.3);overflow:hidden}
 .detail-dialog[open]{display:flex;flex-direction:column}
 .detail-dialog::backdrop{background:rgba(15,40,58,.5)}
 .detail-bar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 8px 6px 16px;background:var(--ink);color:#fff}
 .detail-bar span{font-weight:700;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-.detail-bar button{flex:none;min-height:var(--tap,44px);border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;font-weight:700;padding:0 16px}
+.detail-bar button{flex:none;display:grid;place-items:center;width:var(--tap,44px);height:var(--tap,44px);border:0;border-radius:10px;background:rgba(255,255,255,.16);color:#fff;padding:0}
 .detail-bar button:hover{background:rgba(255,255,255,.26)}
-.form-chips{display:flex;gap:4px;margin:2px 0 8px}
-.form-chip{width:24px;height:24px;display:grid;place-items:center;border-radius:6px;font:700 12px "Prompt","Fira Code",sans-serif}
+.form-chips{display:inline-flex;gap:4px;vertical-align:middle}
+.seg-row{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:2px 0 10px}
+.seg{display:inline-flex;gap:2px;padding:3px;border:1px solid var(--line);border-radius:10px;background:var(--soft)}
+.seg button{min-height:36px;min-width:56px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:var(--ink2);font-weight:600}
+.seg button[aria-pressed=true]{background:#fff;color:var(--ink);box-shadow:0 1px 3px rgba(20,48,68,.15)}
+.seg button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+.mini-table{width:100%;border-collapse:collapse;font-size:13px}
+.mini-table th,.mini-table td{padding:8px 10px;text-align:left;border-bottom:1px solid #e8eef2;vertical-align:middle}
+.mini-table thead th{font-size:12px;font-weight:600;color:var(--muted);background:#f5f8fa}
+.mini-table tbody tr:last-child td{border-bottom:0}
+.mini-table td.d{white-space:nowrap;color:var(--muted);font:12px "Fira Code",monospace}
+.mini-table td.d small{display:block;font:11px "Noto Sans Thai",sans-serif}
+.mini-table td.sc,.mini-table b.sc{font:600 13px "Fira Code",monospace;white-space:nowrap;text-align:center}
+.mini-table td.v{color:var(--muted);font-size:12px}
+.mini-table td.r{width:36px}
+.mini-table td.none{color:var(--muted);font-style:italic}
+.mini-table .team-row th{background:#eef3f6;color:var(--ink);font-size:13px;font-weight:700;border-top:1px solid var(--line)}
+.mini-table .team-row .tn{margin-right:10px}
+.mini-table .team-row small{margin-left:10px;font-weight:400;color:var(--muted)}
+.form-chip{width:24px;height:24px;display:grid;place-items:center;border-radius:6px;font:700 12px "Fira Code",monospace}
 .form-chip.w{background:var(--mint-bg);color:var(--mint)}
 .form-chip.d{background:var(--soft);color:var(--muted)}
 .form-chip.l{background:var(--red-bg);color:#9c3b38}
@@ -175,14 +202,30 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .rank-panel .panel-head{flex-wrap:wrap}
 .rank-body{padding:10px 15px}
 .rank-head-note{font-size:12px;color:var(--muted);font-weight:400}
-.rank-row{display:grid;grid-template-columns:44px minmax(160px,1.3fr) minmax(92px,.8fr) 90px 92px;gap:12px;align-items:center;padding:12px 5px;border-bottom:1px solid #e8eef2}
+.rank-row{display:grid;grid-template-columns:36px minmax(150px,1.1fr) minmax(230px,1.5fr) 62px 72px 86px;gap:12px;align-items:start;padding:14px 5px;border-bottom:1px solid #e8eef2}
 .rank-row:last-child{border-bottom:0}
 .rank-index{font:600 12px "Fira Code",monospace;color:var(--muted)}
 .rank-fixture{font-weight:700;line-height:1.45}
 .rank-fixture small{display:block;color:var(--muted);font-weight:400;font-size:12px}
-.rank-pick{font-size:12px}
-.rank-pick b{color:var(--ink)}
+.rank-pick{min-width:0;font-size:13px}
+.pick-main{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;line-height:1.4}
+.pick-main b{color:var(--ink);font-size:14px}
+.pick-kind{color:var(--muted);font-size:12px}
+.pick-main .ah-tag{margin-right:0}
+.pick-meta{display:flex;flex-wrap:wrap;gap:4px 6px;margin-top:6px}
+.chip{font-size:12px;color:var(--ink2);background:var(--soft);border-radius:6px;padding:2px 8px;white-space:nowrap}
+.pick-actions{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-top:8px}
+.pick-actions .price-check{margin-top:0}
+.pick-actions .price-result{margin:0;flex:1 1 100%}
+.price-result:empty{display:none}
+.rank-note{margin:0 0 6px;font-size:12px;color:var(--muted)}
+.rank-note summary{cursor:pointer;padding:6px 0;font-weight:600;color:var(--ink2)}
+.rank-criteria{margin:2px 0 8px;padding-left:18px;line-height:1.7}
+.bet-option.out{opacity:.55}
+.rank-odds{font:700 15px "Fira Code",monospace;text-align:right;color:var(--ink)}
+.rank-odds small{display:block;font:400 12px "Noto Sans Thai",sans-serif;color:var(--muted)}
 .rank-prob,.rank-ev{font:600 13px "Fira Code",monospace;text-align:right}
+.rank-prob,.rank-ev,.rank-odds{padding-top:2px}
 .rank-prob small,.rank-ev small{display:block;font:400 12px "Noto Sans Thai",sans-serif;color:var(--muted)}
 .rank-ev.positive{color:var(--mint)}
 .rank-ev.negative{color:var(--red)}
@@ -334,11 +377,12 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
  .teams .team.away{grid-area:a;flex-direction:row-reverse;justify-content:flex-end;text-align:left}
  .team{font-size:14px}
  .rank-body{padding:6px 12px}
- .rank-row{grid-template-columns:28px minmax(0,1fr) auto;grid-template-areas:"i f e" ". p e";gap:4px 10px;padding:14px 2px}
+ .rank-row{grid-template-columns:28px minmax(0,1fr) auto auto;grid-template-areas:"i f o e" ". p p p";gap:4px 12px;padding:14px 2px}
  .rank-row .rank-index{grid-area:i}
  .rank-row .rank-fixture{grid-area:f;min-height:var(--tap);display:block}
  .rank-row .rank-pick{grid-area:p}
- .rank-row .rank-ev{grid-area:e;align-self:center;font-size:15px}
+ .rank-row .rank-odds{grid-area:o;font-size:15px}
+ .rank-row .rank-ev{grid-area:e;font-size:15px}
  .rank-row .rank-prob{display:none}
  .rank-fixture{font-size:14px}
  .rank-panel .panel-head{padding:12px}
@@ -388,7 +432,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
   </section>
 
   <section id="rankPanel" class="panel rank-panel" hidden aria-live="polite">
-    <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span><button id="rankRefresh" class="btn ghost" type="button" hidden>ดึงใหม่</button></div>
+    <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span><button id="rankRefresh" class="btn ghost icon-btn" type="button" title="ดึงผลจัดอันดับใหม่" aria-label="ดึงผลจัดอันดับใหม่" hidden></button></div>
     <div id="rankTools" class="ai-bar rank-tools"><label for="bankroll">ทุนของคุณ (บาท)</label><input id="bankroll" class="keyinput" type="number" inputmode="numeric" min="0" step="100" placeholder="เช่น 10000" style="max-width:170px"><span class="keyhint">ใช้คำนวณเงินเดิมพันตาม ¼ Kelly · ตั้งต้น 1,000 บาททุกครั้งที่เปิดหน้า แก้ได้เฉพาะรอบนั้น</span></div>
     <div id="aiBar" class="ai-bar" hidden><label for="aiProvider">ให้ AI ช่วยวิเคราะห์คู่ที่คัดมา</label><select id="aiProvider" aria-label="แพลตฟอร์ม AI"></select><select id="aiModel" aria-label="โมเดล AI"></select><button id="aiBtn" class="btn secondary" type="button">วิเคราะห์ด้วย AI</button><span id="aiStatus" class="keyhint" aria-live="polite"></span></div>
     <div id="rankBody" class="rank-body"></div>
@@ -403,7 +447,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
     </div>
   </section>
   <dialog id="detailDialog" class="detail-dialog" aria-labelledby="detailTitle">
-    <div class="detail-bar"><span id="detailTitle"></span><button id="detailClose" type="button" aria-label="ปิดบทวิเคราะห์">ปิด ✕</button></div>
+    <div class="detail-bar"><span id="detailTitle"></span><button id="detailClose" type="button" title="ปิด" aria-label="ปิดบทวิเคราะห์"></button></div>
     <div id="detailPanel" class="detail" aria-live="polite" tabindex="-1"></div>
   </dialog>
   <section id="statsPanel" class="panel stats-panel" aria-labelledby="statsTitle">
@@ -488,6 +532,41 @@ function nextDay(ymd){
 }
 var fixtures=[];
 var selectedId=null;
+// main Asian handicap of each listed match (the line priced closest to even) with the best price on each side
+var listOdds=new Map(),listOddsRun=0,LIST_ODDS_CAP=60,LIST_ODDS_TTL=30*60e3;
+function mainHandicap(oddsData,home,away){
+ var ah=parseMarkets(oddsData,home,away).asianHandicap,best=null;
+ Object.keys(ah).forEach(function(l){
+  var m=ah[l],d=Math.abs(m.home-.5);
+  if(m.bestHome>1&&m.bestAway>1&&(!best||d<best.d))best={d:d,line:Number(l),home:m.bestHome,away:m.bestAway};
+ });
+ return best;
+}
+function listOddsHtml(id){
+ var o=listOdds.get(id);
+ if(!o)return "";
+ if(!o.v)return "<span class='mo-none'>ยังไม่มีราคาแฮนดิแคป</span>";
+ var side=function(label,line,odds){return "<span class='mo-side"+(inPriceRange(odds)?"":" out")+"'>"+label+" "+formatHandicap(line)+" <b>"+decimal(odds)+"</b></span>"};
+ return "<span class='mo-tag'>แฮนดิแคป</span>"+side("เจ้าบ้าน",o.v.line,o.v.home)+side("เยือน",-o.v.line,o.v.away);
+}
+function paintListOdds(id){var n=document.querySelector("[data-odds-for='"+id+"']");if(n)n.innerHTML=listOddsHtml(id)}
+// 3 at a time; answers come from the server cache when the odds tracker or someone else asked recently
+async function loadListOdds(){
+ var run=++listOddsRun,now=Date.now();
+ var queue=filteredFixtures().slice(0,LIST_ODDS_CAP).filter(function(f){var o=listOdds.get(f.fixture.id);return !o||now-o.t>LIST_ODDS_TTL});
+ var worker=async function(){
+  for(;;){
+   if(run!==listOddsRun)return;
+   var f=queue.shift();if(!f)return;
+   try{
+    var data=await apiGet("/odds",{fixture:f.fixture.id},"analysis:"+f.fixture.id+":odds");
+    listOdds.set(f.fixture.id,{t:Date.now(),v:mainHandicap(data,f.teams.home.name,f.teams.away.name)});
+    paintListOdds(f.fixture.id);
+   }catch(e){}
+  }
+ };
+ await Promise.all([worker(),worker(),worker()]);
+}
 var requestCache=new Map();
 var rankBusy=false;
 var LEAGUE_STORE="matchdesk.leagues";
@@ -514,6 +593,13 @@ var storedLeagues=null;
 try{storedLeagues=localStorage.getItem(LEAGUE_STORE)}catch(e){}
 try{(storedLeagues===null?DEFAULT_LEAGUES:JSON.parse(storedLeagues)).forEach(function(id){selectedLeagues.add(String(id))})}catch(e){}
 var el=function(id){return document.getElementById(id)};
+// line icons (24px grid, 1.75 stroke, currentColor); decorative, the button carries the name
+var ICON={
+ chart:"<svg class='ico' viewBox='0 0 24 24' aria-hidden='true'><path d='M3 3v16a2 2 0 0 0 2 2h16'/><path d='M18 17V9'/><path d='M13 17V5'/><path d='M8 17v-3'/></svg>",
+ check:"<svg class='ico' viewBox='0 0 24 24' aria-hidden='true'><circle cx='12' cy='12' r='9'/><path d='m8.5 12.5 2.5 2.5 4.5-5'/></svg>",
+ refresh:"<svg class='ico' viewBox='0 0 24 24' aria-hidden='true'><path d='M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8'/><path d='M21 3v5h-5'/><path d='M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16'/><path d='M8 16H3v5'/></svg>",
+ close:"<svg class='ico' viewBox='0 0 24 24' aria-hidden='true'><path d='M18 6 6 18'/><path d='m6 6 12 12'/></svg>"
+};
 var dateFmt=new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",year:"numeric"});
 var bangkokParts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Bangkok",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(new Date(Date.now()-DAY_START_HOUR*3600e3));   // before 06:00 the match day is still yesterday's
 var today=bangkokParts.reduce(function(o,p){o[p.type]=p.value;return o},{});
@@ -661,8 +747,8 @@ function renderFixtures(){
   var id=f.fixture.id;
   var score=f.goals.home!==null&&f.goals.away!==null?f.goals.home+" : "+f.goals.away:"";
   return "<article class='match "+(selectedId===id?"selected":"")+"' data-id='"+id+"'>"+
-   "<div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span></div>"+
-   "<button class='btn ghost analyze-btn' type='button' data-analyze='"+id+"' aria-label='เปิดบทวิเคราะห์ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>บทวิเคราะห์</button>"+
+   "<div class='match-body'><div class='teams'><span class='team'>"+logo(f.teams.home.logo,f.teams.home.name)+"<span>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+"</span></span><span class='score-mini'>"+(score||timeText(f.fixture.date))+"</span><span class='team away'><span>"+escapeHtml(teamLabel(f.teams.away,f.league.id))+"</span>"+logo(f.teams.away.logo,f.teams.away.name)+"</span></div><div class='match-odds' data-odds-for='"+id+"'>"+listOddsHtml(id)+"</div></div>"+
+   "<button class='btn ghost icon-btn analyze-btn' type='button' data-analyze='"+id+"' title='บทวิเคราะห์' aria-label='เปิดบทวิเคราะห์ "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>"+ICON.chart+"</button>"+
   "</article>";
  }
  Array.prototype.forEach.call(el("matchList").querySelectorAll("[data-analyze]"),function(btn){
@@ -686,7 +772,7 @@ async function loadFixtures(){
   fixturesDate=date;
   if(got[1].status==="rejected")setError("ดึงโปรแกรมช่วงหลังเที่ยงคืนไม่ครบ: "+got[1].reason.message);
   selectedId=null;
-  renderFixtures();loadStandings();
+  renderFixtures();loadStandings();loadListOdds();
   el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>AH</div><strong>เลือกคู่เพื่อเปิดบทวิเคราะห์</strong><span>โปรแกรมวันที่ "+escapeHtml(dateFmt.format(new Date(date+"T12:00:00+07:00")))+"</span></div></div>";
  }catch(e){el("matchList").innerHTML="<div class='empty'><strong>ดึงโปรแกรมไม่สำเร็จ</strong><span>ตรวจโควตาวันนี้แล้วลองใหม่</span></div>";setError(e.message)}
  finally{el("loadBtn").disabled=false;el("loadBtn").textContent="1 · ดึงโปรแกรม"}
@@ -772,7 +858,14 @@ function expectedLine(model,line){
  var over=settlement(model,line,"total","over",null),under=settlement(model,line,"total","under",null);
  return {over:over.win,under:under.win,push:over.push};
 }
+// the analysis lists only prices the ranking would take (MIN_ODDS..MAX_ODDS); a side outside it is greyed out, a line with no side inside it is left out
+function inPriceRange(odds){return odds>=MIN_ODDS&&odds<=MAX_ODDS}
+function outOfRangeHtml(label,odds,ahLine){
+ return "<div class='bet-option out'><div class='bet-top'><strong>"+ahTag(ahLine)+escapeHtml(label)+"</strong><span>@"+decimal(odds)+"</span></div><div class='bet-bottom'><span>นอกช่วงราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+"</span></div></div>";
+}
+function noPriceInRange(){return "<p class='detail-note'>ไม่มีเส้นที่ราคาอยู่ในช่วง "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+"</p>"}
 function betOptionHtml(label,metric,odds,book,pMarket,ahLine){
+ if(odds>1&&!inPriceRange(odds))return outOfRangeHtml(label,odds,ahLine);
  var blended=metric?blendEv(metric.ev,odds,pMarket):null;
  var ev=blended?blended.ev:null,evClass=ev===null?"":(ev>0?"positive":"negative"),evText=ev===null?"EV —":"EV "+(ev>0?"+":"")+ev.toFixed(1)+"%";
  var details=metric?"ชนะรวม "+pctFmt(metric.win*100)+" (เต็ม "+pctFmt(metric.fullWin*100)+" / ครึ่ง "+pctFmt(metric.halfWin*100)+") · เจ๊า "+pctFmt(metric.push*100):"ยังไม่มีสถิติประเมิน";
@@ -782,8 +875,11 @@ function ouHtml(model,market){
  var hasOdds=market&&Object.keys(market).length>0;
  if(!model&&!hasOdds)return "<div class='detail-note'>ยังไม่มีสถิติหรือราคาสูง/ต่ำสำหรับคู่นี้</div>";
  var all=new Set(model?["1.5","2.5","3.5"]:[]);Object.keys(market||{}).forEach(function(x){all.add(x)});
- var lines=Array.from(all).sort(function(a,b){return Number(a)-Number(b)});
- return "<div class='section-title'>สูง / ต่ำ <span class='source-tag'>"+(model?"โอกาสชนะและ EV จากโมเดลประตู":"ราคาตลาดที่พบ")+"</span></div>"+(model?"<p class='detail-note'>เส้น .25/.75 แบ่งเดิมพันครึ่ง; ชนะรวมครึ่งชนะ และเจ๊าแสดงเฉพาะคืนทุนเต็ม; EV ผสมโมเดลกับราคาตลาด (อิง Pinnacle เมื่อมี)</p>":"<p class='detail-note'>ยังไม่มีสถิติประตูพอประเมินโอกาสและ EV</p>")+"<div class='ou-list'>"+lines.map(function(line){
+ var lines=Array.from(all).sort(function(a,b){return Number(a)-Number(b)}).filter(function(line){
+  var mk=market&&market[line];
+  return !mk||!(mk.bestOver>1||mk.bestUnder>1)||inPriceRange(mk.bestOver)||inPriceRange(mk.bestUnder);
+ });
+ return "<div class='section-title'>สูง / ต่ำ <span class='source-tag'>"+(model?"โอกาสชนะและ EV จากโมเดลประตู":"ราคาตลาดที่พบ")+"</span></div>"+(model?"<p class='detail-note'>เส้น .25/.75 แบ่งเดิมพันครึ่ง; ชนะรวมครึ่งชนะ และเจ๊าแสดงเฉพาะคืนทุนเต็ม; EV ผสมโมเดลกับราคาตลาด (อิง Pinnacle เมื่อมี)</p>":"<p class='detail-note'>ยังไม่มีสถิติประตูพอประเมินโอกาสและ EV</p>")+"<div class='ou-list'>"+(lines.length?"":noPriceInRange())+lines.map(function(line){
   var mk=market&&market[line],overOdds=mk&&mk.bestOver,underOdds=mk&&mk.bestUnder;
   var over=model?settlement(model,line,"total","over",overOdds):null,under=model?settlement(model,line,"total","under",underOdds):null;
   return "<div class='ou-line'><span class='threshold'>รวม "+escapeHtml(line)+"</span><div class='ou-pill over'>"+betOptionHtml("สูง",over,overOdds,mk&&mk.overBook,mk&&mk.over)+"</div><div class='ou-pill under'>"+betOptionHtml("ต่ำ",under,underOdds,mk&&mk.underBook,mk&&mk.under)+"</div></div>";
@@ -798,8 +894,8 @@ function ahTag(line){
 }
 function asianHtml(model,market,homeName,awayName){
  if(!market||!Object.keys(market).length)return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ยังไม่มีราคา Asian Handicap สำหรับคู่นี้</p>";
- var lines=Object.keys(market).sort(function(a,b){return Number(a)-Number(b)});
- return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ฝั่งเดิมพันคิดแต้มต่อแยกจากผลเสมอ; เส้น .25/.75 แบ่งเดิมพันครึ่ง; โอกาสชนะจากโมเดล Poisson ส่วน EV ผสมโมเดลกับราคาตลาด (อิง Pinnacle เมื่อมี)</p><div class='asian-list'>"+lines.map(function(line){
+ var lines=Object.keys(market).sort(function(a,b){return Number(a)-Number(b)}).filter(function(line){return inPriceRange(market[line].bestHome)||inPriceRange(market[line].bestAway)});
+ return "<div class='section-title'>แฮนดิแคป <span class='source-tag'>Asian Handicap</span></div><p class='detail-note'>ฝั่งเดิมพันคิดแต้มต่อแยกจากผลเสมอ; เส้น .25/.75 แบ่งเดิมพันครึ่ง; โอกาสชนะจากโมเดล Poisson ส่วน EV ผสมโมเดลกับราคาตลาด (อิง Pinnacle เมื่อมี)</p><div class='asian-list'>"+(lines.length?"":noPriceInRange())+lines.map(function(line){
   var h=Number(line),mk=market[line],homeMetric=settlement(model,h,"handicap","home",mk.bestHome),awayMetric=settlement(model,-h,"handicap","away",mk.bestAway);
   return "<div class='asian-line'><div class='handicap-label'>เส้นเจ้าบ้าน "+formatHandicap(h)+" · ราคาเฉลี่ยตัดมาร์จิน "+pctFmt(mk.home*100)+" / "+pctFmt(mk.away*100)+"</div>"+
    betOptionHtml(homeName+" "+formatHandicap(h),homeMetric,mk.bestHome,mk.homeBook,mk.home,h)+
@@ -834,6 +930,13 @@ function modelPercent(data){
  if(!p)return null;
  var h=pct(p.home),d=pct(p.draw),a=pct(p.away);
  return h!==null&&d!==null&&a!==null?{home:h/100,draw:d/100,away:a/100}:null;
+}
+// a kickoff after midnight belongs to the match day before: say which calendar day it is
+function kickText(f){
+ var t=timeText(f.fixture.date)+" น.",d=rankData&&rankData.date;
+ if(!d)return t;
+ var day=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Bangkok"}).format(new Date(f.fixture.date));
+ return day===d?t:new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:"short"}).format(new Date(f.fixture.date))+" "+t;
 }
 function rankUpdate(text,body){
  var shared=!!(rankData&&rankData.shared);
@@ -873,7 +976,7 @@ el("bankroll").value=DEFAULT_BANKROLL;
 el("bankroll").addEventListener("input",function(){
  if(rankData&&!rankBusy)renderRank();
 });
-var REASON_TEXT={short:"ราคาต่ำกว่าเกณฑ์",longshot:"ราคาสูงเกินเกณฑ์",line:"ไม่ใช่เส้นหลัก",ev:"EV สูงผิดปกติ",gap:"โมเดลห่างตลาดเกินเกณฑ์",outlier:"ราคาสูงผิดปกติจากเจ้าเดียว",against:"ตลาดไหลสวน",thin:"เจ้ามือน้อยเกินไป",early:"ข้อมูลทีมน้อยเกินไป",conf:"ความมั่นใจต่ำ"};
+var REASON_TEXT={short:"ราคาต่ำกว่าเกณฑ์",longshot:"ราคาสูงเกินเกณฑ์",line:"ไม่ใช่เส้นหลัก",ev:"EV สูงผิดปกติ",gap:"โมเดลห่างตลาดเกินเกณฑ์",outlier:"ราคาสูงผิดปกติจากเจ้าเดียว",against:"ตลาดไหลสวน",thin:"เจ้ามือน้อยเกินไป",split:"Pinnacle ขัดกับเจ้าอื่น",stale:"ราคาเก่าเกินไป",early:"ข้อมูลทีมน้อยเกินไป",conf:"ความมั่นใจต่ำ"};
 // Re-read the price right now (bypassing the server cache) and run the same rules on it, so a pick is checked just before betting.
 async function checkPrice(fixtureId,btn){
  var c=lastCandidates.find(function(x){return x.fixture.fixture.id===fixtureId});
@@ -895,7 +998,8 @@ async function checkPrice(fixtureId,btn){
   var pM=home?(e.kind==="AH"?m.home:m.over):(e.kind==="AH"?m.away:m.under);
   var med=home?(e.kind==="AH"?m.medHome:m.medOver):(e.kind==="AH"?m.medAway:m.medUnder);
   var b=blendEv((e.ws*odds+e.ps-1)*100,odds,pM);
-  var now=Object.assign({},e,{odds:odds,p:b.p,pMarket:pM,pModel:b.pModel,ev:b.ev,priceRatio:med>1?odds/med:1});
+  var cons=home?(e.kind==="AH"?m.consHome:m.consOver):(e.kind==="AH"?m.consAway:m.consUnder);
+  var now=Object.assign({},e,{odds:odds,p:b.p,pMarket:pM,pCons:cons===undefined?null:cons,anchor:m.anchor,updated:markets.updated,pModel:b.pModel,ev:b.ev,priceRatio:med>1?odds/med:1});
   var why=rejectReason(now),pass=!why&&now.ev>=MIN_EV;
   var diff=odds-e.odds;
   out.className="price-result "+(pass?"ok":"bad");
@@ -908,7 +1012,7 @@ function renderRank(){
  var isOU=rankMode==="ou",failures=rankData.failures;
  var tabCount=function(ou){return rankData.items.filter(function(it){return it.entries.some(function(x){return (ou?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ")&&rankable(x)})}).length};
  el("modeOdds").textContent="แฮนดิแคป ("+tabCount(false)+")";el("modeOU").textContent="สูงต่ำ ("+tabCount(true)+")";
- var rejected={short:0,longshot:0,line:0,ev:0,gap:0,outlier:0,against:0,thin:0,early:0,conf:0};
+ var rejected={short:0,longshot:0,line:0,ev:0,gap:0,outlier:0,against:0,thin:0,split:0,stale:0,early:0,conf:0};
  var candidates=rankData.items.map(function(it){
   var list=it.entries.filter(function(x){return isOU?x.category==="สูง/ต่ำ":x.category!=="สูง/ต่ำ"});
   var ok=list.filter(rankable);
@@ -918,12 +1022,34 @@ function renderRank(){
  lastCandidates=candidates;
  el("aiBar").hidden=!aiProviders.length||!candidates.length;
  var modeName=isOU?"สูงต่ำ":"แฮนดิแคป";
- var skipped=[["short","ราคาต่ำกว่า "+decimal(MIN_ODDS)],["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["line","ไม่ใช่เส้นหลักของสูงต่ำ"],["ev","EV เกิน "+(isOU?MAX_EV_OU:MAX_EV)+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["against","ตลาดไหลสวนเกิน "+MOVE_AGAINST+" จุด"],["thin","เจ้ามือน้อยกว่า "+MIN_BOOKS+" เจ้า"],["early","ทีมเล่นฤดูกาลนี้น้อยกว่า "+MIN_CUR_GAMES+" นัด หรือมีข้อมูลรวมน้อยกว่า "+MIN_GAMES+" นัด"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
- var note="<p class='rank-disclaimer'>โหมด"+modeName+": โอกาสชนะคำนวณจากโมเดลประตู Poisson แล้วผสมกับราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · แสดงเฉพาะราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+(isOU?MAX_EV_OU+"% เฉพาะเส้นหลัก":MAX_EV+"%")+" · ราคาตลาดอิง Pinnacle เมื่อมี · EV ไม่ใช่กำไรที่รับประกัน · ทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา"+(skipped.length?"<br>ไม่นำมาจัดอันดับ (EV บวกแต่เชื่อถือไม่ได้): "+skipped.join(" · "):"")+"</p>";
+ var skipped=[["short","ราคาต่ำกว่า "+decimal(MIN_ODDS)],["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["line","ไม่ใช่เส้นหลักของสูงต่ำ"],["ev","EV เกิน "+(isOU?MAX_EV_OU:MAX_EV)+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["against","ตลาดไหลสวนเกิน "+MOVE_AGAINST+" จุด"],["thin","เจ้ามือน้อยกว่า "+MIN_BOOKS+" เจ้า"],["split","Pinnacle ต่างจากเจ้าอื่นเกิน "+Math.round(MAX_ANCHOR_GAP*100*10)/10+" จุด"],["stale","ราคาอัปเดตเกิน "+MAX_ODDS_AGE_H+" ชม."],["early","ทีมเล่นฤดูกาลนี้น้อยกว่า "+MIN_CUR_GAMES+" นัด หรือมีข้อมูลรวมน้อยกว่า "+MIN_GAMES+" นัด"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
+
+ var skippedTotal=Object.keys(rejected).reduce(function(t,k){return t+rejected[k]},0);
+ var criteria=[
+  "โอกาสชนะ = โมเดลประตู Poisson ผสมราคาตลาด (ตลาด "+Math.round(MARKET_WEIGHT*100)+"% เพิ่มถึง "+Math.round(MARKET_WEIGHT_MAX*100)+"% เมื่อราคาสูง) · ราคาตลาดอิง Pinnacle เมื่อมี",
+  "แสดงเฉพาะราคา "+decimal(MIN_ODDS)+"–"+decimal(MAX_ODDS)+" และ EV "+MIN_EV+"–"+(isOU?MAX_EV_OU+"% เฉพาะเส้นหลัก":MAX_EV+"%"),
+  "ลงทุน = ¼ Kelly สูงสุด "+(KELLY_CAP*100)+"% ของทุน · ตลาด ▲▼ = โอกาสตลาดเปลี่ยนไปเท่าไรตั้งแต่เริ่มเก็บราคา",
+  "EV ไม่ใช่กำไรที่รับประกัน"
+ ];
+ var li=function(t){return "<li>"+t+"</li>"};
+ var note="<details class='rank-note'><summary>เกณฑ์โหมด"+modeName+(skippedTotal?" · ไม่นำมาจัดอันดับ "+skippedTotal+" ตัวเลือก":"")+"</summary>"+
+  "<ul class='rank-criteria'>"+criteria.map(li).join("")+"</ul>"+
+  (skipped.length?"<p class='rank-disclaimer'><b>ไม่นำมาจัดอันดับ</b> (EV บวกแต่เชื่อถือไม่ได้)</p><ul class='rank-criteria'>"+skipped.map(li).join("")+"</ul>":"")+
+  "</details>";
  if(candidates.length){
   var body=note+aiOverallHtml()+candidates.map(function(item,index){
    var f=item.fixture,x=item.entry;
-   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span><button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+timeText(f.fixture.date)+" น.</small></button><span class='rank-pick'><b>"+escapeHtml(x.category)+" · "+ahTag(x.ahLine)+escapeHtml(x.label)+"</b><small>ราคา "+decimal(x.odds)+(x.book?" · "+escapeHtml(x.book):"")+(x.push>0?" · คืนทุน "+pctFmt(x.push*100):"")+(x.conf!==undefined?" · มั่นใจ "+x.conf:"")+(x.kelly>0?" · ทุน "+x.kelly.toFixed(1)+"%"+(bankroll()?" ≈ ฿"+(Math.round(bankroll()*x.kelly/100/10)*10).toLocaleString("th-TH"):""):"")+moveText(marketMove(x,(rankData.history||{})[f.fixture.id]))+"</small><button type='button' class='price-check' data-check='"+f.fixture.id+"'>เช็กราคาก่อนวาง</button><span class='price-result' id='pc-"+f.fixture.id+"' aria-live='polite'></span></span><span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span><span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
+   var stake=x.kelly>0?(bankroll()?(function(){var amt=bankroll()*x.kelly/100;return "ลง "+(amt<10?"< ฿10":"฿"+(Math.round(amt/10)*10).toLocaleString("th-TH"))+" ("+x.kelly.toFixed(1)+"%)"})():"ทุน "+x.kelly.toFixed(1)+"%"):"";
+   var move=moveText(marketMove(x,(rankData.history||{})[f.fixture.id]));
+   var chips=[x.book?escapeHtml(x.book):"",x.anchor&&x.anchor!=="Pinnacle"?"ไม่มี Pinnacle":"",x.push>0?"คืนทุน "+pctFmt(x.push*100):"",x.conf!==undefined?"มั่นใจ "+x.conf:"",stake].filter(Boolean).map(function(t){return "<span class='chip'>"+t+"</span>"}).join("")+(move?"<span class='chip'>"+move.replace(/^ · /,"")+"</span>":"");
+   return "<div class='rank-row'><span class='rank-index'>"+String(index+1).padStart(2,"0")+"</span>"+
+    "<button class='rank-fixture' type='button' data-rank-id='"+f.fixture.id+"'>"+escapeHtml(teamLabel(f.teams.home,f.league.id))+" พบ "+escapeHtml(teamLabel(f.teams.away,f.league.id))+"<small>"+escapeHtml(f.league.name)+" · "+kickText(f)+"</small></button>"+
+    "<div class='rank-pick'><div class='pick-main'><span class='pick-kind'>"+escapeHtml(x.category)+"</span>"+ahTag(x.ahLine)+"<b>"+escapeHtml(x.label)+"</b></div>"+
+    "<div class='pick-meta'>"+chips+"</div>"+
+    "<div class='pick-actions'><button type='button' class='price-check icon-btn' data-check='"+f.fixture.id+"' title='เช็กราคาล่าสุดก่อนวาง' aria-label='เช็กราคาล่าสุดก่อนวาง "+escapeHtml(f.teams.home.name)+" พบ "+escapeHtml(f.teams.away.name)+"'>"+ICON.check+"</button><span class='price-result' id='pc-"+f.fixture.id+"' aria-live='polite'></span></div></div>"+
+    "<span class='rank-odds'>"+decimal(x.odds)+"<small>ราคา</small></span>"+
+    "<span class='rank-prob'>"+pctFmt(x.p*100)+"<small>"+escapeHtml(x.pLabel||"โอกาสชนะ")+"</small></span>"+
+    "<span class='rank-ev positive'>+"+x.ev.toFixed(1)+"%<small>EV ต่อเงิน 100</small></span></div>"+aiNoteHtml(f.fixture.id);
   }).join("");
   rankUpdate(candidates.length+" คู่มี EV บวกโดยประมาณ"+(failures?" · ข้อมูลไม่ครบ "+failures+" คู่":""),body);
   Array.prototype.forEach.call(el("rankBody").querySelectorAll("[data-rank-id]"),function(btn){btn.addEventListener("click",function(){analyze(Number(btn.dataset.rankId))})});
@@ -1233,10 +1359,7 @@ function finishedGames(list){
    g.goals&&Number.isFinite(Number(g.goals.home))&&Number.isFinite(Number(g.goals.away));
  }).sort(function(a,b){return new Date(b.fixture.date)-new Date(a.fixture.date)});
 }
-function gameRow(g){
- var date=new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",year:"2-digit"}).format(new Date(g.fixture.date));
- return "<div class='h2h-row'><span class='h2h-date'>"+date+"</span><span class='h2h-team'>"+escapeHtml(g.teams.home.name)+"</span><span class='h2h-score'>"+g.goals.home+"–"+g.goals.away+"</span><span class='h2h-team'>"+escapeHtml(g.teams.away.name)+"</span><span class='h2h-league'>"+escapeHtml((g.league&&g.league.name)||"รายการไม่ระบุ")+"</span></div>";
-}
+var shortDate=new Intl.DateTimeFormat("th-TH",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",year:"2-digit"});
 // the match seen from one team: was it hosting, goals for/against, w|d|l
 function sideOf(g,teamId){
  var host=Number(g.teams.home.id)===Number(teamId),gf=Number(host?g.goals.home:g.goals.away),ga=Number(host?g.goals.away:g.goals.home);
@@ -1248,40 +1371,77 @@ function tally(games,teamId){
  return t;
 }
 function statCell(value,label){return "<div class='h2h-stat'><b>"+value+"</b><span>"+label+"</span></div>"}
-// one H2H block: record of `subject` over `games`, and the latest five results
-function h2hBlock(title,games,subject){
- var head="<div class='section-title'>"+title+"</div>";
- if(!games.length)return head+"<p class='detail-note'>ไม่มีนัดพบกันตามเงื่อนไขนี้ในข้อมูล API</p>";
- var t=tally(games,subject.id),name=escapeHtml(subject.name);
- return head+"<div class='h2h-summary'>"+statCell(t.w,name+" ชนะ")+statCell(t.d,"เสมอ")+statCell(t.l,name+" แพ้")+statCell(((t.gf+t.ga)/t.n).toFixed(1),"ประตูเฉลี่ย/นัด")+"</div>"+
-  "<div class='h2h-list'>"+games.slice(0,5).map(gameRow).join("")+"</div>";
+var RESULT_LETTER={w:"W",d:"D",l:"L"},RESULT_WORD={w:"ชนะ",d:"เสมอ",l:"แพ้"};
+function chip(r){return "<span class='form-chip "+r+"' aria-label='"+RESULT_WORD[r]+"'>"+RESULT_LETTER[r]+"</span>"}
+
+// All / Home / Away switch: re-draws the table below it, no new request
+function segHtml(id,label,hint){
+ return "<div class='seg-row'><div class='seg' id='"+id+"' role='group' aria-label='"+label+"'>"+
+  ["All","Home","Away"].map(function(t,i){return "<button type='button' data-v='"+t.toLowerCase()+"' aria-pressed='"+(i===0)+"'>"+t+"</button>"}).join("")+
+  "</div><span class='seg-hint' id='"+id+"Hint'>"+hint+"</span></div>";
 }
+function bindSeg(id,render){
+ var box=el(id);if(!box)return;
+ box.addEventListener("click",function(ev){
+  var b=ev.target.closest("button[data-v]");if(!b)return;
+  Array.prototype.forEach.call(box.querySelectorAll("button"),function(x){x.setAttribute("aria-pressed",String(x===b))});
+  render(b.dataset.v);
+ });
+}
+
+var detailData={h2h:null,form:null};
+
+// ---- H2H: one table
 function h2hHtml(data,home,away){
  var games=finishedGames(data&&data.response);
- if(!games.length)return "<div class='section-title'>สถิติพบกัน (H2H) <span class='source-tag'>ทุกสนาม</span></div><p class='detail-note'>ไม่พบผล H2H ที่จบการแข่งขันในข้อมูล API</p>";
- var hostedBy=function(team){return games.filter(function(g){return Number(g.teams.home.id)===Number(team.id)})};
- return h2hBlock("สถิติพบกัน (H2H) <span class='source-tag'>"+games.length+" นัดล่าสุด · ทุกสนาม</span>",games,home)+
-  h2hBlock("H2H ที่สนามของ "+escapeHtml(home.name)+" <span class='source-tag'>"+escapeHtml(home.name)+" เป็นเจ้าบ้าน</span>",hostedBy(home),home)+
-  h2hBlock("H2H ที่สนามของ "+escapeHtml(away.name)+" <span class='source-tag'>"+escapeHtml(away.name)+" เป็นเจ้าบ้าน</span>",hostedBy(away),away)+
-  "<p class='detail-note'>สถิติย้อนหลังประกอบการพิจารณา ไม่ได้นำไปคำนวณ EV โดยตรง · แต่ละบล็อกนับผลจากมุมมองของทีมที่ระบุ</p>";
+ detailData.h2h={games:games,home:home,away:away};
+ var title="<div class='section-title'>สถิติพบกัน (H2H) <span class='source-tag'>"+games.length+" นัดล่าสุด</span></div>";
+ if(!games.length)return title+"<p class='detail-note'>ไม่พบผล H2H ที่จบการแข่งขันในข้อมูล API</p>";
+ return title+segHtml("h2hSeg","กรอง H2H","")+"<div id='h2hBody'></div>"+
+  "<p class='detail-note'>Home = นัดที่ "+escapeHtml(home.name)+" เป็นเจ้าบ้าน · Away = นัดที่ "+escapeHtml(away.name)+" เป็นเจ้าบ้าน · สถิติประกอบการพิจารณา ไม่ได้นำไปคำนวณ EV โดยตรง</p>";
 }
-// last matches of one team (from its last-10 list): overall form, and the record at the venue it plays this time
-function teamForm(info,team,hosting){
- var games=finishedGames(info&&info.done),box=function(body){return "<div class='squad-box'><h3>"+escapeHtml(team.name)+"</h3>"+body+"</div>"};
- if(!games.length)return box("<span class='detail-note'>ไม่พบผลล่าสุดในข้อมูล API</span>");
- var last=games.slice(0,5),t=tally(last,team.id),word={w:"ช",d:"ส",l:"พ"},full={w:"ชนะ",d:"เสมอ",l:"แพ้"};
- var chips=last.map(function(g){var r=sideOf(g,team.id).r;return "<span class='form-chip "+r+"' aria-hidden='true'>"+word[r]+"</span>"}).join("");
- var spoken=last.map(function(g){return full[sideOf(g,team.id).r]}).join(" ");
- var venue=games.filter(function(g){return sideOf(g,team.id).host===hosting}).slice(0,5),v=tally(venue,team.id);
- return box("<div class='form-chips' role='img' aria-label='ผลล่าสุดจากใหม่ไปเก่า: "+spoken+"'>"+chips+"</div>"+
-  "<p class='detail-note' style='margin:0 0 6px'>"+last.length+" นัดล่าสุด: ชนะ "+t.w+" · เสมอ "+t.d+" · แพ้ "+t.l+" · ได้ "+(t.gf/t.n).toFixed(1)+" เสีย "+(t.ga/t.n).toFixed(1)+" ต่อนัด</p>"+
-  "<p class='detail-note' style='margin:0 0 8px'>"+(hosting?"เมื่อเล่นในบ้าน":"เมื่อเล่นเยือน")+" "+v.n+" นัดล่าสุด: "+(v.n?"ชนะ "+v.w+" · เสมอ "+v.d+" · แพ้ "+v.l+" · ได้ "+(v.gf/v.n).toFixed(1)+" เสีย "+(v.ga/v.n).toFixed(1)+" ต่อนัด":"ไม่มีข้อมูล")+"</p>"+
-  "<div class='h2h-list'>"+last.map(gameRow).join("")+"</div>");
+function renderH2H(filter){
+ var d=detailData.h2h,box=el("h2hBody");
+ if(!d||!box)return;
+ var hostedBy=function(team){return d.games.filter(function(g){return Number(g.teams.home.id)===Number(team.id)})};
+ var games=filter==="home"?hostedBy(d.home):filter==="away"?hostedBy(d.away):d.games;
+ var subject=filter==="away"?d.away:d.home;
+ if(!games.length){box.innerHTML="<p class='detail-note'>ไม่มีนัดพบกันตามเงื่อนไขนี้ในข้อมูล API</p>";return}
+ var t=tally(games,subject.id),name=escapeHtml(subject.name);
+ box.innerHTML="<div class='h2h-summary'>"+statCell(t.w,name+" ชนะ")+statCell(t.d,"เสมอ")+statCell(t.l,name+" แพ้")+statCell(((t.gf+t.ga)/t.n).toFixed(1),"ประตูเฉลี่ย/นัด")+"</div>"+
+  "<div class='tbl-wrap'><table class='mini-table'><thead><tr><th scope='col'>วันที่</th><th scope='col'>เจ้าบ้าน</th><th scope='col'>สกอร์</th><th scope='col'>ทีมเยือน</th></tr></thead><tbody>"+
+  games.slice(0,10).map(function(g){
+   return "<tr><td class='d'>"+shortDate.format(new Date(g.fixture.date))+"<small>"+escapeHtml((g.league&&g.league.name)||"")+"</small></td><td>"+escapeHtml(g.teams.home.name)+"</td><td class='sc'>"+g.goals.home+"–"+g.goals.away+"</td><td>"+escapeHtml(g.teams.away.name)+"</td></tr>";
+  }).join("")+"</tbody></table></div>";
 }
+
+// ---- last results of both teams: one table
 function formHtml(homeInfo,awayInfo,home,away){
- return "<div class='section-title'>ผลงานล่าสุด <span class='source-tag'>ช ชนะ · ส เสมอ · พ แพ้ · ใหม่สุดอยู่ซ้าย</span></div>"+
-  "<div class='squad'>"+teamForm(homeInfo,home,true)+teamForm(awayInfo,away,false)+"</div>"+
-  "<p class='detail-note'>นับจาก 10 นัดล่าสุดของแต่ละทีมในทุกรายการ ผลเจ้าบ้าน/เยือนจึงอาจมีไม่ถึง 5 นัด</p>";
+ detailData.form={home:home,away:away,homeGames:finishedGames(homeInfo&&homeInfo.done),awayGames:finishedGames(awayInfo&&awayInfo.done)};
+ return "<div class='section-title'>ผลงานล่าสุด <span class='source-tag'>W ชนะ · D เสมอ · L แพ้ · ใหม่สุดอยู่ซ้าย</span></div>"+
+  segHtml("formSeg","กรองผลงานล่าสุด","")+"<div id='formBody'></div>"+
+  "<p class='detail-note'>Home = นัดที่ทีมนั้นเป็นเจ้าบ้าน · Away = นัดที่ทีมนั้นเล่นเยือน · นับจาก 10 นัดล่าสุดของแต่ละทีมในทุกรายการ จึงอาจมีไม่ถึง 5 นัด</p>";
+}
+function renderForm(filter){
+ var d=detailData.form,box=el("formBody");
+ if(!d||!box)return;
+ var section=function(team,all){
+  var games=filter==="all"?all:all.filter(function(g){return sideOf(g,team.id).host===(filter==="home")}),last=games.slice(0,5);
+  if(!last.length)return "<tr class='team-row'><th colspan='4' scope='colgroup'>"+escapeHtml(team.name)+"</th></tr><tr><td colspan='4' class='none'>ไม่พบผลตามเงื่อนไขนี้ในข้อมูล API</td></tr>";
+  var t=tally(last,team.id);
+  return "<tr class='team-row'><th colspan='4' scope='colgroup'><span class='tn'>"+escapeHtml(team.name)+"</span><span class='form-chips'>"+last.map(function(g){return chip(sideOf(g,team.id).r)}).join("")+"</span>"+
+   "<small>W"+t.w+" D"+t.d+" L"+t.l+" · ได้ "+(t.gf/t.n).toFixed(1)+" เสีย "+(t.ga/t.n).toFixed(1)+" ต่อนัด</small></th></tr>"+
+   last.map(function(g){
+    var s=sideOf(g,team.id);
+    return "<tr><td class='r'>"+chip(s.r)+"</td><td class='d'>"+shortDate.format(new Date(g.fixture.date))+"</td><td>"+escapeHtml(g.teams.home.name)+" <b class='sc'>"+g.goals.home+"–"+g.goals.away+"</b> "+escapeHtml(g.teams.away.name)+"</td><td class='v'>"+(s.host?"Home":"Away")+"</td></tr>";
+   }).join("");
+ };
+ box.innerHTML="<div class='tbl-wrap'><table class='mini-table form-table'><thead><tr><th scope='col'>ผล</th><th scope='col'>วันที่</th><th scope='col'>การแข่งขัน</th><th scope='col'>สนาม</th></tr></thead><tbody>"+
+  section(d.home,d.homeGames)+section(d.away,d.awayGames)+"</tbody></table></div>";
+}
+function bindDetailSegs(){
+ bindSeg("h2hSeg",renderH2H);bindSeg("formSeg",renderForm);
+ renderH2H("all");renderForm("all");
 }
 // the analysis opens in a popup; closing it puts focus back on the button that opened it
 var detailFrom=null;
@@ -1298,6 +1458,7 @@ function restoreDetailFocus(){
  if(target)target.focus();
 }
 function closeDetail(){el("detailDialog").close();restoreDetailFocus()}
+el("detailClose").innerHTML=ICON.close;el("rankRefresh").innerHTML=ICON.refresh;
 el("detailClose").addEventListener("click",closeDetail);
 // a click on the backdrop (the dialog element itself, outside its content) closes it too
 el("detailDialog").addEventListener("click",function(ev){if(ev.target===el("detailDialog"))closeDetail()});
@@ -1359,6 +1520,7 @@ async function analyze(id){
    "<div class='model-grid' style='margin-top:12px'><div class='model-box'><h3>สูงกว่า 2.5</h3><strong>"+(model?pctFmt(expectedLine(model,"2.5").over*100):"—")+"</strong><p>โอกาสรวมอย่างน้อย 3 ประตู</p></div><div class='model-box'><h3>ทั้งสองทีมทำประตู</h3><strong>"+(model?pctFmt((1-Math.exp(-model.lambdaHome))*(1-Math.exp(-model.lambdaAway))*100):"—")+"</strong><p>ประเมินจากประตูคาดหมาย</p></div></div>"+
    ouHtml(model,markets.overUnder)+asianHtml(model,markets.asianHandicap,home.name,away.name)+comparisonHtml(comp)+squadHtml(model&&model.adj,lineupData,home,away)+movementHtml(snaps,home.name,away.name)+h2hHtml(h2hData,home,away)+formHtml(homeInfo,awayInfo,home,away)+predLine+
    "<p class='detail-note'>ข้อมูลดึงเมื่อ "+updated+" น. เวลาไทย · อัตราต่อรองแปลงเป็นความน่าจะเป็นและตัดมาร์จินรายเจ้า ก่อนเฉลี่ย · สกอร์และสูง/ต่ำคำนวณจากค่าเฉลี่ยประตูในบ้าน/นอกบ้านของฤดูกาล</p>"+sourceNotice+"</div>";
+  bindDetailSegs();
  }catch(e){
   el("detailPanel").innerHTML="<div class='detail-placeholder'><div><div class='empty-mark'>!</div><strong>วิเคราะห์คู่นี้ไม่สำเร็จ</strong><span>"+escapeHtml(e.message)+"</span></div></div>";
  }
@@ -1387,7 +1549,7 @@ el("leagueChecklist").addEventListener("change",function(ev){
 el("leagueForm").addEventListener("submit",function(){
  selectedLeagues=new Set(dialogPick);
  try{localStorage.setItem(LEAGUE_STORE,JSON.stringify(Array.from(selectedLeagues)))}catch(e){}
- leagueSummary();el("rankPanel").hidden=true;renderFixtures();loadStandings();
+ leagueSummary();el("rankPanel").hidden=true;renderFixtures();loadStandings();loadListOdds();
 });
 leagueSummary();
 refreshQuota();
@@ -1396,7 +1558,8 @@ loadAiProviders();
 // show the ranking someone already pulled for this date, without pulling again
 fetchShared(el("dateInput").value).then(function(sh){if(sh&&sh.payload&&!rankData&&!rankBusy)applyShared(sh)});
 setInterval(refreshQuota,60000);
-el("searchInput").addEventListener("input",function(){el("rankPanel").hidden=true;renderFixtures()});
+var searchTimer=0;
+el("searchInput").addEventListener("input",function(){el("rankPanel").hidden=true;renderFixtures();clearTimeout(searchTimer);searchTimer=setTimeout(loadListOdds,500)});
 })();
 </script>
 </body>

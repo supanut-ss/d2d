@@ -289,19 +289,21 @@ function parseMarkets(data,homeName,awayName){
  var mean=function(arr,key){return arr.length?arr.reduce(function(s,x){return s+x[key]},0)/arr.length:null};
  var pinnacle=function(arr){return arr.find(function(x){return /pinnacle/i.test(x.book||"")})};
  var anchorVal=function(arr,key){var pin=pinnacle(arr);return pin?pin[key]:mean(arr,key)};
+ // the other books' view of the same side (needs two of them), to check Pinnacle against
+ var consensus=function(arr,key){var others=arr.filter(function(x){return !/pinnacle/i.test(x.book||"")});return others.length>=2?mean(others,key):null};
  var median=function(arr,key){if(!arr.length)return null;var v=arr.map(function(x){return x[key]}).sort(function(a,b){return a-b}),m=v.length>>1;return v.length%2?v[m]:(v[m-1]+v[m])/2};
  var avg=one.length?{home:mean(one,"home"),draw:mean(one,"draw"),away:mean(one,"away"),rawHome:mean(one,"rawHome"),rawDraw:mean(one,"rawDraw"),rawAway:mean(one,"rawAway"),bestHome:bestPrices.home.odd,homeBook:bestPrices.home.book,bestDraw:bestPrices.draw.odd,drawBook:bestPrices.draw.book,bestAway:bestPrices.away.odd,awayBook:bestPrices.away.book,books:one.length}:null;
  var ouAvg={};Object.keys(ou).forEach(function(line){
   var arr=ou[line],bestOver={odd:0,book:""},bestUnder={odd:0,book:""};
   arr.forEach(function(x){if(x.overOdd>bestOver.odd)bestOver={odd:x.overOdd,book:x.book};if(x.underOdd>bestUnder.odd)bestUnder={odd:x.underOdd,book:x.book}});
-  ouAvg[line]={over:anchorVal(arr,"over"),under:anchorVal(arr,"under"),anchor:pinnacle(arr)?"Pinnacle":"เฉลี่ย",bestOver:bestOver.odd,overBook:bestOver.book,bestUnder:bestUnder.odd,underBook:bestUnder.book,medOver:median(arr,"overOdd"),medUnder:median(arr,"underOdd"),books:arr.length};
+  ouAvg[line]={over:anchorVal(arr,"over"),under:anchorVal(arr,"under"),anchor:pinnacle(arr)?"Pinnacle":"เฉลี่ย",consOver:consensus(arr,"over"),consUnder:consensus(arr,"under"),bestOver:bestOver.odd,overBook:bestOver.book,bestUnder:bestUnder.odd,underBook:bestUnder.book,medOver:median(arr,"overOdd"),medUnder:median(arr,"underOdd"),books:arr.length};
  });
  var ahAvg={};Object.keys(ah).forEach(function(line){
   var arr=ah[line],bestHome={odd:0,book:""},bestAway={odd:0,book:""};
   arr.forEach(function(x){if(x.homeOdd>bestHome.odd)bestHome={odd:x.homeOdd,book:x.book};if(x.awayOdd>bestAway.odd)bestAway={odd:x.awayOdd,book:x.book}});
-  ahAvg[line]={home:anchorVal(arr,"home"),away:anchorVal(arr,"away"),anchor:pinnacle(arr)?"Pinnacle":"เฉลี่ย",bestHome:bestHome.odd,homeBook:bestHome.book,bestAway:bestAway.odd,awayBook:bestAway.book,medHome:median(arr,"homeOdd"),medAway:median(arr,"awayOdd"),books:arr.length};
+  ahAvg[line]={home:anchorVal(arr,"home"),away:anchorVal(arr,"away"),anchor:pinnacle(arr)?"Pinnacle":"เฉลี่ย",consHome:consensus(arr,"home"),consAway:consensus(arr,"away"),bestHome:bestHome.odd,homeBook:bestHome.book,bestAway:bestAway.odd,awayBook:bestAway.book,medHome:median(arr,"homeOdd"),medAway:median(arr,"awayOdd"),books:arr.length};
  });
- return {oneXtwo:avg,overUnder:ouAvg,asianHandicap:ahAvg};
+ return {oneXtwo:avg,overUnder:ouAvg,asianHandicap:ahAvg,updated:(first&&first.update)||null};
 }
 
 function formatHandicap(n){
@@ -315,6 +317,9 @@ var MARKET_WEIGHT=.7,MARKET_WEIGHT_MAX=.9,MIN_CONF=50,KELLY_FRACTION=.25,KELLY_C
 // MIN_BOOKS: fewer bookmakers means the "market" is one or two shops, not a consensus. MIN_GAMES: team stats (this season plus the carried-over last season)
 // below this are mostly the league prior. MIN_CUR_GAMES: games actually played this season by the less-played team (the first rounds were the least accurate).
 var MIN_BOOKS=3,MIN_GAMES=6,MIN_CUR_GAMES=3,MOVE_AGAINST=3,MIN_ODDS=1.7,MAX_ODDS=2.4,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_EV_OU=8,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
+// MAX_ANCHOR_GAP: Pinnacle and the other books should agree on the side's probability; if they are further apart one of them is wrong or late.
+// MAX_ODDS_AGE_H: prices the API last updated longer ago than this are not used (assumed update cadence; check against /odds `update`).
+var MAX_ANCHOR_GAP=.035,MAX_ODDS_AGE_H=12,NO_PINNACLE_CONF=.85;
 // market weight: 70% up to price 2.2, rising 10 points per +1.0 of price, at most 90%
 function marketWeight(odds){return Math.min(MARKET_WEIGHT_MAX,MARKET_WEIGHT+Math.max(0,odds-2.2)*.1)}
 // fractional Kelly as % of bankroll, capped; 0 when there is no edge
@@ -331,9 +336,9 @@ function blendEv(evModel,odds,pMarket){
  return {p:pBlend,pModel:pModel,pMarket:pMarket,ev:(pBlend*odds-1)*100};
 }
 // 0-100: bookmaker coverage, games behind the stats, and how far the model sits from the market
-function confidence(books,games,gap,lineups){
+function confidence(books,games,gap,lineups,pinnacle){
  var b=Math.min((books||0)/5,1),g=Math.min((games||0)/8,1),d=gap===null||gap===undefined?0:Math.max(0,1-gap/.15);
- return Math.round(100*(.35*b+.35*g+.3*d)*(lineups===false?.9:1));
+ return Math.round(100*(.35*b+.35*g+.3*d)*(lineups===false?.9:1)*(pinnacle===false?NO_PINNACLE_CONF:1));   // no Pinnacle: the market probability is only an average of softer books
 }
 
 function allValueEntries(prob,markets,model,homeName,awayName){
@@ -343,21 +348,21 @@ function allValueEntries(prob,markets,model,homeName,awayName){
   extra=extra||{};
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),books:books||0,games:games,curGames:curGames,ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups)});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),books:books||0,games:games,curGames:curGames,ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,pCons:extra.pCons===undefined?null:extra.pCons,updated:markets&&markets.updated||null,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups,extra.anchor=="Pinnacle")});
  };
  if(model&&markets&&markets.overUnder){
   // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
   var mainLine=Object.keys(markets.overUnder).reduce(function(best,l){var d=Math.abs(markets.overUnder[l].over-.5);return !best||d<best.d?{line:l,d:d}:best},null);
   Object.keys(markets.overUnder).forEach(function(line){var m=markets.overUnder[line],main={ouMain:mainLine&&line===mainLine.line};
-   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver,Object.assign({kind:"OU",side:"over",ladder:Number(line)},main,{anchor:m.anchor}));
-   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder,Object.assign({kind:"OU",side:"under",ladder:Number(line)},main,{anchor:m.anchor}));
+   add("สูง/ต่ำ","สูง "+line,settlement(model,line,"total","over",m.bestOver),m.bestOver,m.overBook,m.over,m.books,undefined,m.medOver,Object.assign({kind:"OU",side:"over",ladder:Number(line)},main,{anchor:m.anchor,pCons:m.consOver}));
+   add("สูง/ต่ำ","ต่ำ "+line,settlement(model,line,"total","under",m.bestUnder),m.bestUnder,m.underBook,m.under,m.books,undefined,m.medUnder,Object.assign({kind:"OU",side:"under",ladder:Number(line)},main,{anchor:m.anchor,pCons:m.consUnder}));
   });
  }
  if(model&&markets&&markets.asianHandicap){
   Object.keys(markets.asianHandicap).forEach(function(line){
    var h=Number(line),m=markets.asianHandicap[line];
-   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h,m.medHome,{kind:"AH",side:"home",ladder:h,anchor:m.anchor});
-   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h,m.medAway,{kind:"AH",side:"away",ladder:h,anchor:m.anchor});
+   add("แฮนดิแคป",homeName+" "+formatHandicap(h),settlement(model,h,"handicap","home",m.bestHome),m.bestHome,m.homeBook,m.home,m.books,h,m.medHome,{kind:"AH",side:"home",ladder:h,anchor:m.anchor,pCons:m.consHome});
+   add("แฮนดิแคป",awayName+" "+formatHandicap(-h),settlement(model,-h,"handicap","away",m.bestAway),m.bestAway,m.awayBook,m.away,m.books,-h,m.medAway,{kind:"AH",side:"away",ladder:h,anchor:m.anchor,pCons:m.consAway});
   });
  }
  return entries.sort(function(a,b){return b.ev-a.ev});
@@ -372,6 +377,8 @@ function rejectReason(x){
  if(Math.abs(x.pModel-x.pMarket)>MAX_GAP)return "gap";
  if(x.priceRatio>MAX_PRICE_RATIO)return "outlier";
  if(x.books<MIN_BOOKS)return "thin";
+ if(x.anchor==="Pinnacle"&&x.pCons!==null&&x.pCons!==undefined&&Math.abs(x.pMarket-x.pCons)>MAX_ANCHOR_GAP)return "split";
+ if(x.updated&&Date.now()-new Date(x.updated).getTime()>MAX_ODDS_AGE_H*3600e3)return "stale";
  if(x.games<MIN_GAMES||x.curGames<MIN_CUR_GAMES)return "early";
  if(x.move!==null&&x.move!==undefined&&x.move<=-MOVE_AGAINST)return "against";
  if(x.conf<MIN_CONF)return "conf";
