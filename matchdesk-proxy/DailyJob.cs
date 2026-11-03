@@ -9,6 +9,9 @@ namespace Matchdesk.Proxy;
 /// <summary>How long each upstream path stays in the shared cache (the page, the tracker and the job all use it).</summary>
 public static class CachePolicy
 {
+    /// <summary>Last season's team statistics do not change.</summary>
+    public static readonly TimeSpan LastSeason = TimeSpan.FromDays(7);
+
     public static TimeSpan Ttl(string path) => path.ToLowerInvariant() switch
     {
         "odds" => TimeSpan.FromMinutes(30),
@@ -31,7 +34,7 @@ public sealed record JobRun(string Task, DateTime StartedUtc, DateTime? Finished
 /// Started by an external cron (GitHub Actions / Plesk scheduled task) through /api/jobs/run.
 /// </summary>
 public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures known, PickLog log, OddsHistory history,
-    PickWorker worker, AnalysisStore analyses, IWebHostEnvironment env, IConfiguration config, ILogger<DailyJob> logger)
+    PickWorker worker, AnalysisStore analyses, MatchHistory matches, Db db, IWebHostEnvironment env, IConfiguration config, ILogger<DailyJob> logger)
 {
     private static readonly JsonSerializerOptions Web = new(JsonSerializerDefaults.Web);
     private static readonly TimeZoneInfo Bangkok = TimeZoneInfo.FindSystemTimeZoneById(
@@ -39,8 +42,42 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
     private const string FixtureStatuses = "NS-TBD";
 
     private readonly SemaphoreSlim _gate = new(1, 1);
-    public JobRun? Last { get; private set; }
+    private readonly Dictionary<string, JobRun> _byTask = Load(db);
+    private readonly object _runsLock = new();
     public bool Running => _gate.CurrentCount == 0;
+
+    /// <summary>The latest run of each task (rank, settle, all), so the frequent settle calls do not hide the daily ranking.</summary>
+    public Dictionary<string, JobRun> ByTask { get { lock (_runsLock) return new(_byTask); } }
+    public JobRun? Last { get { lock (_runsLock) return _byTask.Values.OrderByDescending(r => r.StartedUtc).FirstOrDefault(); } }
+
+    private static Dictionary<string, JobRun> Load(Db db)
+    {
+        var map = new Dictionary<string, JobRun>();
+        try
+        {
+            using var c = db.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT json FROM job_runs WHERE id IN (SELECT MAX(id) FROM job_runs GROUP BY task)";
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) { var run = JsonSerializer.Deserialize<JobRun>(r.GetString(0), Web); if (run is not null) map[run.Task] = run; }
+        }
+        catch (Exception) { /* no history yet */ }
+        return map;
+    }
+
+    private void Record(JobRun run)
+    {
+        lock (_runsLock) _byTask[run.Task] = run;
+        if (run.FinishedUtc is null) return;
+        try
+        {
+            using var c = db.Open();
+            Db.Exec(c, "INSERT INTO job_runs(task, started_utc, json) VALUES($t, $s, $j)", ("$t", run.Task), ("$s", run.StartedUtc.ToString("O")), ("$j", JsonSerializer.Serialize(run, Web)));
+            Db.Exec(c, "DELETE FROM job_runs WHERE started_utc < $cut AND task = 'settle'", ("$cut", DateTime.UtcNow.AddDays(-2).ToString("O")));   // settle runs every few minutes
+            Db.Exec(c, "DELETE FROM job_runs WHERE started_utc < $cut", ("$cut", DateTime.UtcNow.AddDays(-30).ToString("O")));
+        }
+        catch (Exception ex) { logger.LogWarning(ex, "Could not store the job run"); }
+    }
 
     public bool TokenMatches(string? given)
     {
@@ -52,6 +89,9 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
 
     public bool Enabled => !string.IsNullOrWhiteSpace(config["Matchdesk:Jobs:Token"]);
 
+    /// <summary>Set Matchdesk:Jobs:AllowQueryToken to false once the cron sends the X-Job-Token header.</summary>
+    public bool AllowQueryToken => config.GetValue("Matchdesk:Jobs:AllowQueryToken", true);
+
     /// <summary>Starts the task in the background; false if a run is already going.</summary>
     public bool TryStart(string task)
     {
@@ -59,26 +99,26 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
         _ = Task.Run(async () =>
         {
             var run = new JobRun(task, DateTime.UtcNow, null, 0, 0, 0, 0, null);
-            Last = run;
+            Record(run);
             try
             {
                 if (task is "rank" or "all") run = await RankAsync(run, CancellationToken.None);
                 if (task is "settle" or "all" or "rank") worker.Kick();
-                Last = run with { FinishedUtc = DateTime.UtcNow };
+                Record(run with { FinishedUtc = DateTime.UtcNow });
             }
             catch (Exception ex)
             {
                 logger.LogWarning(ex, "Job {Task} failed", task);
-                Last = run with { FinishedUtc = DateTime.UtcNow, Error = ex.Message };
+                Record(run with { FinishedUtc = DateTime.UtcNow, Error = ex.Message });
             }
             finally { _gate.Release(); }
         });
         return true;
     }
 
-    private async Task<string?> GetAsync(string path, string query, CancellationToken ct)
+    private async Task<string?> GetAsync(string path, string query, CancellationToken ct, TimeSpan? ttl = null)
     {
-        var (res, _) = await cache.GetOrAddAsync(path + query, CachePolicy.Ttl(path), () => pool.GetAsync("/" + path + query, ct, "job"));
+        var (res, _) = await cache.GetOrAddAsync(path + query, ttl ?? CachePolicy.Ttl(path), () => pool.GetAsync("/" + path + query, ct, "job"));
         return res.Status == 200 ? res.Body : null;
     }
 
@@ -136,6 +176,9 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
                 if (odds is null) continue;
                 var homeStats = await GetAsync("teams/statistics", $"?league={leagueId}&season={season}&team={homeId}", ct);
                 var awayStats = await GetAsync("teams/statistics", $"?league={leagueId}&season={season}&team={awayId}", ct);
+                // last season's statistics, blended in by the model (the page asks for the same, with ?carry=1)
+                var homePrev = await GetAsync("teams/statistics", $"?league={leagueId}&season={season - 1}&team={homeId}", ct, CachePolicy.LastSeason);
+                var awayPrev = await GetAsync("teams/statistics", $"?league={leagueId}&season={season - 1}&team={awayId}", ct, CachePolicy.LastSeason);
                 var injuries = await GetAsync("injuries", $"?fixture={id}", ct);
                 var homeLast = await GetAsync("fixtures", $"?team={homeId}&last=10", ct);
                 var awayLast = await GetAsync("fixtures", $"?team={awayId}&last=10", ct);
@@ -145,7 +188,7 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
                 var snaps = history.Get([id]).TryGetValue(id, out var list) ? JsonSerializer.Serialize(list, Web) : "null";
 
                 var input = "{\"fixture\":" + f.GetRawText()
-                    + ",\"odds\":" + (odds ?? "null") + ",\"homeStats\":" + (homeStats ?? "null") + ",\"awayStats\":" + (awayStats ?? "null")
+                    + ",\"odds\":" + (odds ?? "null") + ",\"homeStats\":" + (homeStats ?? "null") + ",\"awayStats\":" + (awayStats ?? "null") + ",\"homePrev\":" + (homePrev ?? "null") + ",\"awayPrev\":" + (awayPrev ?? "null")
                     + ",\"injuries\":" + (injuries ?? "null") + ",\"homeLast\":" + (homeLast ?? "null") + ",\"awayLast\":" + (awayLast ?? "null")
                     + ",\"standings\":" + (standings ?? "null") + ",\"lineups\":" + (lineups ?? "null")
                     + ",\"lineupsChecked\":" + (nearKickoff ? "true" : "false") + ",\"snaps\":" + snaps + "}";
@@ -154,21 +197,35 @@ public sealed class DailyJob(KeyPool pool, ResponseCache cache, KnownFixtures kn
                     (function(){
                       var i=JSON.parse(__in),f=i.fixture,lid=f.league.id;
                       if(!leagueTable.has(lid))noteLeagueTable(lid,i.standings);
-                      var a=analyseFixture({fixture:f,odds:i.odds,homeStats:i.homeStats,awayStats:i.awayStats,injuries:i.injuries,
+                      var a=analyseFixture({fixture:f,odds:i.odds,homeStats:i.homeStats,awayStats:i.awayStats,homePrev:i.homePrev,awayPrev:i.awayPrev,injuries:i.injuries,
                         homeInfo:teamInfoFrom(i.homeLast,f.teams.home.id),awayInfo:teamInfoFrom(i.awayLast,f.teams.away.id),
                         lineups:i.lineupsChecked?lineupsKnown(i.lineups,f.fixture.date):null,snaps:i.snaps});
                       var picks=[];
                       if(a.bestHandicap)picks.push(pickRecord(f.fixture.id,a.bestHandicap));
                       if(a.bestOverUnder)picks.push(pickRecord(f.fixture.id,a.bestOverUnder));
-                      var m=a.model;
+                      var m=a.model,over25=0;
+                      if(m)m.outcomes.forEach(function(o){if(o.total>=3)over25+=o.p});
+                      var mk=a.markets,market=null;
+                      if(mk){
+                        market={x:mk.oneXtwo?{h:mk.oneXtwo.home,d:mk.oneXtwo.draw,a:mk.oneXtwo.away,books:mk.oneXtwo.books}:null,ou:{},ah:{}};
+                        Object.keys(mk.overUnder||{}).forEach(function(l){var v=mk.overUnder[l];market.ou[l]={over:v.over,anchor:v.anchor,books:v.books}});
+                        Object.keys(mk.asianHandicap||{}).forEach(function(l){var v=mk.asianHandicap[l];market.ah[l]={home:v.home,anchor:v.anchor,books:v.books}});
+                      }
                       return JSON.stringify({ok:!!m,picks:picks,
-                        model:m?{lambdaHome:m.lambdaHome,lambdaAway:m.lambdaAway,home:m.home,draw:m.draw,away:m.away,score:m.score,games:m.games}:null,
-                        entries:a.entries});
+                        model:m?{lambdaHome:m.lambdaHome,lambdaAway:m.lambdaAway,home:m.home,draw:m.draw,away:m.away,over25:over25,score:m.score,games:m.games,curGames:m.curGames}:null,
+                        market:market,entries:a.entries});
                     })()
                     """).AsString();
                 analyses.Save(id, "job", output);
                 using var res = JsonDocument.Parse(output);
-                if (res.RootElement.GetProperty("ok").GetBoolean()) run = run with { Analysed = run.Analysed + 1 };
+                if (res.RootElement.GetProperty("ok").GetBoolean())
+                {
+                    run = run with { Analysed = run.Analysed + 1 };
+                    matches.SaveModel(id, kickoff, leagueId, league.GetProperty("name").GetString() ?? "",
+                        f.GetProperty("teams").GetProperty("home").GetProperty("name").GetString() ?? "",
+                        f.GetProperty("teams").GetProperty("away").GetProperty("name").GetString() ?? "",
+                        res.RootElement.GetProperty("model").GetRawText(), res.RootElement.GetProperty("market").GetRawText());
+                }
                 var picks = JsonSerializer.Deserialize<PickInput[]>(res.RootElement.GetProperty("picks").GetRawText(), Web) ?? [];
                 all.AddRange(picks);
             }

@@ -73,6 +73,10 @@ public sealed class KnownFixtures
     }
 
     public bool TryGet(int id, out KnownFixture fixture) => _map.TryGetValue(id, out fixture!);
+
+    private readonly ConcurrentDictionary<string, bool> _noted = new();
+    /// <summary>True the first time this process sees a cached list: after a restart the list comes from the database, not upstream.</summary>
+    public bool ShouldNote(string cacheKey) => _noted.TryAdd(cacheKey, true);
 }
 
 public sealed record PickInput(int FixtureId, string Market, string Side, double Line, double LadderLine, string? Label, double Odds, string? Book,
@@ -149,7 +153,7 @@ public sealed class PickLog
             var okMarket = i.Market is "AH" or "OU";
             var okSide = i.Market == "AH" ? i.Side is "home" or "away" : i.Side is "over" or "under";
             if (!okMarket || !okSide) continue;
-            if (!(i.Odds > 1.01 && i.Odds < 10) || Math.Abs(i.Line) > 10 || Math.Abs(i.LadderLine) > 10) continue;
+            if (!(i.Odds >= 1.7 && i.Odds <= 2.4) || Math.Abs(i.Line) > 10 || Math.Abs(i.LadderLine) > 10) continue;
             if (new[] { i.PModel, i.PMarket, i.PBlend }.Any(p => !(p > 0 && p < 1))) continue;
             if (_picks.Values.Any(p => p.FixtureId == i.FixtureId && p.Market == i.Market)) continue;   // the first recommendation is the one that counts
             var id = IdOf(i.FixtureId, i.Market, i.Side, i.LadderLine);
@@ -304,7 +308,7 @@ public sealed class PickLog
 /// Every few minutes: captures the closing market for picks about to kick off (closing line value),
 /// and settles finished matches from the full-time score.
 /// </summary>
-public sealed class PickWorker(PickLog log, KeyPool pool, OddsHistory history, ILogger<PickWorker> logger) : BackgroundService
+public sealed class PickWorker(PickLog log, KeyPool pool, OddsHistory history, MatchHistory matches, ILogger<PickWorker> logger) : BackgroundService
 {
     private static readonly TimeSpan Every = TimeSpan.FromMinutes(5);
 
@@ -420,6 +424,27 @@ public sealed class PickWorker(PickLog log, KeyPool pool, OddsHistory history, I
         }
 
         if (changed) log.Save();
+
+        // 3) scores and closing prices for every analysed fixture, not only the picks (the history behind backtest/market.js):
+        //    one request per day of kickoffs, which lists all finished matches of that day
+        foreach (var day in matches.Pending(now).GroupBy(p => MatchHistory.BangkokDay(p.Kickoff)).Take(3))
+        {
+            var res = await pool.GetAsync($"/fixtures?date={day.Key}&timezone=Asia%2FBangkok&status=FT-AET-PEN", ct, "history");
+            if (res.Status != 200) continue;
+            using var doc = JsonDocument.Parse(res.Body);
+            var wanted = day.ToDictionary(p => p.Id, p => p.Kickoff);
+            foreach (var f in doc.RootElement.GetProperty("response").EnumerateArray())
+            {
+                var id = f.GetProperty("fixture").GetProperty("id").GetInt32();
+                if (!wanted.TryGetValue(id, out var kickoff)) continue;
+                var ft = f.GetProperty("score").GetProperty("fulltime");   // 90 minutes
+                if (ft.GetProperty("home").ValueKind != JsonValueKind.Number || ft.GetProperty("away").ValueKind != JsonValueKind.Number) continue;
+                // the last tracked price from the two hours before kickoff stands in for the closing price
+                var close = history.Get([id]).TryGetValue(id, out var list)
+                    ? list.Where(s => s.T <= kickoff && s.T >= kickoff.AddHours(-2)).OrderBy(s => s.T).LastOrDefault() : null;
+                matches.SetResult(id, ft.GetProperty("home").GetInt32(), ft.GetProperty("away").GetInt32(), close is null ? null : JsonSerializer.Serialize(close));
+            }
+        }
     }
 }
 

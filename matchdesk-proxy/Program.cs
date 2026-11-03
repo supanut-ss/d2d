@@ -14,6 +14,7 @@ builder.Services.AddSingleton<DataDir>();
 builder.Services.AddSingleton<Db>();
 builder.Services.AddSingleton<SharedRank>();
 builder.Services.AddSingleton<AnalysisStore>();
+builder.Services.AddSingleton<MatchHistory>();
 builder.Services.AddSingleton<OddsHistory>();
 builder.Services.AddSingleton<KnownFixtures>();
 builder.Services.AddSingleton<PickLog>();
@@ -36,6 +37,10 @@ builder.Services.AddRateLimiter(o =>
     o.AddPolicy("ai", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = builder.Configuration.GetValue("Matchdesk:Ai:RequestsPerHourPerIp", 10), Window = TimeSpan.FromHours(1) }));
+    // publishing a ranking everyone sees: a few pulls an hour is normal
+    o.AddPolicy("share", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions { PermitLimit = 30, Window = TimeSpan.FromHours(1) }));
     o.AddPolicy("api", ctx => RateLimitPartition.GetFixedWindowLimiter(
         ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         _ => new FixedWindowRateLimiterOptions { PermitLimit = perMinute, Window = TimeSpan.FromMinutes(1) }));
@@ -79,25 +84,29 @@ app.MapGet("/api/football/{**path}", async (string path, HttpContext ctx, KeyPoo
     // ?fresh=1 on /odds: re-read the price now (used to check a pick just before betting). Dropped from the upstream
     // query, and refused for 20 s per fixture so it cannot be used to hammer the API.
     var wantFresh = path.Equals("odds", StringComparison.OrdinalIgnoreCase) && ctx.Request.Query["fresh"] == "1";
-    if (wantFresh)
-        query = "?" + string.Join("&", ctx.Request.Query.Where(kv => kv.Key != "fresh")
+    // ?carry=1 on /teams/statistics: last season's figures, which never change, so the answer is kept for days. Also dropped upstream.
+    var longLived = path.Equals("teams/statistics", StringComparison.OrdinalIgnoreCase) && ctx.Request.Query["carry"] == "1";
+    if (wantFresh || longLived)
+        query = "?" + string.Join("&", ctx.Request.Query.Where(kv => kv.Key != "fresh" && kv.Key != "carry")
             .SelectMany(kv => kv.Value.Select(v => $"{kv.Key}={Uri.EscapeDataString(v ?? "")}")));
+    var ttl = longLived ? CachePolicy.LastSeason : Ttl(path);
     if (wantFresh && !cache.TryReserveFresh(path + query)) wantFresh = false;
     UpstreamResult result;
     bool fromCache;
     if (wantFresh)
     {
         result = await pool.GetAsync("/" + path + query, ctx.RequestAborted);
-        cache.Put(path + query, Ttl(path), result);
+        cache.Put(path + query, ttl, result);
         fromCache = false;
     }
     else
     {
-        (result, fromCache) = await cache.GetOrAddAsync(path + query, Ttl(path), () => pool.GetAsync("/" + path + query, ctx.RequestAborted));
+        (result, fromCache) = await cache.GetOrAddAsync(path + query, ttl, () => pool.GetAsync("/" + path + query, ctx.RequestAborted));
     }
 
     // remember not-started fixtures so picks can be logged against their real kickoff and names
-    if (!fromCache && path == "fixtures" && result.Status == 200 && query.Contains("date=")) known.Note(result.Body);
+    // (also for a list that came out of the database after a restart)
+    if (path == "fixtures" && result.Status == 200 && query.Contains("date=") && (!fromCache || known.ShouldNote(path + query))) known.Note(result.Body);
     ctx.Response.Headers["X-Cache"] = fromCache ? "HIT" : "MISS";
     ctx.Response.Headers["X-Keys-Alive"] = $"{pool.Alive}/{pool.Total}";
     var quota = pool.Quota();
@@ -121,7 +130,7 @@ app.MapGet("/api/shared/rank", (string? date, SharedRank shared) =>
     return json is null ? Results.NoContent() : Results.Content(json, "application/json");
 }).RequireRateLimiting("api");
 
-app.MapPut("/api/shared/rank", async (string? date, HttpContext ctx, SharedRank shared) =>
+app.MapPut("/api/shared/rank", async (string? date, HttpContext ctx, SharedRank shared, KnownFixtures known) =>
 {
     if (!SharedRank.ValidDate(date)) return Results.BadRequest(new { error = "invalid date" });
     var limit = ctx.Features.Get<Microsoft.AspNetCore.Http.Features.IHttpMaxRequestBodySizeFeature>();
@@ -129,10 +138,10 @@ app.MapPut("/api/shared/rank", async (string? date, HttpContext ctx, SharedRank 
     try
     {
         using var reader = new StreamReader(ctx.Request.Body);
-        return shared.Put(date!, await reader.ReadToEndAsync(ctx.RequestAborted)) ? Results.NoContent() : Results.BadRequest(new { error = "invalid ranking" });
+        return shared.Put(date!, await reader.ReadToEndAsync(ctx.RequestAborted), known) ? Results.NoContent() : Results.BadRequest(new { error = "invalid ranking" });
     }
     catch (BadHttpRequestException) { return Results.StatusCode(StatusCodes.Status413PayloadTooLarge); }
-}).RequireRateLimiting("api");
+}).RequireRateLimiting("share");
 
 app.MapGet("/api/ai/providers", (AiService ai) => Results.Json(ai.Providers));
 
@@ -158,10 +167,15 @@ app.MapGet("/api/picks/all", (PickLog picks) => Results.Json(picks.History())).R
 app.MapGet("/api/picks/stats", (PickLog picks, PickWorker worker) => { worker.Kick(); return Results.Json(picks.Stats()); }).RequireRateLimiting("api");
 
 // cron entry point (GitHub Actions / Plesk scheduled task): ?task=rank|settle|all, token in X-Job-Token or ?token=
+// The token belongs in the X-Job-Token header: a ?token= in the URL ends up in server and cron-service logs.
+// It is still accepted until Matchdesk:Jobs:AllowQueryToken is set to false.
+string? JobToken(HttpContext ctx, DailyJob job) =>
+    ctx.Request.Headers["X-Job-Token"].FirstOrDefault() ?? (job.AllowQueryToken ? ctx.Request.Query["token"].FirstOrDefault() : null);
+
 IResult RunJob(HttpContext ctx, DailyJob job)
 {
     if (!job.Enabled) return Results.Json(new { error = "jobs are not configured (Matchdesk:Jobs:Token)" }, statusCode: 503);
-    var token = ctx.Request.Headers["X-Job-Token"].FirstOrDefault() ?? ctx.Request.Query["token"].FirstOrDefault();
+    var token = JobToken(ctx, job);
     if (!job.TokenMatches(token)) return Results.Json(new { error = "invalid token" }, statusCode: 401);
     var task = (ctx.Request.Query["task"].FirstOrDefault() ?? "all").ToLowerInvariant();
     if (task is not ("rank" or "settle" or "all")) return Results.BadRequest(new { error = "task must be rank, settle or all" });
@@ -170,7 +184,13 @@ IResult RunJob(HttpContext ctx, DailyJob job)
 }
 app.MapGet("/api/jobs/run", RunJob).RequireRateLimiting("api");
 app.MapPost("/api/jobs/run", RunJob).RequireRateLimiting("api");
-app.MapGet("/api/jobs/last", (DailyJob job) => Results.Json(new { running = job.Running, last = job.Last }));
+app.MapGet("/api/jobs/last", (DailyJob job) => Results.Json(new { running = job.Running, last = job.Last, byTask = job.ByTask }));
+
+// every analysed fixture with the model, the market, the closing price and the score: input of backtest/market.js
+app.MapGet("/api/history/export", (HttpContext ctx, DailyJob job, MatchHistory history) =>
+    !job.Enabled ? Results.Json(new { error = "jobs are not configured (Matchdesk:Jobs:Token)" }, statusCode: 503)
+    : !job.TokenMatches(JobToken(ctx, job)) ? Results.Json(new { error = "invalid token" }, statusCode: 401)
+    : Results.Content(history.ExportJson(), "application/json")).RequireRateLimiting("api");
 
 app.MapGet("/api/status", (KeyPool pool, PickWorker worker) => { worker.Kick(); return Results.Json(pool.Quota()); });
 

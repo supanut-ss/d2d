@@ -17,7 +17,8 @@ function poisson(k,lambda){
  return p;
 }
 function poissonArray(lambda,max){var a=[];for(var i=0;i<=max;i++)a.push(poisson(i,lambda));return a}
-var DC_RHO=-0.1;
+// Dixon-Coles low-score correction. 0 = plain Poisson: backtest/RESULTS.md found no gain from a negative value.
+var DC_RHO=0;
 function dcTau(i,j,h,a){
  if(i===0&&j===0)return 1-h*a*DC_RHO;
  if(i===0&&j===1)return 1+h*DC_RHO;
@@ -86,17 +87,8 @@ function goalAverages(stats){
  return {forHome:avg(gf.average&&gf.average.home,gf.average&&gf.average.total),forAway:avg(gf.average&&gf.average.away,gf.average&&gf.average.total),
  againstHome:avg(ga.average&&ga.average.home,ga.average&&ga.average.total),againstAway:avg(ga.average&&ga.average.away,ga.average&&ga.average.total)};
 }
-function formFactor(stats){
- if(!stats||typeof stats.form!=="string")return 1;
- var recent=stats.form.replace(/[^WDL]/g,"").slice(-6);
- if(recent.length<3)return 1;
- var pts=function(str){return str.split("").reduce(function(t,c){return t+(c==="W"?1:c==="D"?.5:0)},0)/str.length};
- var f=stats.fixtures||{},played=f.played&&num(f.played.total),wins=f.wins&&num(f.wins.total),draws=f.draws&&num(f.draws.total);
- if(!played||wins===null||draws===null)return 1;
- var season=(wins+draws*.5)/played;
- return Math.max(.88,Math.min(1.12,1+.25*(pts(recent)-season)));
-}
-var SHRINK_GAMES=5,LEAGUE_PRIOR={home:1.45,away:1.15},LEAGUE_PRIOR_WEIGHT=4;
+// SHRINK_GAMES 8: more pull towards the league rate gave better over/under without hurting 1X2 (backtest/RESULTS.md)
+var SHRINK_GAMES=8,LEAGUE_PRIOR={home:1.45,away:1.15},LEAGUE_PRIOR_WEIGHT=4;
 // goals per game by team for every league whose team stats were fetched in this session
 var leagueGoals=new Map();
 function noteLeagueTeam(stats){
@@ -123,8 +115,34 @@ function leagueAverage(leagueId){
 }
 function played(stats,side){var p=stats&&stats.fixtures&&stats.fixtures.played;return p?(num(p[side])||0):0}
 function shrink(rate,games,prior){return rate===null||rate===undefined?prior:(rate*games+prior*SHRINK_GAMES)/(games+SHRINK_GAMES)}
+// Last season's goal rates count at CARRY_WEIGHT per game on top of this season's, so a team with few games starts from
+// last season instead of the league average (the backtest's largest gain, most of all early in the season).
+// cur and prev are API-Football team statistics; prev is null for a promoted team or when it could not be fetched.
+var CARRY_WEIGHT=.6;
+function withCarry(cur,prev){
+ if(!cur||!prev||!prev.goals||!prev.fixtures)return cur;
+ var out=Object.assign({},cur),pl={},gf={average:{}},ga={average:{}};
+ ["home","away","total"].forEach(function(side){
+  var cn=played(cur,side),pn=played(prev,side)*CARRY_WEIGHT;
+  var mix=function(c,p){
+   var cv=num(c&&c[side]),pv=num(p&&p[side]),a=cv===null?0:cn,b=pv===null?0:pn;
+   return a+b>0?String(((cv||0)*a+(pv||0)*b)/(a+b)):(c&&c[side]);
+  };
+  pl[side]=cn+pn;
+  gf.average[side]=mix(cur.goals&&cur.goals.for&&cur.goals.for.average,prev.goals.for&&prev.goals.for.average);
+  ga.average[side]=mix(cur.goals&&cur.goals.against&&cur.goals.against.average,prev.goals.against&&prev.goals.against.average);
+ });
+ out.fixtures=Object.assign({},cur.fixtures,{played:pl});
+ out.goals=Object.assign({},cur.goals,{for:gf,against:ga});
+ return out;
+}
+// The goal model's over/under probability had no skill over the league rate in the backtest: pull the match total towards
+// the league total. TOTAL_K = 1 keeps the model's total, 0 uses the league's; .5 was best in the backtest.
+var TOTAL_K=.5;
 function modelFromTeamStats(homeStatsData,awayStatsData,adj){
- var hst=firstResponse(homeStatsData),ast=firstResponse(awayStatsData);
+ adj=adj||{};
+ var hstCur=firstResponse(homeStatsData),astCur=firstResponse(awayStatsData);
+ var hst=withCarry(hstCur,firstResponse(adj.homePrev)),ast=withCarry(astCur,firstResponse(adj.awayPrev));
  var hs=goalAverages(hst),as=goalAverages(ast);
  if(!hs||!as)return null;
  noteLeagueTeam(hst);noteLeagueTeam(ast);
@@ -132,7 +150,6 @@ function modelFromTeamStats(homeStatsData,awayStatsData,adj){
  var choose=function(a,b){return a!==null&&a!==undefined?a:b};
  var hn=played(hst,"home"),an=played(ast,"away");
  // home sides score lg.home per game, so the away team's conceding rate is measured against lg.home (and vice versa)
- adj=adj||{};
  // recent xG (when fetched) is averaged with the season goal rate: it is less noisy than goals over few games
  var hx=adj.homeXg,ax=adj.awayXg;
  var mix=function(rate,x){return x===null||x===undefined?rate:(rate===null||rate===undefined?x:(rate+x)/2)};
@@ -150,8 +167,10 @@ function modelFromTeamStats(homeStatsData,awayStatsData,adj){
  // players ruled out lower that side's scoring rate
  var lh=lg.home*hAtt*aDef*(adj.homeAtt||1),la=lg.away*aAtt*hDef*(adj.awayAtt||1);
  if(!Number.isFinite(lh)||!Number.isFinite(la)||lh<0||la<0)return null;
- var model=modelFromLambdas(lh*formFactor(hst),la*formFactor(ast));
- if(model){model.games=Math.min(played(hst,"total"),played(ast,"total"));model.league=lg;model.adj=adj}
+ var lgTotal=lg.home+lg.away,totalScale=lh+la>0?(lgTotal+TOTAL_K*(lh+la-lgTotal))/(lh+la):1;
+ lh*=totalScale;la*=totalScale;
+ var model=modelFromLambdas(lh,la);
+ if(model){model.games=Math.min(played(hst,"total"),played(ast,"total"));model.curGames=Math.min(played(hstCur,"total"),played(astCur,"total"));model.league=lg;model.adj=adj}
  return model;
 }
 // injuries: "Missing Fixture" counts 1, anything else (questionable) 0.5; -2.5% scoring per count, at most -12%
@@ -293,7 +312,9 @@ function formatHandicap(n){
 var MARKET_WEIGHT=.7,MARKET_WEIGHT_MAX=.9,MIN_CONF=50,KELLY_FRACTION=.25,KELLY_CAP=.05;
 // What a pick must pass to be ranked. Bookmakers are better calibrated than a goals model on long shots
 // (favourite-longshot bias), so the market weight grows with the price and long shots are not ranked at all.
-var MOVE_AGAINST=3,MIN_ODDS=1.7,MAX_ODDS=2.5,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_EV_OU=8,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
+// MIN_BOOKS: fewer bookmakers means the "market" is one or two shops, not a consensus. MIN_GAMES: team stats (this season plus the carried-over last season)
+// below this are mostly the league prior. MIN_CUR_GAMES: games actually played this season by the less-played team (the first rounds were the least accurate).
+var MIN_BOOKS=3,MIN_GAMES=6,MIN_CUR_GAMES=3,MOVE_AGAINST=3,MIN_ODDS=1.7,MAX_ODDS=2.4,MIN_PMARKET=.3,MIN_EV=2,MAX_EV=12,MAX_EV_OU=8,MAX_GAP=.12,MAX_PRICE_RATIO=1.12;
 // market weight: 70% up to price 2.2, rising 10 points per +1.0 of price, at most 90%
 function marketWeight(odds){return Math.min(MARKET_WEIGHT_MAX,MARKET_WEIGHT+Math.max(0,odds-2.2)*.1)}
 // fractional Kelly as % of bankroll, capped; 0 when there is no edge
@@ -316,13 +337,13 @@ function confidence(books,games,gap,lineups){
 }
 
 function allValueEntries(prob,markets,model,homeName,awayName){
- var games=model?model.games:0;
+ var games=model?model.games:0,curGames=model?model.curGames:0;
  var entries=[];
  var add=function(category,label,metric,odds,book,pMarket,books,ahLine,medOdds,extra){
   extra=extra||{};
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups)});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),books:books||0,games:games,curGames:curGames,ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups)});
  };
  if(model&&markets&&markets.overUnder){
   // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
@@ -350,6 +371,8 @@ function rejectReason(x){
  if(x.ev>(x.category==="สูง/ต่ำ"?MAX_EV_OU:MAX_EV))return "ev";
  if(Math.abs(x.pModel-x.pMarket)>MAX_GAP)return "gap";
  if(x.priceRatio>MAX_PRICE_RATIO)return "outlier";
+ if(x.books<MIN_BOOKS)return "thin";
+ if(x.games<MIN_GAMES||x.curGames<MIN_CUR_GAMES)return "early";
  if(x.move!==null&&x.move!==undefined&&x.move<=-MOVE_AGAINST)return "against";
  if(x.conf<MIN_CONF)return "conf";
  return null;
@@ -379,17 +402,19 @@ function teamInfoFrom(lastData,teamId){
  });
  return {recent:sw?{for:sf/sw,against:sa/sw,n:done.length}:null,lastDate:done[0]?done[0].fixture.date:null,xg:null,done:done};
 }
-/* One fixture, start to finish. in = {fixture, odds, homeStats, awayStats, injuries, homeInfo, awayInfo, lineups, snaps}
+/* One fixture, start to finish. in = {fixture, odds, homeStats, awayStats, homePrev, awayPrev, injuries, homeInfo, awayInfo, lineups, snaps}
    (homeInfo/awayInfo from teamInfoFrom, optionally with .xg; lineups from lineupsKnown; snaps = odds history or null).
-   Returns the model, every priced option, and the best rankable pick per market. */
+   Returns the model, every priced option, the parsed markets, and the best rankable pick per market. */
 function analyseFixture(input){
  var f=input.fixture,home=f.teams.home.name,away=f.teams.away.name;
  var markets=parseMarkets(input.odds,home,away);
- var model=modelFromTeamStats(input.homeStats,input.awayStats,buildAdj(input.injuries,f,input.homeInfo,input.awayInfo,input.lineups));
+ var adj=buildAdj(input.injuries,f,input.homeInfo,input.awayInfo,input.lineups);
+ adj.homePrev=input.homePrev||null;adj.awayPrev=input.awayPrev||null;   // last season's team statistics (see withCarry)
+ var model=modelFromTeamStats(input.homeStats,input.awayStats,adj);
  var entries=allValueEntries(null,markets,model,home,away);
  entries.forEach(function(e){e.move=input.snaps?marketMove(e,input.snaps):null});
  var best=function(ou){return entries.filter(function(x){return (x.category==="สูง/ต่ำ")===ou&&rankable(x)})[0]||null};
- return {model:model,entries:entries,bestHandicap:best(false),bestOverUnder:best(true)};
+ return {model:model,entries:entries,markets:markets,bestHandicap:best(false),bestOverUnder:best(true)};
 }
 // the shape the server stores (same as the page sends to /api/picks/log)
 function pickRecord(fixtureId,e){

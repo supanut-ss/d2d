@@ -25,6 +25,95 @@ public sealed class DataDir
     public string File(string name) => Path.Combine(Root, name);
 }
 
+/// <summary>
+/// The permanent record behind backtest/market.js: for every fixture the daily job analysed, what the model and the market
+/// said before kickoff, the market's last snapshot before kickoff (closing) and the final score. Never deleted: a few KB per fixture.
+/// </summary>
+public sealed class MatchHistory(Db db, ILogger<MatchHistory> log)
+{
+    public static readonly TimeZoneInfo Bangkok = TimeZoneInfo.FindSystemTimeZoneById(
+        OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Bangkok");
+
+    public static string BangkokDay(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(utc, Bangkok).ToString("yyyy-MM-dd");
+
+    /// <summary>Records (or refreshes, until kickoff) the model and market view of a fixture; a result already stored is kept.</summary>
+    public void SaveModel(int fixtureId, DateTime kickoffUtc, int leagueId, string league, string home, string away, string? modelJson, string? marketJson)
+    {
+        try
+        {
+            using var c = db.Open();
+            Db.Exec(c, """
+                INSERT INTO match_history(fixture_id, kickoff_utc, league_id, league, home, away, model_json, market_json, updated_utc)
+                VALUES($id, $k, $lid, $l, $h, $a, $m, $mk, $u)
+                ON CONFLICT(fixture_id) DO UPDATE SET kickoff_utc=$k, model_json=$m, market_json=$mk, updated_utc=$u
+                """,
+                ("$id", fixtureId), ("$k", kickoffUtc.ToString("O")), ("$lid", leagueId), ("$l", league), ("$h", home), ("$a", away),
+                ("$m", modelJson), ("$mk", marketJson), ("$u", DateTime.UtcNow.ToString("O")));
+        }
+        catch (Exception ex) { log.LogWarning(ex, "Could not store the history of fixture {Id}", fixtureId); }
+    }
+
+    /// <summary>Fixtures that should be over by now but have no score yet (given up on after three days).</summary>
+    public List<(int Id, DateTime Kickoff)> Pending(DateTime now)
+    {
+        var list = new List<(int, DateTime)>();
+        try
+        {
+            using var c = db.Open();
+            using var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT fixture_id, kickoff_utc FROM match_history WHERE home_goals IS NULL AND kickoff_utc < $a AND kickoff_utc > $b";
+            cmd.Parameters.AddWithValue("$a", now.AddHours(-3).ToString("O"));
+            cmd.Parameters.AddWithValue("$b", now.AddDays(-3).ToString("O"));
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) list.Add((r.GetInt32(0), DateTime.Parse(r.GetString(1), null, System.Globalization.DateTimeStyles.RoundtripKind)));
+        }
+        catch (Exception ex) { log.LogWarning(ex, "Could not read pending history"); }
+        return list;
+    }
+
+    public void SetResult(int fixtureId, int homeGoals, int awayGoals, string? closeJson)
+    {
+        try
+        {
+            using var c = db.Open();
+            Db.Exec(c, "UPDATE match_history SET home_goals=$h, away_goals=$a, close_json=COALESCE($c, close_json), updated_utc=$u WHERE fixture_id=$id",
+                ("$h", homeGoals), ("$a", awayGoals), ("$c", closeJson), ("$u", DateTime.UtcNow.ToString("O")), ("$id", fixtureId));
+        }
+        catch (Exception ex) { log.LogWarning(ex, "Could not store the result of fixture {Id}", fixtureId); }
+    }
+
+    /// <summary>Every row as JSON, for backtest/market.js.</summary>
+    public string ExportJson()
+    {
+        using var c = db.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT fixture_id, kickoff_utc, league_id, league, home, away, model_json, market_json, close_json, home_goals, away_goals FROM match_history ORDER BY kickoff_utc";
+        using var r = cmd.ExecuteReader();
+        using var ms = new MemoryStream();
+        using (var w = new System.Text.Json.Utf8JsonWriter(ms))
+        {
+            w.WriteStartArray();
+            while (r.Read())
+            {
+                w.WriteStartObject();
+                w.WriteNumber("fixtureId", r.GetInt32(0)); w.WriteString("kickoffUtc", r.GetString(1)); w.WriteNumber("leagueId", r.GetInt32(2));
+                w.WriteString("league", r.GetString(3)); w.WriteString("home", r.GetString(4)); w.WriteString("away", r.GetString(5));
+                foreach (var (name, i) in new[] { ("model", 6), ("market", 7), ("close", 8) })
+                {
+                    w.WritePropertyName(name);
+                    if (r.IsDBNull(i)) w.WriteNullValue();
+                    else { using var raw = JsonDocument.Parse(r.GetString(i)); raw.RootElement.WriteTo(w); }
+                }
+                if (r.IsDBNull(9)) { w.WriteNull("homeGoals"); w.WriteNull("awayGoals"); }
+                else { w.WriteNumber("homeGoals", r.GetInt32(9)); w.WriteNumber("awayGoals", r.GetInt32(10)); }
+                w.WriteEndObject();
+            }
+            w.WriteEndArray();
+        }
+        return System.Text.Encoding.UTF8.GetString(ms.ToArray());
+    }
+}
+
 /// <summary>What the model made of each fixture (win probabilities, every priced option, the picks), kept one day per source.</summary>
 public sealed class AnalysisStore(Db db, ILogger<AnalysisStore> log)
 {
@@ -92,15 +181,23 @@ public sealed class SharedRank
     /// <summary>{"savedAt":...,"payload":...} or null.</summary>
     public string? Get(string date) => _byDate.TryGetValue(date, out var json) ? json : null;
 
-    public bool Put(string date, string payloadJson)
+    /// <summary>Only a ranking of fixtures the server itself has listed is accepted, so a made-up one cannot replace what everyone sees.</summary>
+    public bool Put(string date, string payloadJson, KnownFixtures known)
     {
         try
         {
             using var doc = JsonDocument.Parse(payloadJson);
             if (doc.RootElement.ValueKind != JsonValueKind.Object
-                || !doc.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array) return false;
+                || !doc.RootElement.TryGetProperty("items", out var items) || items.ValueKind != JsonValueKind.Array
+                || items.GetArrayLength() is 0 or > 30) return false;
+            foreach (var item in items.EnumerateArray())
+            {
+                if (!item.TryGetProperty("fixture", out var f) || !f.TryGetProperty("fixture", out var fx)
+                    || !fx.TryGetProperty("id", out var id) || !id.TryGetInt32(out var fixtureId)
+                    || !known.TryGet(fixtureId, out _)) return false;
+            }
         }
-        catch (JsonException) { return false; }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException) { return false; }
 
         var json = "{\"savedAt\":\"" + DateTime.UtcNow.ToString("O") + "\",\"payload\":" + payloadJson + "}";
         _byDate[date] = json;

@@ -21,6 +21,8 @@ public sealed class Db
             CREATE TABLE IF NOT EXISTS odds_history(fixture_id INTEGER PRIMARY KEY, json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS shared_rank(date TEXT PRIMARY KEY, json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS api_cache(key TEXT PRIMARY KEY, status INTEGER NOT NULL, body TEXT NOT NULL, fetched_utc TEXT NOT NULL, expires_utc TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS match_history(fixture_id INTEGER PRIMARY KEY, kickoff_utc TEXT NOT NULL, league_id INTEGER NOT NULL, league TEXT NOT NULL, home TEXT NOT NULL, away TEXT NOT NULL, model_json TEXT, market_json TEXT, close_json TEXT, home_goals INTEGER, away_goals INTEGER, updated_utc TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS job_runs(id INTEGER PRIMARY KEY AUTOINCREMENT, task TEXT NOT NULL, started_utc TEXT NOT NULL, json TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS analyses(fixture_id INTEGER NOT NULL, source TEXT NOT NULL, created_utc TEXT NOT NULL, json TEXT NOT NULL, PRIMARY KEY(fixture_id, source));
             """);
     }

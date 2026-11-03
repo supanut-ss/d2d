@@ -2,14 +2,14 @@
 // Every match is predicted only from matches played before it. Usage: node backtest/fetch-data.js && node backtest/backtest.js
 const fs = require("fs"), path = require("path"), vm = require("vm");
 
-const BASE = { DISPERSION: .12, DC_RHO: -.1, SHRINK_GAMES: 5, RW: .3, FORM_K: .25, CARRY: 0 };
+// BASE = the settings in model.js now; the sweeps vary one value at a time
+const BASE = { DISPERSION: .12, DC_RHO: 0, SHRINK_GAMES: 8, RW: .3, CARRY_WEIGHT: .6, TOTAL_K: 1 };
 const MODEL_SRC = fs.readFileSync(path.join(__dirname, "..", "wwwroot", "model.js"), "utf8");
 
-// model.js hard-codes two weights; expose them as variables so they can be swept. Fails loudly if model.js changed.
+// model.js hard-codes the recent-form weight; expose it as a variable so it can be swept. Fails loudly if model.js changed.
 function patched() {
   const swaps = [
     [".7*rate+.3*eq", "(1-RW)*rate+RW*eq"],
-    ["1+.25*(pts(recent)-season)", "1+FORM_K*(pts(recent)-season)"],
   ];
   let s = MODEL_SRC;
   for (const [a, b] of swaps) { if (!s.includes(a)) throw new Error("model.js changed, update the patch: " + a); s = s.replace(a, b); }
@@ -31,34 +31,24 @@ function loadMatches() {
 }
 
 // ---- team stats as of a date, in the shape API-Football returns (what model.js reads)
-function statsOf(team, league, season, prevSeason, history, before, carry, id) {
-  const mine = history.get(league + "|" + team) || [];
-  const cur = [], prev = [];
-  for (const g of mine) {
-    if (g.date >= before) break;
-    if (g.season === season) cur.push(g); else if (g.season === prevSeason) prev.push(g);
-  }
-  const agg = (list, w, side) => {
-    let n = 0, gf = 0, ga = 0;
-    for (const g of list) if (side === "total" || g.home === (side === "home")) { n += w; gf += w * g.gf; ga += w * g.ga; }
-    return { n, gf, ga };
+function statsOf(team, league, season, history, before, id) {
+  const cur = (history.get(league + "|" + team) || []).filter(g => g.season === season && g.date < before);
+  const side = s => {
+    const list = s === "total" ? cur : cur.filter(g => g.home === (s === "home")), n = list.length;
+    return { n, forAvg: n ? list.reduce((t, g) => t + g.gf, 0) / n : null, againstAvg: n ? list.reduce((t, g) => t + g.ga, 0) / n : null };
   };
-  const sides = {};
-  for (const side of ["home", "away", "total"]) {
-    const a = agg(cur, 1, side), b = agg(prev, carry, side), n = a.n + b.n;
-    sides[side] = { n, forAvg: n ? (a.gf + b.gf) / n : null, againstAvg: n ? (a.ga + b.ga) / n : null };
-  }
+  const sides = { home: side("home"), away: side("away"), total: side("total") };
   const fmt = v => v === null ? null : String(v);
   const wins = cur.filter(g => g.gf > g.ga).length, draws = cur.filter(g => g.gf === g.ga).length;
   return {
     league: { id }, team: { id: team },
-    form: cur.map(g => g.gf > g.ga ? "W" : g.gf < g.ga ? "L" : "D").join(""),
     fixtures: { played: { home: sides.home.n, away: sides.away.n, total: sides.total.n }, wins: { total: wins }, draws: { total: draws } },
     goals: {
       for: { average: { home: fmt(sides.home.forAvg), away: fmt(sides.away.forAvg), total: fmt(sides.total.forAvg) } },
       against: { average: { home: fmt(sides.home.againstAvg), away: fmt(sides.away.againstAvg), total: fmt(sides.total.againstAvg) } },
     },
-    _curPlayed: cur.length, _last: mine.filter(g => g.date < before).slice(-10).reverse(),
+    _curPlayed: cur.length,
+    _last: (history.get(league + "|" + team) || []).filter(g => g.date < before).slice(-10).reverse(),
   };
 }
 // recency-weighted goals of the last 10 (newest first), like teamInfoFrom
@@ -72,7 +62,7 @@ function run(matches, params, evalSeasons) {
   const P = Object.assign({}, BASE, params);
   const ctx = vm.createContext({ Math, Date, Map, Set, Number, String, Object, Array, JSON, isFinite, console });
   vm.runInContext(SRC, ctx);
-  Object.assign(ctx, { DISPERSION: P.DISPERSION, DC_RHO: P.DC_RHO, SHRINK_GAMES: P.SHRINK_GAMES, RW: P.RW, FORM_K: P.FORM_K });
+  Object.assign(ctx, { DISPERSION: P.DISPERSION, DC_RHO: P.DC_RHO, SHRINK_GAMES: P.SHRINK_GAMES, RW: P.RW, CARRY_WEIGHT: P.CARRY_WEIGHT, TOTAL_K: P.TOTAL_K });
   const seasons = [...new Set(matches.map(m => m.season))].sort();
   const history = new Map(), leagueRows = new Map(), rates = new Map();
   const acc = [];
@@ -86,17 +76,19 @@ function run(matches, params, evalSeasons) {
         const hf = rows.reduce((t, r) => t + r.hg, 0), af = rows.reduce((t, r) => t + r.ag, 0);
         ctx.leagueTable.set(lid, { home: hf / rows.length, away: af / rows.length, teams: 0, fromTable: true });
       } else ctx.leagueTable.set(lid, null);
-      const hs = statsOf(m.home, m.league, m.season, prevSeason, history, m.date, P.CARRY, lid);
-      const as = statsOf(m.away, m.league, m.season, prevSeason, history, m.date, P.CARRY, lid);
+      const hs = statsOf(m.home, m.league, m.season, history, m.date, lid);
+      const as = statsOf(m.away, m.league, m.season, history, m.date, lid);
+      // last season's full-season stats, as teams/statistics returns them (null for a promoted team)
+      const prevOf = team => { const s = prevSeason && statsOf(team, m.league, prevSeason, history, Infinity, lid); return s && s._curPlayed ? { response: s } : null; };
       const rest = s => { const l = s._last[0]; return l && (m.date - l.date) / 864e5 < 3.5 ? .97 : 1; };
       ctx.__h = { response: hs }; ctx.__a = { response: as };
-      ctx.__adj = { homeAtt: rest(hs), awayAtt: rest(as), homeRecent: recentOf(hs._last), awayRecent: recentOf(as._last) };
+      ctx.__adj = { homeAtt: rest(hs), awayAtt: rest(as), homeRecent: recentOf(hs._last), awayRecent: recentOf(as._last), homePrev: prevOf(m.home), awayPrev: prevOf(m.away) };
       const model = vm.runInContext("modelFromTeamStats(__h,__a,__adj)", ctx);
       if (model) {
         const over = model.outcomes.reduce((t, o) => t + (o.total >= 3 ? o.p : 0), 0);
         const r = rates.get(rowsKey) || { h: 0, d: 0, a: 0, o: 0, n: 0 };
         acc.push({ m, p: [model.home, model.draw, model.away], over, base: r.n >= 20 ? [r.h / r.n, r.d / r.n, r.a / r.n, r.o / r.n] : null,
-          games: Math.min(hs._curPlayed, as._curPlayed), lamTotal: model.total });
+          games: model.curGames, lamTotal: model.total });
       }
     }
     // learn from the result
@@ -147,7 +139,7 @@ if (require.main === module) {
   console.log(`${matches.length} matches loaded`);
   const TRAIN = new Set(["2022-23", "2023-24"]), TEST = new Set(["2024-25", "2025-26"]), ALL = new Set([...TRAIN, ...TEST]);
   const grid = {
-    DISPERSION: [0, .06, .12, .2, .3], DC_RHO: [0, -.05, -.1, -.15], SHRINK_GAMES: [2, 5, 8, 12], RW: [0, .15, .3, .5], FORM_K: [0, .25, .5], CARRY: [0, .3, .6, 1],
+    DISPERSION: [0, .12, .3], DC_RHO: [0, -.05, -.1], SHRINK_GAMES: [5, 8, 12], RW: [0, .3, .5], CARRY_WEIGHT: [0, .3, .6, 1], TOTAL_K: [0, .25, .5, .75, 1],
   };
   const all = run(matches, {}, ALL), base = score(all);
   console.log("\n== current model.js settings, all evaluated seasons");

@@ -21,6 +21,9 @@ All of it is one SQLite database, `matchdesk.db` (with its `-wal`/`-shm` files),
 - `api_cache`: every raw API-Football response (key, status, body, fetch and expiry time). Responses still fresh are reloaded after a restart, so a recycle does not cost quota. Kept one day
 - `analyses`: what the model made of each fixture the daily job analysed (probabilities, every priced option, the picks), latest per fixture. Kept one day
 
+- `match_history`: **permanent**, a few KB per fixture. For every fixture the daily job analysed: the model's probabilities, the market's probabilities at that time, the last tracked price before kickoff (closing) and the 90-minute score (found by one request per day of kickoffs). `GET /api/history/export` (job token) returns it all; `backtest/market.js` measures the model against the market on it
+- `job_runs`: the last run of each job task (rank, settle, all), shown by `/api/jobs/last` under `byTask`; settle rows are kept 2 days, others 30
+
 Raw responses and analyses are deleted after one day (`Db.Retention`); picks and odds history keep their own rules.
 
 On the first start after the move to SQLite, the old `picks.json`, `odds-history.json` and `shared-rank-*.json` are imported and renamed to `*.migrated` (kept as a backup). Back up `matchdesk.db*` by copying all three files while the app is stopped.
@@ -37,9 +40,9 @@ On the first start after the move to SQLite, the old `picks.json`, `odds-history
 
 ## Daily job (cron)
 
-`/api/jobs/run?task=rank|settle|all` (GET or POST, token in `X-Job-Token` or `?token=`) runs the ranking on the server with the same `wwwroot/model.js` the page uses (executed in Jint) and logs the picks; `settle` settles finished picks and captures closing prices. It needs `Matchdesk:Jobs:Token` in `appsettings.Production.json`; without it the endpoint answers 503. `/api/jobs/last` shows the last run.
+`/api/jobs/run?task=rank|settle|all` (GET or POST, token in the `X-Job-Token` header; `?token=` still works until `Matchdesk:Jobs:AllowQueryToken` is `false`, but a token in the URL ends up in logs) runs the ranking on the server with the same `wwwroot/model.js` the page uses (executed in Jint) and logs the picks; `settle` settles finished picks and captures closing prices. It needs `Matchdesk:Jobs:Token` in `appsettings.Production.json`; without it the endpoint answers 503. `/api/jobs/last` shows the last run.
 
-An external web cron (e.g. cron-job.org) calls it: `https://drivetodev.online/matchdesk/api/jobs/run?task=rank&token=TOKEN` daily at 09:00 Bangkok, and `...?task=settle&token=TOKEN` every 10-15 minutes. IIS stops an idle app, so the frequent call also keeps the background tracker alive.
+An external web cron (e.g. cron-job.org) calls it: `https://drivetodev.online/matchdesk/api/jobs/run?task=rank` with the header `X-Job-Token: TOKEN` daily at 09:00 Bangkok, and `...?task=settle` (same header) every 10-15 minutes. IIS stops an idle app, so the frequent call also keeps the background tracker alive.
 
 ## Run locally
 
