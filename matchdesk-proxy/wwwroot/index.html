@@ -1307,6 +1307,8 @@ async function refreshStats(){
  var q,latest=[];
  try{var r=await fetch("api/picks/stats");if(!r.ok)return;q=await r.json()}catch(e){return}
  try{var all=await fetch("api/picks/all");if(all.ok){historyRows=await all.json();latest=historyRows.slice(0,12)}}catch(e){}
+ var lean=null;
+ try{var lr=await fetch("api/analysis/lean-stats");if(lr.ok)lean=await lr.json()}catch(e){}
  var f1=function(v,suffix){return v===null||v===undefined?"—":(Number(v)>0&&suffix==="%+"?"+":"")+Number(v).toFixed(1)+(suffix==="%+"?"%":(suffix||""))};
  var sign=function(v,d){return v===null||v===undefined?"—":(v>0?"+":"")+Number(v).toFixed(d)};
  var o=q.overall,c=q.clv;
@@ -1323,6 +1325,21 @@ async function refreshStats(){
  if(q.calibration&&q.calibration.length)body+="<div class='section-title'>Calibration <span class='source-tag'>โมเดลคาด เทียบ ชนะจริง</span></div><div class='tbl-wrap'><table class='mini-table recent-table'><thead><tr><th scope='col'>Range</th><th scope='col' class='num'>Expected</th><th scope='col' class='num'>Actual</th><th scope='col' class='num'>Picks</th></tr></thead><tbody>"+q.calibration.map(function(b){
   return "<tr><td>"+escapeHtml(b.range)+"</td><td class='num'>"+f1(b.predictedPct,"%")+"</td><td class='num'>"+f1(b.actualPct,"%")+"</td><td class='num'>"+b.picks+"</td></tr>";
  }).join("")+"</tbody></table></div>";
+ // two checks of the model against real results: the guard trial on logged picks, and the accuracy of the H/A/O/L letters
+ var tableOf=function(head,rowsHtml){return "<div class='tbl-wrap'><table class='mini-table recent-table'><thead><tr>"+head.map(function(h,i){return "<th scope='col'"+(i?" class='num'":"")+">"+h+"</th>"}).join("")+"</tr></thead><tbody>"+rowsHtml+"</tbody></table></div>"};
+ if(q.guard){
+  var g=q.guard,gr=function(label,x){return "<tr><td>"+label+"</td><td class='num'>"+x.picks+"</td><td class='num'>"+(x.roiPct===null||x.roiPct===undefined?"—":sign(x.roiPct,1)+"%")+"</td><td class='num'>"+(x.hitPct===null||x.hitPct===undefined?"—":x.hitPct.toFixed(1)+"%")+"</td></tr>"};
+  var since=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Bangkok",day:"numeric",month:"short",hour:"2-digit",minute:"2-digit",hour12:false}).format(new Date(g.sinceUtc));
+  body+="<div class='section-title'>Guard trial <span class='source-tag'>ทดลอง · ยังไม่ได้ใช้คัดจริง</span></div>"+
+   tableOf(["Group","Picks","ROI","Win rate"],gr("Passes the guards · all settled",g.passed)+gr("Fails the guards · all settled",g.failed)+gr("Passes · logged after "+since+" (out of sample)",g.passedAfter)+gr("Fails · logged after "+since+" (out of sample)",g.failedAfter))+
+   "<p class='detail-note'>กฎที่ทดลอง: ช่วงห่างระหว่างโมเดลกับตลาด (EV) ไม่เกิน 7% และฝั่งรอง (ได้แต้มต่อ) ต้องยังมี EV ≥ 2% เมื่อให้ตลาด 90% ของน้ำหนัก กฎเลือกจากการดู pick ชุดเดิม จึงดูได้เฉพาะแถว out of sample (pick ที่บันทึกหลังเวลาที่ระบุ) ว่ากฎช่วยจริงไหม ต้องรอสะสมเพิ่ม</p>";
+ }
+ if(lean&&lean.fixtures){
+  var lr2=function(label,x){return "<tr><td>"+label+"</td><td class='num'>"+x.n+"</td><td class='num'>"+x.win+"</td><td class='num'>"+x.loss+"</td><td class='num'>"+x.push+"</td><td class='num'>"+(x.hitPct===null||x.hitPct===undefined?"—":x.hitPct.toFixed(1)+"%")+"</td></tr>"};
+  body+="<div class='section-title'>Lean accuracy <span class='source-tag'>ตัวอักษร H/A/O/L ทุกคู่ที่วิเคราะห์และแข่งจบแล้ว ("+lean.fixtures+" คู่)</span></div>"+
+   tableOf(["Lean","Fixtures","Win","Loss","Push","Win rate"],lr2("Handicap (H/A)",lean.handicap)+lr2("· with a value pick",lean.handicapWithPick)+lr2("· no value pick",lean.handicapNoPick)+lr2("· backed side gives goals",lean.handicapGives)+lr2("· backed side receives goals",lean.handicapTakes)+lr2("Total (O/L)",lean.total)+lr2("· with a value pick",lean.totalWithPick)+lr2("· no value pick",lean.totalNoPick))+
+   "<p class='detail-note'>Win rate = ชนะ ÷ (ชนะ + แพ้) ตามสกอร์จริง 90 นาที ไม่นับเสมอ (คืนทุน) เส้นเศษส่วนนับครึ่ง ถ้าเดาสุ่มจะได้ราวหนึ่งในสอง (เพราะเส้นหลักคือเส้นที่ตลาดตั้งให้สูสี) ตัวเลขต้องสะสมหลายร้อยคู่ก่อนเชื่อได้</p>";
+ }
  if(latest.length)body+="<div class='section-title'>Latest picks</div><div class='hist-table'>"+histTableHtml(latest)+"</div>";
  if(!q.logged)body="<p class='detail-note'>ยังไม่มีคำแนะนำที่บันทึกไว้ เปิดหน้าเว็บหรือกด “จัดอันดับ” แล้วระบบจะบันทึกตัวเลือกที่ผ่านเกณฑ์ ตัดสินผลหลังแข่งจบ 3 ชั่วโมง และจับราคาปิดก่อนแข่ง 20 นาที</p>";
  el("statsBody").innerHTML=body;

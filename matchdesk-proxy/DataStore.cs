@@ -127,6 +127,57 @@ public sealed class MatchHistory(Db db, ILogger<MatchHistory> log)
         return System.Text.Encoding.UTF8.GetString(ms.ToArray());
     }
 
+    /// <summary>
+    /// How often the model's lean (H/A on the central handicap, O/L on the central total) was right, from the fixtures the daily job
+    /// analysed that have finished: win/loss/push shares by the real 90-minute score, with and without a value pick on that market.
+    /// </summary>
+    public object LeanStats()
+    {
+        var acc = new Dictionary<string, double[]>();   // key -> n, win, loss, push
+        void Add(string key, Pick backed, int hg, int ag)
+        {
+            var (_, win, loss) = PickLog.Settle(backed, hg, ag);
+            var a = acc.TryGetValue(key, out var v) ? v : acc[key] = new double[4];
+            a[0]++; a[1] += win; a[2] += loss; a[3] += 1 - win - loss;
+        }
+        int rows = 0;
+        using var c = db.Open();
+        using var cmd = c.CreateCommand();
+        cmd.CommandText = "SELECT home_goals, away_goals, model_json FROM match_history WHERE home_goals IS NOT NULL AND model_json IS NOT NULL";
+        using var r = cmd.ExecuteReader();
+        while (r.Read())
+        {
+            int hg = r.GetInt32(0), ag = r.GetInt32(1);
+            using var doc = JsonDocument.Parse(r.GetString(2));
+            if (!doc.RootElement.TryGetProperty("lean", out var lean) || lean.ValueKind != JsonValueKind.Object) continue;
+            var picked = new HashSet<string>();
+            if (doc.RootElement.TryGetProperty("picks", out var picks) && picks.ValueKind == JsonValueKind.Array)
+                foreach (var p in picks.EnumerateArray())
+                    if (p.TryGetProperty("market", out var m) && m.GetString() is { } mk) picked.Add(mk);
+            rows++;
+            foreach (var (name, market) in new[] { ("ah", "AH"), ("ou", "OU") })
+            {
+                if (!lean.TryGetProperty(name, out var l) || l.ValueKind != JsonValueKind.Object) continue;
+                var side = l.GetProperty("side").GetString() ?? "";
+                var line = l.GetProperty("line").GetDouble();
+                var backed = new Pick { Market = market, Side = side, Odds = 2, Line = market == "AH" && side == "away" ? -line : line };
+                Add(name, backed, hg, ag);
+                Add(name + (picked.Contains(market) ? "-with-pick" : "-no-pick"), backed, hg, ag);
+                if (market == "AH") Add("ah-" + (backed.Line < 0 ? "gives" : backed.Line > 0 ? "takes" : "level"), backed, hg, ag);
+            }
+        }
+        object Shape(string key) => acc.TryGetValue(key, out var a)
+            ? new { n = a[0], win = Math.Round(a[1], 1), loss = Math.Round(a[2], 1), push = Math.Round(a[3], 1), hitPct = a[1] + a[2] > 0 ? Math.Round(a[1] / (a[1] + a[2]) * 100, 1) : (double?)null }
+            : new { n = 0.0, win = 0.0, loss = 0.0, push = 0.0, hitPct = (double?)null };
+        return new
+        {
+            fixtures = rows,
+            handicap = Shape("ah"), handicapWithPick = Shape("ah-with-pick"), handicapNoPick = Shape("ah-no-pick"),
+            handicapGives = Shape("ah-gives"), handicapTakes = Shape("ah-takes"), handicapLevel = Shape("ah-level"),
+            total = Shape("ou"), totalWithPick = Shape("ou-with-pick"), totalNoPick = Shape("ou-no-pick"),
+        };
+    }
+
     /// <summary>Every row as JSON, for backtest/market.js.</summary>
     public string ExportJson()
     {

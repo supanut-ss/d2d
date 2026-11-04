@@ -145,6 +145,9 @@ app.MapPut("/api/shared/rank", async (string? date, HttpContext ctx, SharedRank 
 
 // The server's own analysis of a match day (from the daily job) and, if nobody has ranked lately, a way to start it:
 // the page asks for both when it opens, so the first visitor of the day triggers the ranking and everyone else just reads it.
+// accuracy of the H/A/O/L letters on finished fixtures (aggregates only)
+app.MapGet("/api/analysis/lean-stats", (MatchHistory history) => Results.Json(history.LeanStats())).RequireRateLimiting("api");
+
 app.MapGet("/api/analysis/day", (string? date, DailyJob job, MatchHistory history) =>
 {
     if (!SharedRank.ValidDate(date)) return Results.BadRequest(new { error = "invalid date" });

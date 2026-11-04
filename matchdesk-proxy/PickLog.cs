@@ -41,6 +41,22 @@ public sealed class Pick
     /// <summary>Share of the stake that won (0..1), pushes excluded from both shares</summary>
     public double? WinShare { get; set; }
     public double? LossShare { get; set; }
+    // conditions at the time of the pick, only recorded (see backtest/features.js)
+    /// <summary>Change of the market probability of this pick since tracking began, in points</summary>
+    public double? Move { get; set; }
+    /// <summary>Pinnacle when the market probability is Pinnacle's, otherwise an average of the books</summary>
+    public string? Anchor { get; set; }
+    public int? Books { get; set; }
+    /// <summary>Games of data behind the team statistics (this season plus the carried-over one)</summary>
+    public double? Games { get; set; }
+    public int? CurGames { get; set; }
+    /// <summary>Best price over the median price of the books</summary>
+    public double? PriceRatio { get; set; }
+    /// <summary>The other books' probability for this side, to compare with Pinnacle's</summary>
+    public double? PCons { get; set; }
+    public DateTime? OddsUpdated { get; set; }
+    /// <summary>true: lineups were known, false: expected by now but missing, null: too early to ask</summary>
+    public bool? Lineups { get; set; }
 }
 
 public sealed record KnownFixture(DateTime KickoffUtc, string League, string Home, string Away);
@@ -80,7 +96,9 @@ public sealed class KnownFixtures
 }
 
 public sealed record PickInput(int FixtureId, string Market, string Side, double Line, double LadderLine, string? Label, double Odds, string? Book,
-    double PModel, double PMarket, double PBlend, double Ev, int Conf);
+    double PModel, double PMarket, double PBlend, double Ev, int Conf,
+    double? Move = null, string? Anchor = null, int? Books = null, double? Games = null, int? CurGames = null, double? PriceRatio = null,
+    double? PCons = null, DateTime? OddsUpdated = null, bool? Lineups = null);
 
 /// <summary>Every ranked pick, kept so the model can be checked against closing prices and real results.</summary>
 public sealed class PickLog
@@ -164,6 +182,8 @@ public sealed class PickLog
                 Label = (i.Label ?? "").Length > 80 ? i.Label![..80] : i.Label ?? "",
                 Odds = i.Odds, Book = i.Book is { Length: > 40 } ? i.Book[..40] : i.Book,
                 PModel = i.PModel, PMarket = i.PMarket, PBlend = i.PBlend, Ev = i.Ev, Conf = i.Conf, LoggedAt = DateTime.UtcNow,
+                Move = i.Move, Anchor = i.Anchor is { Length: > 20 } ? i.Anchor[..20] : i.Anchor, Books = i.Books, Games = i.Games, CurGames = i.CurGames,
+                PriceRatio = i.PriceRatio, PCons = i.PCons, OddsUpdated = i.OddsUpdated, Lineups = i.Lineups,
             };
             if (_picks.TryAdd(id, pick)) added++;   // the first recommendation is the one that counts
         }
@@ -231,10 +251,25 @@ public sealed class PickLog
         p.FixtureId, p.KickoffUtc, p.League, p.Home, p.Away, p.Market, p.Label, p.Odds, p.Book, p.Status,
         predictedPct = Math.Round(p.PBlend * 100, 1), marketPct = Math.Round(p.PMarket * 100, 1), evPct = Math.Round(p.Ev, 1), p.Conf,
         p.ClvPct, p.HomeGoals, p.AwayGoals, units = p.Units is null ? (double?)null : Math.Round(p.Units.Value, 3),
-        p.WinShare, p.LossShare,
+        p.WinShare, p.LossShare, p.LoggedAt,
+        p.Move, p.Anchor, p.Books, p.Games, p.CurGames, p.PriceRatio, p.PCons, p.OddsUpdated, p.Lineups,
     }).ToList();
 
     // ---------- statistics
+
+    // A trial, not a rule: picks are still logged and shown exactly as before, but each is also judged against two guards so the
+    // two groups can be compared on picks logged after GuardSinceUtc (picks before it were seen when the guards were chosen).
+    //   - the EV gap to the market is at most 7%: the biggest gaps did worst, they look like model error
+    //   - a pick that receives the handicap (the underdog) must still show EV >= 2% when the market counts for 90% of the blend
+    public static readonly DateTime GuardSinceUtc = new(2026, 11, 4, 3, 30, 0, DateTimeKind.Utc);
+
+    public static bool PassesGuard(Pick p)
+    {
+        if (p.Ev > 7) return false;
+        if (p.Market == "AH" && p.Line > 0)
+            return (( .9 * p.PMarket + .1 * p.PModel) * p.Odds - 1) * 100 >= 2;
+        return true;
+    }
 
     public object Stats()
     {
@@ -299,6 +334,14 @@ public sealed class PickLog
             ou = Summary(settled.Where(p => p.Market == "OU").ToList()),
             clv = Summary(withClv),
             calibration,
+            guard = new
+            {
+                sinceUtc = GuardSinceUtc,
+                passed = Summary(settled.Where(PassesGuard).ToList()),
+                failed = Summary(settled.Where(p => !PassesGuard(p)).ToList()),
+                passedAfter = Summary(settled.Where(p => PassesGuard(p) && p.LoggedAt >= GuardSinceUtc).ToList()),
+                failedAfter = Summary(settled.Where(p => !PassesGuard(p) && p.LoggedAt >= GuardSinceUtc).ToList()),
+            },
             recent,
         };
     }

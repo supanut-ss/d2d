@@ -370,7 +370,7 @@ function allValueEntries(prob,markets,model,homeName,awayName){
   extra=extra||{};
   var b=metric?blendEv(metric.ev,odds,pMarket):null;
   if(!b)return;
-  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),books:books||0,games:games,curGames:curGames,ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,pCons:extra.pCons===undefined?null:extra.pCons,updated:markets&&markets.updated||null,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups,extra.anchor=="Pinnacle")});
+  entries.push({category:category,label:label,p:b.p,pModel:b.pModel,pMarket:pMarket,pLabel:"โอกาสเทียบราคา",push:metric.push,ev:b.ev,evModel:metric.ev,kelly:kellyPct(b.p,odds),books:books||0,games:games,curGames:curGames,ahLine:ahLine,ws:metric.winStake,ps:metric.pushStake,odds:odds,book:book,priceRatio:medOdds>1?odds/medOdds:1,ouMain:extra.ouMain===undefined?true:extra.ouMain,anchor:extra.anchor,pCons:extra.pCons===undefined?null:extra.pCons,updated:markets&&markets.updated||null,lineups:model&&model.adj&&model.adj.lineups!==undefined?model.adj.lineups:null,kind:extra.kind,side:extra.side,ladder:extra.ladder,conf:confidence(books,games,Math.abs(b.pModel-pMarket),model&&model.adj&&model.adj.lineups,extra.anchor=="Pinnacle")});
  };
  if(model&&markets&&markets.overUnder){
   // side lines have few bookmakers and unsteady prices: only the line priced closest to even is ranked
@@ -448,5 +448,8 @@ function analyseFixture(input){
 // the shape the server stores (same as the page sends to /api/picks/log)
 function pickRecord(fixtureId,e){
  return {fixtureId:fixtureId,market:e.kind,side:e.side,line:e.kind==="AH"?e.ahLine:e.ladder,ladderLine:e.ladder,
-  label:e.category+" "+e.label,odds:e.odds,book:e.book||null,pModel:e.pModel,pMarket:e.pMarket,pBlend:e.p,ev:e.ev,conf:e.conf};
+  label:e.category+" "+e.label,odds:e.odds,book:e.book||null,pModel:e.pModel,pMarket:e.pMarket,pBlend:e.p,ev:e.ev,conf:e.conf,
+  // not used to decide anything: kept so that later it can be checked which conditions go with good and bad results
+  move:e.move===undefined?null:e.move,anchor:e.anchor||null,books:e.books===undefined?null:e.books,games:e.games===undefined?null:e.games,curGames:e.curGames===undefined?null:e.curGames,
+  priceRatio:e.priceRatio===undefined?null:e.priceRatio,pCons:e.pCons===undefined?null:e.pCons,oddsUpdated:e.updated||null,lineups:e.lineups===undefined?null:e.lineups};
 }

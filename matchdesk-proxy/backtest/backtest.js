@@ -3,13 +3,15 @@
 const fs = require("fs"), path = require("path"), vm = require("vm");
 
 // BASE = the settings in model.js now; the sweeps vary one value at a time
-const BASE = { DISPERSION: .12, DC_RHO: 0, SHRINK_GAMES: 8, RW: .3, CARRY_WEIGHT: .6, TOTAL_K: 1 };
+const BASE = { DISPERSION: .12, DC_RHO: 0, SHRINK_GAMES: 8, RW: .3, CARRY_WEIGHT: .6, TOTAL_K: .5, STRENGTH_K: 1 };
 const MODEL_SRC = fs.readFileSync(path.join(__dirname, "..", "wwwroot", "model.js"), "utf8");
 
 // model.js hard-codes the recent-form weight; expose it as a variable so it can be swept. Fails loudly if model.js changed.
 function patched() {
   const swaps = [
     [".7*rate+.3*eq", "(1-RW)*rate+RW*eq"],
+    // experiment: sharpen the home/away split of the goals (keeps the total), STRENGTH_K = 1 leaves the model as it is
+    [" lh*=totalScale;la*=totalScale;", " lh*=totalScale;la*=totalScale; if(lh>0&&la>0){var rr=Math.pow(lh/la,STRENGTH_K),tt=lh+la;lh=tt*rr/(1+rr);la=tt/(1+rr)}"],
   ];
   let s = MODEL_SRC;
   for (const [a, b] of swaps) { if (!s.includes(a)) throw new Error("model.js changed, update the patch: " + a); s = s.replace(a, b); }
@@ -62,7 +64,7 @@ function run(matches, params, evalSeasons) {
   const P = Object.assign({}, BASE, params);
   const ctx = vm.createContext({ Math, Date, Map, Set, Number, String, Object, Array, JSON, isFinite, console });
   vm.runInContext(SRC, ctx);
-  Object.assign(ctx, { DISPERSION: P.DISPERSION, DC_RHO: P.DC_RHO, SHRINK_GAMES: P.SHRINK_GAMES, RW: P.RW, CARRY_WEIGHT: P.CARRY_WEIGHT, TOTAL_K: P.TOTAL_K });
+  Object.assign(ctx, { DISPERSION: P.DISPERSION, DC_RHO: P.DC_RHO, SHRINK_GAMES: P.SHRINK_GAMES, RW: P.RW, CARRY_WEIGHT: P.CARRY_WEIGHT, TOTAL_K: P.TOTAL_K, STRENGTH_K: P.STRENGTH_K });
   const seasons = [...new Set(matches.map(m => m.season))].sort();
   const history = new Map(), leagueRows = new Map(), rates = new Map();
   const acc = [];
