@@ -436,9 +436,10 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
  .lbl-extra{display:none}
  .controls{padding:12px}
  .quota-sub{display:none}
- .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}
+ .controls{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;padding:14px}
  .controls .field,.controls .field.search{min-width:0}
- .controls .field input,.controls .field select,.controls .field .btn{width:100%}
+ .controls .field input,.controls .field select,.controls .field .btn{width:100%;min-width:0;max-width:100%;box-sizing:border-box}
+ #dateInput{min-width:0;-webkit-appearance:none;appearance:none;text-align:left}   /* the date field kept its 150px minimum and, on iOS, a wider native width: it overlapped the league button */
  .field.search,.deep-toggle{grid-column:1/-1}
  .filter-actions{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;width:auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(20,48,68,.1);display:grid;grid-template-columns:1fr 1.35fr;gap:10px}
  .filter-actions .btn{width:100%;padding:0 10px;font-size:14px}
