@@ -69,8 +69,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .panel-toggle .chev{display:inline-grid;transition:transform .2s}
 .panel-toggle[aria-expanded=true] .chev{transform:rotate(180deg)}
 .panel-toggle:focus-visible{outline:2px solid var(--blue);outline-offset:3px;border-radius:6px}
-.match-odds{display:flex;flex-direction:column;align-items:center;gap:2px;min-height:22px;font-size:12px;color:var(--muted)}
-.mo-line{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 8px}
+.match-odds{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:0 10px;min-height:22px;font-size:12px;color:var(--muted)}
 .mo-grp{display:inline-flex;gap:0 10px}
 .mo-sep{color:var(--line);font-weight:400}
 .match-pick{display:flex;gap:6px;padding-left:12px;border-left:1px solid var(--line)}
@@ -390,7 +389,33 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 .ai-bar select,.ai-bar .btn{min-height:var(--tap)}
 .count,.keyhint,.source-tag{font-size:12px}
 @media(min-width:1200px){.main{padding-top:32px}.layout{grid-template-columns:minmax(380px,.8fr) minmax(560px,1.4fr)}.match-list{max-height:calc(100vh - 90px)}}
+.view-tabs{display:none}
 @media(max-width:900px){
+ .view-tabs{display:flex;gap:4px;margin:0 0 12px;padding:4px;background:var(--soft);border:1px solid var(--line);border-radius:12px;position:sticky;top:0;z-index:30}
+ .view-tabs button{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border:0;border-radius:9px;background:transparent;color:var(--ink2);font-weight:700;font-size:14px}
+ .view-tabs button[aria-selected=true]{background:#fff;color:var(--blue);box-shadow:0 1px 3px rgba(20,48,68,.18)}
+ .view-tabs button:focus-visible{outline:2px solid var(--blue);outline-offset:1px}
+ .vt-n{min-width:22px;padding:1px 7px;border-radius:20px;background:var(--soft);font:600 12px "Fira Code",monospace;color:var(--muted)}
+ .vt-n:empty{display:none}
+ .view-tabs [aria-selected=true] .vt-n{background:var(--blue2);color:var(--blue)}
+ .layout>.panel>.panel-head{display:none}
+ .main[data-view=matches] #rankPanel{display:none}
+ .main[data-view=rank] .layout{display:none}
+ .rank-head{display:none}
+ .rank-row{grid-template-columns:24px 34px auto minmax(0,1fr) auto;grid-template-areas:"i f f f f" ". k o w e" ". p p p p";gap:8px 12px;padding:16px 2px;align-items:center}
+ .rank-row .rank-index{grid-area:i;align-self:start;padding-top:2px}
+ .rank-row .rank-fixture{grid-area:f;min-height:0;display:block;font-size:15px}
+ .rank-row .rank-pred{grid-area:k}
+ .rank-row .rank-odds{grid-area:o;margin-top:0}
+ .rank-row .rank-odds .ov{font-size:17px}
+ .rank-row .rank-prob{display:block;grid-area:w;text-align:left;font-size:15px}
+ .rank-row .rank-ev{grid-area:e;font-size:15px}
+ .rank-row .rank-prob small,.rank-row .rank-ev small{display:block;font:400 11px "Noto Sans Thai",sans-serif;color:var(--muted)}
+ .rank-row .rank-pick{grid-area:p;padding-top:4px;border-top:1px dashed var(--line)}
+ .rank-panel .panel-head{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 10px;padding:12px}
+ .rank-panel .panel-head h2,.rank-panel .rank-tabs{grid-column:1/-1}
+ .rank-panel #rankCount{grid-column:1;font-size:12px}
+ .rank-panel #rankRefresh{grid-column:2}
  .main{padding-left:16px;padding-right:16px}
  .layout{grid-template-columns:1fr}
  .match-list{max-height:none;min-height:0;overflow:visible}
@@ -402,11 +427,14 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
 @media(max-width:760px){
  .topbar{height:56px;padding:0 14px}
  .main{padding:14px 12px calc(92px + env(safe-area-inset-bottom))}
- .intro{margin-bottom:12px;gap:10px;align-items:stretch}
+ .intro{margin-bottom:10px;gap:8px 10px;flex-direction:row;flex-wrap:wrap;align-items:center}
+ .intro>div:first-child{flex:1 1 100%}
  h1{font-size:22px}
  .lead{display:none}
- .intro .btn.ghost{align-self:flex-start}
- .quota-card{margin-left:0;width:100%;min-width:0;padding:8px 12px}
+ .intro .btn.ghost{flex:none;align-self:center;min-height:44px;padding:4px 12px;font-size:12px;white-space:nowrap}
+ .quota-card{margin-left:0;flex:1 1 0;width:auto;min-width:0;padding:8px 12px}
+ .lbl-extra{display:none}
+ .controls{padding:12px}
  .quota-sub{display:none}
  .controls{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px}
  .controls .field,.controls .field.search{min-width:0}
@@ -414,25 +442,19 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
  .field.search,.deep-toggle{grid-column:1/-1}
  .filter-actions{position:fixed;left:0;right:0;bottom:0;z-index:40;margin:0;width:auto;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:rgba(255,255,255,.97);border-top:1px solid var(--line);box-shadow:0 -8px 24px rgba(20,48,68,.1);display:grid;grid-template-columns:1fr 1.35fr;gap:10px}
  .filter-actions .btn{width:100%;padding:0 10px;font-size:14px}
- .teams{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h s" "hp s" "a s" "ap s" "o o";row-gap:2px;column-gap:12px}
+ .teams{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h s" "hp o" "a ." "ap l";row-gap:2px;column-gap:12px}
  .teams .team.home{grid-area:h}
  .teams .tprice[data-side=home]{grid-area:hp}
  .teams .score-mini{grid-area:s;font-size:15px}
  .teams .team.away{grid-area:a;flex-direction:row-reverse;justify-content:flex-end;text-align:left;margin-top:4px}
  .teams .tprice[data-side=away]{grid-area:ap;padding:3px 0 0 32px;text-align:left}
- .teams .match-odds{grid-area:o;padding-top:4px}
- .team{font-size:14px}
+ .teams .match-odds{display:contents}   /* O and L become grid items: O beside the home price, L beside the away price */
+ .teams .mo-o,.teams .mo-none{grid-area:o;justify-self:end;padding-top:3px}
+ .teams .mo-l{grid-area:l;justify-self:end;padding-top:3px}
+ .team{font-size:14px;align-items:flex-start}
+ .team>span:not(.fallback-logo){white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}
+ .team img,.team .fallback-logo{flex:none}
  .rank-body{padding:6px 12px}
- .rank-head{display:none}
- .rank-row{grid-template-columns:24px minmax(0,1fr) auto auto auto;grid-template-areas:"i f k o e" ". p p p p";gap:4px 10px;padding:14px 2px}
- .rank-row .rank-index{grid-area:i}
- .rank-row .rank-fixture{grid-area:f;min-height:var(--tap);display:block}
- .rank-row .rank-pick{grid-area:p}
- .rank-row .rank-pred{grid-area:k}
- .rank-row .rank-odds{grid-area:o;margin-top:-6px}
- .rank-row .rank-ev{grid-area:e;font-size:15px}
- .rank-row .rank-ev small{display:block;font:400 11px "Fira Code",monospace;color:var(--muted)}
- .rank-row .rank-prob{display:none}
  .rank-fixture{font-size:14px}
  .rank-panel .panel-head{padding:12px}
  .rank-tabs{width:100%}
@@ -465,7 +487,7 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
   </div>
 </header>
 <a class="skip" href="#main">ข้ามไปเนื้อหาหลัก</a>
-<main class="main" id="main">
+<main class="main" id="main" data-view="matches">
   <section class="intro">
     <div><h1>เปิดห้องวิเคราะห์</h1><p class="lead">เลือกวัน ดึงโปรแกรม แล้วเจาะข้อมูลทีละคู่เมื่อพร้อม</p></div>
     <div id="quotaCard" class="quota-card" aria-live="polite"><div class="quota-top"><span>โควตา API วันนี้</span><b id="quotaLeft">—</b></div><div class="quota-bar" aria-hidden="true"><span id="quotaBar"></span></div><div id="quotaSub" class="quota-sub">กำลังโหลด…</div></div>
@@ -473,13 +495,17 @@ h1{margin:0;font-size:27px;line-height:1.2;letter-spacing:-.025em}
   </section>
 
   <section class="controls" aria-label="ตัวกรองโปรแกรม">
-    <div class="field"><label for="dateInput">วันที่แข่งขัน (เวลาไทย 06:00–05:59)</label><input id="dateInput" type="date"></div>
+    <div class="field"><label for="dateInput">วันที่แข่งขัน <span class="lbl-extra">(เวลาไทย 06:00–05:59)</span></label><input id="dateInput" type="date"></div>
     <div class="field"><label for="leagueBtn">ลีกที่ต้องการดึง</label><button id="leagueBtn" class="btn ghost leaguebtn" type="button" aria-haspopup="dialog">เลือกลีก · ทั้งหมด</button></div>
     <div class="field search"><label for="searchInput">ค้นหาทีม</label><input id="searchInput" type="search" placeholder="พิมพ์ชื่อทีม"></div>
     <label class="deep-toggle" for="deepXg"><input id="deepXg" type="checkbox"><span>รวม xG <small>(ช้ากว่า ใช้โควตาเพิ่มราว 14 คำขอต่อคู่)</small></span></label>
     <div class="filter-actions"><button id="loadBtn" class="btn runbtn" type="button">1 · ดึงโปรแกรม</button><button id="rankBtn" class="btn secondary rankbtn" type="button" disabled>2 · จัดอันดับโอกาสคุ้ม</button></div>
   </section>
 
+  <div id="viewTabs" class="view-tabs" role="tablist" aria-label="มุมมอง">
+    <button type="button" role="tab" data-view="matches" aria-selected="true">คู่แข่งขัน <span id="tabMatchesN" class="vt-n"></span></button>
+    <button type="button" role="tab" data-view="rank" aria-selected="false">อันดับโอกาสคุ้ม <span id="tabRankN" class="vt-n"></span></button>
+  </div>
   <section id="rankPanel" class="panel rank-panel" hidden aria-live="polite">
     <div class="panel-head"><h2>อันดับโอกาสคุ้ม · แฮนดิแคป / สูงต่ำ</h2><div class="rank-tabs" role="tablist" aria-label="โหมดรายการ"><button id="modeOdds" class="rank-tab active" type="button" role="tab" aria-selected="true">แฮนดิแคป</button><button id="modeOU" class="rank-tab" type="button" role="tab" aria-selected="false">สูงต่ำ</button></div><span id="rankCount" class="rank-head-note">เทียบราคาเจ้ามือกับเปอร์เซ็นต์โมเดล</span><button id="rankRefresh" class="btn ghost icon-btn" type="button" title="ดึงผลจัดอันดับใหม่" aria-label="ดึงผลจัดอันดับใหม่" hidden></button></div>
     <div id="aiBar" class="ai-bar" hidden><label for="aiProvider">ให้ AI ช่วยวิเคราะห์คู่ที่คัดมา</label><select id="aiProvider" aria-label="แพลตฟอร์ม AI"></select><select id="aiModel" aria-label="โมเดล AI"></select><button id="aiBtn" class="btn secondary" type="button">วิเคราะห์ด้วย AI</button><span id="aiStatus" class="keyhint" aria-live="polite"></span></div>
@@ -625,7 +651,7 @@ function listOddsParts(id){
  var ah=function(line,odds){return "<span class='ahp"+(inPriceRange(odds)?"":" out")+"'><span class='ln "+(line>0?"pos":line<0?"neg":"")+"'>"+formatHandicap(line)+"</span> <b>"+decimal(odds)+"</b></span>"};
  var tot=function(cls,letter,line,odds){return "<span class='mo-side "+cls+(inPriceRange(odds)?"":" out")+"'>"+letter+" "+line+" <b>"+decimal(odds)+"</b></span>"};
  if(o.v){res.home=ah(o.v.line,o.v.home);res.away=ah(-o.v.line,o.v.away)}
- if(o.ou)res.total="<span class='mo-line'>"+tot("o","O",o.ou.line,o.ou.over)+tot("l","L",o.ou.line,o.ou.under)+"</span>";
+ if(o.ou)res.total="<span class='mo-o'>"+tot("o","O",o.ou.line,o.ou.over)+"</span><span class='mo-l'>"+tot("l","L",o.ou.line,o.ou.under)+"</span>";
  if(!o.v&&!o.ou)res.total="<span class='mo-none'>No price</span>";
  return res;
 }
@@ -813,7 +839,7 @@ function updateRankButton(){var n=filteredFixtures().filter(function(f){return f
 function renderFixtures(){
  var rows=filteredFixtures();
  updateRankButton();
- el("matchCount").textContent=rows.length+" คู่";
+ el("matchCount").textContent=rows.length+" คู่";el("tabMatchesN").textContent=rows.length||"";
  if(!rows.length){
   el("matchList").innerHTML="<div class='empty'><div class='empty-mark'>—</div><strong>ไม่พบคู่แข่งขัน</strong><span>ลองเปลี่ยนวันที่ ตัวกรอง หรือคำค้นหา</span></div>";
   return;
@@ -1127,7 +1153,7 @@ function renderRank(){
   list.forEach(function(x){var r=rejectReason(x);if(r&&x.ev>0)rejected[r]++});
   return ok.length?{fixture:it.fixture,entry:ok[0]}:null;
  }).filter(Boolean).sort(function(a,b){return b.entry.ev-a.entry.ev});
- lastCandidates=candidates;
+ lastCandidates=candidates;el("tabRankN").textContent=candidates.length||"";
  el("aiBar").hidden=!aiProviders.length||!candidates.length;
  var modeName=isOU?"สูงต่ำ":"แฮนดิแคป";
  var skipped=[["short","ราคาต่ำกว่า "+decimal(MIN_ODDS)],["longshot","ราคาเกิน "+decimal(MAX_ODDS)+" หรือโอกาสตลาดต่ำกว่า "+Math.round(MIN_PMARKET*100)+"%"],["line","ไม่ใช่เส้นหลักของสูงต่ำ"],["ev","EV เกิน "+(isOU?MAX_EV_OU:MAX_EV)+"%"],["gap","โมเดลห่างตลาดเกิน "+Math.round(MAX_GAP*100)+" จุด"],["outlier","ราคาสูงผิดปกติจากเจ้าเดียว"],["against","ตลาดไหลสวนเกิน "+MOVE_AGAINST+" จุด"],["thin","เจ้ามือน้อยกว่า "+MIN_BOOKS+" เจ้า"],["split","Pinnacle ต่างจากเจ้าอื่นเกิน "+Math.round(MAX_ANCHOR_GAP*100*10)/10+" จุด"],["stale","ราคาอัปเดตเกิน "+MAX_ODDS_AGE_H+" ชม."],["early","ทีมเล่นฤดูกาลนี้น้อยกว่า "+MIN_CUR_GAMES+" นัด หรือมีข้อมูลรวมน้อยกว่า "+MIN_GAMES+" นัด"],["conf","ความมั่นใจต่ำกว่า "+MIN_CONF]].filter(function(r){return rejected[r[0]]}).map(function(r){return r[1]+" "+rejected[r[0]]+" ตัวเลือก"});
@@ -1653,6 +1679,13 @@ el("clearBtn").addEventListener("click",function(){
 });
 el("loadBtn").addEventListener("click",loadFixtures);
 el("rankBtn").addEventListener("click",function(){rankMatches()});
+// phones and tablets: one view at a time (matches or ranking) instead of a long scroll through both
+el("viewTabs").addEventListener("click",function(ev){
+ var b=ev.target.closest("button[data-view]");if(!b)return;
+ el("main").dataset.view=b.dataset.view;
+ Array.prototype.forEach.call(el("viewTabs").querySelectorAll("button"),function(x){x.setAttribute("aria-selected",String(x===b))});
+ el("viewTabs").scrollIntoView({block:"start"});
+});
 el("rankRefresh").addEventListener("click",function(){rankMatches(true)});
 el("leagueBtn").addEventListener("click",openLeagueDialog);
 el("leagueSearch").addEventListener("input",renderLeagueChecklist);
