@@ -7,6 +7,14 @@ const projectRoot = dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   plugins: [react()],
+  server: {
+    proxy: {
+      "/matchdesk/api/drink-ledgers": {
+        target: "http://127.0.0.1:5087",
+        rewrite: (path) => path.replace(/^\/matchdesk/, ""),
+      },
+    },
+  },
   build: {
     rollupOptions: {
       input: {
@@ -21,6 +29,8 @@ export default defineConfig({
         sabaizy: resolve(projectRoot, "sabaizy.html"),
         payyet: resolve(projectRoot, "payyet.html"),
         joddaily: resolve(projectRoot, "joddaily.html"),
+        drinkLedger: resolve(projectRoot, "drink-ledger.html"),
+        whopay: resolve(projectRoot, "whopay/index.html"),
       },
     },
   },

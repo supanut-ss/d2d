@@ -7,6 +7,7 @@ const qrOrderingSearch = "qr ordering qrordering ร้านอาหาร ส
 const sabaizySearch = "sabaizy branch manager สาขา จัดการธุรกิจ คิว นัดหมาย บริการ แคชเชียร์ พนักงาน สมาชิก คอร์ส";
 const payYetSearch = "payyet pay yet line bot บอทไลน์ เก็บเงิน กลุ่ม เรียกเก็บเงิน qr พร้อมเพย์ สลิป แจ้งเตือน";
 const jodDailySearch = "joddaily จดเดลี่ รายรับ รายจ่าย บัญชีส่วนตัว บันทึกเงิน line bot ตั้งงบ ค่าสมาชิก csv";
+const drinkLedgerSearch = "ใครจ่าย สมุดค่าเครื่องดื่ม บันทึก จ่ายให้ ยอดค้าง";
 const bookSabuySearch = "booksabuy book sabuy บุ๊คสบาย ระบบจัดการร้านนวด จดคิว สมาชิก เติมเครดิต รายงาน line";
 const apps = [
   ...downloadTools.map((tool) => ({ category: "tool", search: tool.search })),
@@ -15,6 +16,7 @@ const apps = [
   { category: "web", search: bookSabuySearch },
   { category: "tool", search: payYetSearch },
   { category: "tool", search: jodDailySearch },
+  { category: "tool", search: drinkLedgerSearch },
   { category: "web", search: "pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป" },
   { category: "web", search: "meestock stockroom สต็อก คลังสินค้า เว็บแอป ธุรกิจ" },
   { category: "web", search: "เล่นกันมั้ย partygame party game เกมปาร์ตี้ เล่นผลัดกัน" },
@@ -426,6 +428,16 @@ export default function HomePage() {
         </article>
 
         {"\n            "}
+        <article className="app-card" data-category="tool" data-search={drinkLedgerSearch} hidden={!isAppVisible("tool", drinkLedgerSearch)}>
+          <div className="app-card-body">
+            <div className="app-meta"><span>เครื่องมือ</span></div>
+            <h3>ใครจ่าย</h3>
+            <p>จดว่าใครจ่ายให้ใคร และดูว่าใครยังค้างใคร</p>
+            <div className="app-actions">
+              <a className="text-link" href="/whopay/">เปิดใครจ่าย</a>
+            </div>
+          </div>
+        </article>
         <article className="app-card" data-category="web" data-search="pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป" hidden={!isAppVisible("web", "pimsaduak พิมพ์ใบปะหน้า ฉลาก พัสดุ ใบส่งของ qr barcode เว็บแอป")}>
           {"\n              "}
           <div className="app-art app-art-label" aria-hidden="true">

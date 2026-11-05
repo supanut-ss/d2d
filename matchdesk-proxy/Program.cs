@@ -66,6 +66,7 @@ app.Use(async (ctx, next) =>
 app.UseDefaultFiles();
 // always revalidate: without this a browser can keep showing an old page after a deploy
 app.UseStaticFiles(new StaticFileOptions { OnPrepareResponse = ctx => ctx.Context.Response.Headers.CacheControl = "no-cache" });
+DrinkLedgers.Map(app);
 
 // Only the endpoints the page uses; everything else is refused.
 var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
